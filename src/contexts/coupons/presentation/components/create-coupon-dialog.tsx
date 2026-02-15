@@ -1,0 +1,354 @@
+"use client";
+
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { cn } from "@/lib/utils";
+import {
+  ShoppingCart,
+  Package,
+  Sparkles,
+  Store,
+} from "lucide-react";
+import {
+  createCouponSchema,
+  CreateCouponFormValues,
+} from "../schemas/coupon.schema";
+import { useCreateCoupon } from "../hooks/use-create-coupon";
+
+const typeOptions = [
+  {
+    value: "STORE_WIDE" as const,
+    label: "Loja toda",
+    icon: Store,
+    color: "border-blue-500/40 bg-blue-500/5 text-blue-700 hover:bg-blue-500/10",
+    activeColor: "border-blue-500 bg-blue-500/15 text-blue-700 ring-2 ring-blue-500/20",
+  },
+  {
+    value: "FIRST_PURCHASE" as const,
+    label: "1ª compra",
+    icon: Sparkles,
+    color: "border-emerald-500/40 bg-emerald-500/5 text-emerald-700 hover:bg-emerald-500/10",
+    activeColor: "border-emerald-500 bg-emerald-500/15 text-emerald-700 ring-2 ring-emerald-500/20",
+  },
+  {
+    value: "BY_PRODUCT" as const,
+    label: "Produto",
+    icon: Package,
+    color: "border-amber-500/40 bg-amber-500/5 text-amber-700 hover:bg-amber-500/10",
+    activeColor: "border-amber-500 bg-amber-500/15 text-amber-700 ring-2 ring-amber-500/20",
+  },
+  {
+    value: "BY_CUSTOMER" as const,
+    label: "Cliente",
+    icon: ShoppingCart,
+    color: "border-purple-500/40 bg-purple-500/5 text-purple-700 hover:bg-purple-500/10",
+    activeColor: "border-purple-500 bg-purple-500/15 text-purple-700 ring-2 ring-purple-500/20",
+  },
+];
+
+interface CreateCouponDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function CreateCouponDialog({
+  open,
+  onOpenChange,
+}: CreateCouponDialogProps) {
+  const createMutation = useCreateCoupon();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<CreateCouponFormValues>({
+    resolver: zodResolver(createCouponSchema),
+    defaultValues: {
+      code: "",
+      type: "STORE_WIDE",
+      discountPercentage: undefined as unknown as number,
+      maxDiscountAmount: undefined,
+      minCartValue: undefined,
+      expiresAt: undefined,
+      usageLimit: undefined,
+      customerId: "",
+      productId: "",
+    },
+  });
+
+  const selectedType = watch("type");
+
+  const onSubmit = (data: CreateCouponFormValues) => {
+    createMutation.mutate(
+      {
+        code: data.code,
+        type: data.type,
+        discountPercentage: data.discountPercentage,
+        maxDiscountAmount: data.maxDiscountAmount,
+        minCartValue: data.minCartValue,
+        expiresAt: data.expiresAt ? data.expiresAt.toISOString() : undefined,
+        usageLimit: data.usageLimit,
+        customerId: data.customerId || undefined,
+        productId: data.productId || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Cupom criado com sucesso!");
+          reset();
+          onOpenChange(false);
+        },
+        onError: (error) => {
+          toast.error(error.message || "Erro ao criar cupom. Tente novamente.");
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Criar Cupom</DialogTitle>
+          <DialogDescription>
+            Configure o código, tipo, desconto e regras do cupom.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
+          {/* Tipo */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Tipo do cupom</Label>
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {typeOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => field.onChange(opt.value)}
+                      className={cn(
+                        "flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all duration-200",
+                        field.value === opt.value
+                          ? opt.activeColor
+                          : opt.color,
+                      )}
+                    >
+                      <opt.icon className="h-5 w-5" />
+                      <span className="text-[10px] sm:text-xs font-semibold">
+                        {opt.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            />
+            {errors.type && (
+              <p className="text-destructive text-sm">{errors.type.message}</p>
+            )}
+          </div>
+
+          {/* Código + Desconto */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="code" className="text-sm font-medium">
+                Código
+              </Label>
+              <Input
+                id="code"
+                placeholder="Ex: BEMVINDO10"
+                className="uppercase"
+                {...register("code")}
+              />
+              {errors.code && (
+                <p className="text-destructive text-sm">{errors.code.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="discountPercentage" className="text-sm font-medium">
+                Desconto (%)
+              </Label>
+              <Input
+                id="discountPercentage"
+                type="number"
+                min={1}
+                max={99}
+                placeholder="Ex: 10"
+                {...register("discountPercentage", { valueAsNumber: true })}
+              />
+              {errors.discountPercentage && (
+                <p className="text-destructive text-sm">
+                  {errors.discountPercentage.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Valores limites */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="maxDiscountAmount" className="text-sm font-medium">
+                Desconto máximo (R$){" "}
+                <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+              </Label>
+              <Input
+                id="maxDiscountAmount"
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="Ex: 50.00"
+                {...register("maxDiscountAmount", { valueAsNumber: true })}
+              />
+              {errors.maxDiscountAmount && (
+                <p className="text-destructive text-sm">
+                  {errors.maxDiscountAmount.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="minCartValue" className="text-sm font-medium">
+                Valor mínimo do carrinho (R$){" "}
+                <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+              </Label>
+              <Input
+                id="minCartValue"
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="Ex: 100.00"
+                {...register("minCartValue", { valueAsNumber: true })}
+              />
+              {errors.minCartValue && (
+                <p className="text-destructive text-sm">
+                  {errors.minCartValue.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Expiração + Limite de uso */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Expiração{" "}
+                <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+              </Label>
+              <Controller
+                name="expiresAt"
+                control={control}
+                render={({ field }) => (
+                  <DateTimePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Sem expiração"
+                  />
+                )}
+              />
+              {errors.expiresAt && (
+                <p className="text-destructive text-sm">
+                  {errors.expiresAt.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="usageLimit" className="text-sm font-medium">
+                Limite de uso{" "}
+                <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+              </Label>
+              <Input
+                id="usageLimit"
+                type="number"
+                min={1}
+                placeholder="Ilimitado"
+                {...register("usageLimit", { valueAsNumber: true })}
+              />
+              {errors.usageLimit && (
+                <p className="text-destructive text-sm">
+                  {errors.usageLimit.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Campos condicionais: Cliente / Produto */}
+          {selectedType === "BY_CUSTOMER" && (
+            <div className="space-y-2">
+              <Label htmlFor="customerId" className="text-sm font-medium">
+                ID do Cliente
+              </Label>
+              <Input
+                id="customerId"
+                placeholder="ID do cliente"
+                {...register("customerId")}
+              />
+              {errors.customerId && (
+                <p className="text-destructive text-sm">
+                  {errors.customerId.message}
+                </p>
+              )}
+            </div>
+          )}
+
+          {selectedType === "BY_PRODUCT" && (
+            <div className="space-y-2">
+              <Label htmlFor="productId" className="text-sm font-medium">
+                ID do Produto
+              </Label>
+              <Input
+                id="productId"
+                placeholder="ID do produto"
+                {...register("productId")}
+              />
+              {errors.productId && (
+                <p className="text-destructive text-sm">
+                  {errors.productId.message}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 border-t pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={createMutation.isPending}
+              className="min-w-[140px] shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
+            >
+              {createMutation.isPending ? "Criando..." : "Criar Cupom"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
