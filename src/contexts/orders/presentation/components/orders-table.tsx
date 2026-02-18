@@ -21,18 +21,22 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
+  Banknote,
+  Barcode,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
   Eye,
   MoreHorizontal,
   Package,
-  Percent,
+  QrCode,
   RefreshCw,
   Ticket,
   User,
   XCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { OrderListItem, OrderStatus } from "../../domain/entities/order";
 
 const STATUS_CONFIG: Record<
@@ -66,13 +70,29 @@ const TERMINAL_STATUSES: OrderStatus[] = ["DELIVERED", "CANCELLED"];
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CASH: "Dinheiro",
   PIX: "Pix",
-  TRANSFER: "Transferência",
-  CARD: "Cartão",
-  OTHER: "Outro",
   CREDIT_CARD: "Cartão de Crédito",
   DEBIT_CARD: "Cartão de Débito",
   BOLETO: "Boleto",
 };
+
+const PAYMENT_METHOD_ICONS: Record<string, LucideIcon> = {
+  CASH: Banknote,
+  PIX: QrCode,
+  CREDIT_CARD: CreditCard,
+  DEBIT_CARD: CreditCard,
+  BOLETO: Barcode,
+};
+
+function PaymentMethodLabel({ method }: { method: string }) {
+  const Icon = PAYMENT_METHOD_ICONS[method];
+  const label = PAYMENT_METHOD_LABELS[method] ?? method;
+  return (
+    <span className="flex items-center gap-1.5">
+      {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+      {label}
+    </span>
+  );
+}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("pt-BR", {
@@ -182,24 +202,25 @@ function OrderCard({
           <span className="font-medium text-foreground">{order.customerName}</span>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {order.couponCode && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Percent className="h-3 w-3" />
-              {order.couponCode}
-            </span>
-          )}
-        </div>
-
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <p className="text-muted-foreground text-xs">Valor</p>
-            <p className="font-semibold text-bee-gold">{formatCurrency(order.discountedAmount)}</p>
+            <div className="flex items-center gap-1.5">
+              {order.couponCode && (
+                <Ticket className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              )}
+              <div>
+                <p className="font-semibold text-bee-gold">{formatCurrency(order.discountedAmount)}</p>
+                {order.totalAmount !== order.discountedAmount && (
+                  <p className="text-xs text-muted-foreground line-through">{formatCurrency(order.totalAmount)}</p>
+                )}
+              </div>
+            </div>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Pagamento</p>
             <p className="font-medium">
-              {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}
+              <PaymentMethodLabel method={order.paymentMethod} />
             </p>
           </div>
           <div>
@@ -257,7 +278,7 @@ function OrderRow({
         </div>
       </TableCell>
       <TableCell>
-        {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}
+        <PaymentMethodLabel method={order.paymentMethod} />
       </TableCell>
       <TableCell>
         <StatusBadge status={order.status} />

@@ -7,11 +7,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
+  Barcode,
   CalendarDays,
+  Copy,
+  Download,
   Gift,
   MapPin,
   Package,
@@ -228,6 +232,59 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
                 <span>{gift.giftName}</span>
               </div>
             ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Boleto */}
+      {(order.boletoBarcode || order.boletoPdfUrl) && (
+        <Section title="Boleto">
+          <div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Barcode className="h-4 w-4 shrink-0" />
+              <span className="font-medium text-foreground">Boleto Bancário</span>
+            </div>
+            {order.boletoDueDate && (
+              <p className="text-xs text-muted-foreground">
+                Vencimento:{" "}
+                <span className="font-medium text-foreground">
+                  {new Date(order.boletoDueDate).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })}
+                </span>
+              </p>
+            )}
+            {order.boletoBarcode && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">Código de barras</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 min-w-0 break-all rounded bg-muted px-2 py-1.5 text-xs font-mono">
+                    {order.boletoBarcode}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => navigator.clipboard.writeText(order.boletoBarcode!)}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            {order.boletoPdfUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => window.open(order.boletoPdfUrl, "_blank")}
+              >
+                <Download className="h-4 w-4" />
+                Baixar Boleto
+              </Button>
+            )}
           </div>
         </Section>
       )}

@@ -19,6 +19,7 @@ export interface CreateOrderShippingAddressDTO {
 export interface CreateOrderShippingInfoDTO {
   carrier: string;
   service: string;
+  serviceCode?: number;
   price: number;
   deliveryTime: number;
 }
@@ -32,4 +33,5 @@ export interface CreateOrderDTO {
   shippingInfo?: CreateOrderShippingInfoDTO;
   giftTierIds?: string[];
   notes?: string;
+  boletoDueDays?: 30 | 60;
 }

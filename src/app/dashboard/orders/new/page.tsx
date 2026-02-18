@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback, Fragment } from "react";
+import { useState, useCallback, Fragment, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Banknote,
   Ban,
+  Barcode,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -15,6 +17,7 @@ import {
   Minus,
   Package,
   Plus,
+  QrCode,
   Search,
   Trash2,
   Truck,
@@ -43,8 +46,10 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 import { useCreateOrder } from "@/contexts/orders/presentation/hooks/use-create-order";
+import { ShippingOptionsSelector } from "@/shared/presentation/components/shipping-options-selector";
+import type { ShippingOption } from "@/shared/infrastructure/api/shipping/types";
+import { useAddressLookup } from "@/shared/presentation/hooks/use-address-lookup";
 
-/* ─── Types ─── */
 interface GiftTier {
   id: string;
   name: string;
@@ -54,7 +59,6 @@ interface GiftTier {
   isActive: boolean;
 }
 
-/* ─── Gift Image Dialog ─── */
 function GiftImageWithDialog({ src, alt }: { src?: string; alt: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -148,20 +152,21 @@ const DELIVERY_TYPES = [
 ];
 
 const PAYMENT_METHODS = [
-  { value: "PIX", label: "Pix" },
-  { value: "CASH", label: "Dinheiro" },
-  { value: "CARD", label: "Cartão" },
-  { value: "BOLETO", label: "Boleto" },
+  { value: "PIX", label: "Pix", icon: QrCode },
+  { value: "CASH", label: "Dinheiro", icon: Banknote },
+  { value: "CREDIT_CARD", label: "Crédito", icon: CreditCard },
+  { value: "DEBIT_CARD", label: "Débito", icon: CreditCard },
+  { value: "BOLETO", label: "Boleto", icon: Barcode },
 ];
 
 const STEPS = [
-  { id: 1, label: "Cliente", icon: User },
+  { id: 1, label: "Identificação", icon: User },
   { id: 2, label: "Itens & Brindes", icon: Package },
   { id: 3, label: "Pagamento", icon: CreditCard },
 ];
 
 const STEP_META = [
-  { title: "Cliente", description: "Selecione o cliente para o pedido" },
+  { title: "Identificação", description: "Selecione o cliente para o pedido" },
   {
     title: "Itens & Brindes",
     description: "Adicione produtos e brindes ao pedido",
@@ -176,19 +181,19 @@ function formatCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
-/* ─── Step Indicator ─── */
 function StepIndicator({ current }: { current: number }) {
   return (
     <div className="flex items-start w-full">
       {STEPS.map((step, idx) => {
         const isCompleted = current > step.id;
         const isActive = current === step.id;
+        const Icon = step.icon;
         return (
           <Fragment key={step.id}>
             <div className="flex flex-col items-center gap-1.5 shrink-0">
               <div
                 className={[
-                  "h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-200",
+                  "h-9 w-9 rounded-full flex items-center justify-center border-2 transition-all duration-200",
                   isCompleted
                     ? "bg-bee-gold border-bee-gold text-black"
                     : isActive
@@ -196,7 +201,7 @@ function StepIndicator({ current }: { current: number }) {
                       : "border-muted text-muted-foreground",
                 ].join(" ")}
               >
-                {isCompleted ? <Check className="h-4 w-4" /> : step.id}
+                {isCompleted ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
               </div>
               <span
                 className={[
@@ -224,7 +229,6 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-/* ─── Customer Search ─── */
 function CustomerSearch({
   onSelect,
   selected,
@@ -315,7 +319,6 @@ function CustomerSearch({
   );
 }
 
-/* ─── Product Search ─── */
 function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -495,7 +498,6 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
   );
 }
 
-/* ─── Page ─── */
 export default function NewOrderPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -504,6 +506,7 @@ export default function NewOrderPage() {
     useState<CustomerResult | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [boletoDueDays, setBoletoDueDays] = useState<30 | 60>(30);
   const [couponCode, setCouponCode] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedGiftIds, setSelectedGiftIds] = useState<string[]>([]);
@@ -526,11 +529,17 @@ export default function NewOrderPage() {
   const [shippingInfo, setShippingInfo] = useState({
     carrier: "",
     service: "",
+    serviceCode: undefined as number | undefined,
     price: "0",
     deliveryTime: "0",
   });
+  const [selectedShippingOption, setSelectedShippingOption] =
+    useState<ShippingOption | null>(null);
+  const [useManualShipping, setUseManualShipping] = useState(false);
+  const [addressAutoFilled, setAddressAutoFilled] = useState(false);
 
   const createOrderMutation = useCreateOrder();
+  const addressLookup = useAddressLookup();
 
   const { data: customerDetail } = useQuery({
     queryKey: ["customer-detail", selectedCustomer?.id],
@@ -539,7 +548,6 @@ export default function NewOrderPage() {
     enabled: !!selectedCustomer?.id,
   });
 
-  // Derived state — user edits override customer defaults, no effect needed
   const customerAddress = customerDetail?.address;
   const effectiveAddress = {
     street: addressOverrides.street ?? customerAddress?.street ?? "",
@@ -552,9 +560,52 @@ export default function NewOrderPage() {
     state: addressOverrides.state ?? customerAddress?.state ?? "",
     zipCode: addressOverrides.zipCode ?? customerAddress?.zipCode ?? "",
   };
-  // Auto-select "DELIVERY" when the customer has a saved address and user hasn't chosen yet
   const effectiveDeliveryType: DeliveryType =
     deliveryType || (customerAddress ? "DELIVERY" : "");
+
+  const prevZipCodeRef = useRef(effectiveAddress.zipCode.replace(/\D/g, ""));
+
+  function handleZipCodeChange(rawValue: string) {
+    const digits = rawValue.replace(/\D/g, "");
+    let formatted = digits;
+    if (digits.length > 5) {
+      formatted = `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
+    }
+
+    if (digits.length === 8 && digits !== prevZipCodeRef.current) {
+      prevZipCodeRef.current = digits;
+      setAddressOverrides((prev) => ({
+        ...prev,
+        zipCode: formatted,
+        number: "",
+        complement: "",
+        street: "",
+        neighborhood: "",
+        city: "",
+        state: "",
+      }));
+      setAddressAutoFilled(false);
+      addressLookup.mutate(digits, {
+        onSuccess: (data) => {
+          setAddressOverrides((prev) => ({
+            ...prev,
+            street: data.street,
+            neighborhood: data.neighborhood,
+            city: data.city,
+            state: data.state,
+          }));
+          setAddressAutoFilled(true);
+          setTimeout(() => setAddressAutoFilled(false), 3000);
+        },
+      });
+    } else {
+      setAddressOverrides((s) => ({
+        ...s,
+        zipCode: formatted,
+      }));
+      setAddressAutoFilled(false);
+    }
+  }
 
   const { data: giftTiersData } = useQuery({
     queryKey: ["gift-tiers"],
@@ -633,6 +684,30 @@ export default function NewOrderPage() {
       : 0;
   const discountedTotal = total - discountAmount;
 
+  const handleSelectShippingOption = useCallback((option: ShippingOption) => {
+    setSelectedShippingOption(option);
+    setShippingInfo({
+      carrier: option.carrier,
+      service: option.service,
+      serviceCode: option.serviceCode,
+      price: String(option.price),
+      deliveryTime: String(option.deliveryTime),
+    });
+    setUseManualShipping(false);
+  }, []);
+
+  const handleManualShippingFallback = useCallback(() => {
+    setUseManualShipping(true);
+    setSelectedShippingOption(null);
+    setShippingInfo({
+      carrier: "",
+      service: "",
+      serviceCode: undefined,
+      price: "0",
+      deliveryTime: "0",
+    });
+  }, []);
+
   function canProceed(): boolean {
     switch (step) {
       case 1:
@@ -640,13 +715,13 @@ export default function NewOrderPage() {
       case 2:
         return cartItems.length > 0;
       case 3:
+        if (!paymentMethod || !effectiveDeliveryType) return false;
+        if (effectiveDeliveryType !== "DELIVERY") return true;
         return (
-          !!paymentMethod &&
-          !!effectiveDeliveryType &&
-          (effectiveDeliveryType !== "DELIVERY" ||
-            (!!effectiveAddress.street &&
-              !!effectiveAddress.number &&
-              !!shippingInfo.carrier))
+          !!effectiveAddress.street &&
+          !!effectiveAddress.number &&
+          !!shippingInfo.carrier &&
+          !!shippingInfo.service
         );
       default:
         return false;
@@ -679,6 +754,7 @@ export default function NewOrderPage() {
           originalPrice: i.originalPrice,
         })),
         paymentMethod,
+        boletoDueDays: paymentMethod === "BOLETO" ? boletoDueDays : undefined,
         couponCode: couponCode || undefined,
         shippingAddress:
           effectiveDeliveryType === "DELIVERY"
@@ -697,6 +773,7 @@ export default function NewOrderPage() {
             ? {
                 carrier: shippingInfo.carrier,
                 service: shippingInfo.service,
+                serviceCode: shippingInfo.serviceCode,
                 price: parseFloat(shippingInfo.price) || 0,
                 deliveryTime: parseInt(shippingInfo.deliveryTime) || 0,
               }
@@ -709,8 +786,7 @@ export default function NewOrderPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto pb-8">
-      {/* Header */}
+    <div className="space-y-4 sm:space-y-6 pb-8">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -735,632 +811,1086 @@ export default function NewOrderPage() {
         </div>
       </div>
 
-      {/* Step Indicator */}
-      <StepIndicator current={step} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <div>
+            <StepIndicator current={step} />
+          </div>
 
-      {/* Step Content */}
-      <Card>
-        <CardHeader className="pb-3 border-b">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Etapa {step} de {STEPS.length}
-          </p>
-          <CardTitle className="text-lg mt-0.5">
-            {STEP_META[step - 1].title}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {STEP_META[step - 1].description}
-          </p>
-        </CardHeader>
+          <Card>
+            <CardHeader className="pb-3 border-b">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Etapa {step} de {STEPS.length}
+              </p>
+              <CardTitle className="text-lg mt-0.5">
+                {STEP_META[step - 1].title}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {STEP_META[step - 1].description}
+              </p>
+            </CardHeader>
 
-        <CardContent>
-          {/* ── Step 1: Customer ── */}
-          {step === 1 && (
-            <CustomerSearch
-              selected={selectedCustomer}
-              onSelect={(customer) => {
-                setSelectedCustomer(customer);
-                setAddressOverrides({});
-                setDeliveryType("");
-              }}
-              onClear={() => {
-                setSelectedCustomer(null);
-                setAddressOverrides({});
-                setDeliveryType("");
-              }}
-            />
-          )}
-
-          {/* ── Step 2: Items ── */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <ProductSearch onAddItem={handleAddItem} />
-
-              {cartItems.length > 0 && (
-                <div className="space-y-2">
-                  <Separator />
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.variantId}
-                      className="rounded-lg border bg-card p-3"
-                    >
-                      {/* Header row: product name and delete button */}
-                      <div className="flex items-start gap-2 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">
-                            {item.productName}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
-                          onClick={() => removeItem(item.variantId)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-
-                      {/* Variant and price row */}
-                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                        <span className="flex-1 min-w-0">
-                          {item.variantName}
-                        </span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {item.originalPrice && (
-                            <span className="line-through text-xs text-muted-foreground/70">
-                              {formatCurrency(item.originalPrice)}
-                            </span>
-                          )}
-                          <span
-                            className={
-                              item.originalPrice
-                                ? "text-green-600 font-semibold"
-                                : ""
-                            }
-                          >
-                            {formatCurrency(item.unitPrice)} / un.
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Controls row: quantity and total */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() =>
-                              updateQty(item.variantId, item.quantity - 1)
-                            }
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-7 text-center text-sm tabular-nums font-medium">
-                            {item.quantity}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() =>
-                              updateQty(item.variantId, item.quantity + 1)
-                            }
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <span className="text-sm font-semibold tabular-nums">
-                          {formatCurrency(item.unitPrice * item.quantity)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="rounded-lg bg-muted/50 p-3 text-sm">
-                    <div className="flex justify-between font-semibold">
-                      <span>Subtotal</span>
-                      <span>{formatCurrency(total)}</span>
-                    </div>
-                  </div>
-                </div>
+            <CardContent>
+              {step === 1 && (
+                <CustomerSearch
+                  selected={selectedCustomer}
+                  onSelect={(customer) => {
+                    setSelectedCustomer(customer);
+                    setAddressOverrides({});
+                    setDeliveryType("");
+                  }}
+                  onClear={() => {
+                    setSelectedCustomer(null);
+                    setAddressOverrides({});
+                    setDeliveryType("");
+                  }}
+                />
               )}
 
-              {cartItems.length === 0 && (
-                <div className="text-center py-10 text-muted-foreground text-sm">
-                  Nenhum item adicionado. Busque um produto acima.
-                </div>
-              )}
+              {step === 2 && (
+                <div className="space-y-4">
+                  <ProductSearch onAddItem={handleAddItem} />
 
-              {/* Gifts */}
-              {activeGiftTiers.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  <Separator />
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-1">
-                    Brindes{" "}
-                    <span className="font-normal normal-case">(opcional)</span>
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {activeGiftTiers.map((gift) => {
-                      const isSelected = selectedGiftIds.includes(gift.id);
-                      return (
+                  {cartItems.length > 0 && (
+                    <div className="space-y-2">
+                      <Separator />
+                      {cartItems.map((item) => (
                         <div
-                          key={gift.id}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => toggleGift(gift.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              toggleGift(gift.id);
-                            }
-                          }}
-                          className={[
-                            "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all cursor-pointer",
-                            isSelected
-                              ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold"
-                              : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
-                          ].join(" ")}
+                          key={item.variantId}
+                          className="rounded-lg border bg-card p-3"
                         >
-                          <GiftImageWithDialog
-                            src={gift.imageUrl}
-                            alt={gift.name}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold leading-tight">
-                              {gift.name}
-                            </p>
-                            {gift.description && (
-                              <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2">
-                                {gift.description}
+                          <div className="flex items-start gap-2 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">
+                                {item.productName}
                               </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                              onClick={() => removeItem(item.variantId)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                            <span className="flex-1 min-w-0">
+                              <span className="font-medium">Variante:</span>{" "}
+                              {item.variantName}
+                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {item.originalPrice && (
+                                <span className="line-through text-xs text-muted-foreground/70">
+                                  {formatCurrency(item.originalPrice)}
+                                </span>
+                              )}
+                              <span
+                                className={
+                                  item.originalPrice
+                                    ? "text-green-600 font-semibold"
+                                    : ""
+                                }
+                              >
+                                {formatCurrency(item.unitPrice)} / un.
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() =>
+                                  updateQty(item.variantId, item.quantity - 1)
+                                }
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-7 text-center text-sm tabular-nums font-medium">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() =>
+                                  updateQty(item.variantId, item.quantity + 1)
+                                }
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <span className="text-sm font-semibold tabular-nums">
+                              {formatCurrency(item.unitPrice * item.quantity)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+
+                      <div className="rounded-lg bg-muted/50 p-3 text-sm">
+                        <div className="flex justify-between font-semibold">
+                          <span>Subtotal</span>
+                          <span>{formatCurrency(total)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {cartItems.length === 0 && (
+                    <div className="text-center py-10 text-muted-foreground text-sm">
+                      Nenhum item adicionado. Busque um produto acima.
+                    </div>
+                  )}
+
+                  {activeGiftTiers.length > 0 && (
+                    <div className="space-y-2 pt-2">
+                      <Separator />
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-1">
+                        Brindes{" "}
+                        <span className="font-normal normal-case">
+                          (opcional)
+                        </span>
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {activeGiftTiers.map((gift) => {
+                          const isSelected = selectedGiftIds.includes(gift.id);
+                          return (
+                            <div
+                              key={gift.id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => toggleGift(gift.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  toggleGift(gift.id);
+                                }
+                              }}
+                              className={[
+                                "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all cursor-pointer",
+                                isSelected
+                                  ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold"
+                                  : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
+                              ].join(" ")}
+                            >
+                              <GiftImageWithDialog
+                                src={gift.imageUrl}
+                                alt={gift.name}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold leading-tight">
+                                  {gift.name}
+                                </p>
+                                {gift.description && (
+                                  <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2">
+                                    {gift.description}
+                                  </p>
+                                )}
+                              </div>
+                              {isSelected && (
+                                <Check className="h-4 w-4 text-bee-gold shrink-0" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Mobile Step 3: Payment & Shipping ── */}
+              {step === 3 && (
+                <div className="space-y-5">
+                  {/* Mobile-only order summary collapsible */}
+                  <div className="lg:hidden">
+                    <Collapsible defaultOpen={false}>
+                      <CollapsibleTrigger className="w-full group">
+                        <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="font-medium">
+                              {cartItems.length}{" "}
+                              {cartItems.length === 1 ? "item" : "itens"} ·{" "}
+                              {formatCurrency(discountedTotal)}
+                            </span>
+                            {discountAmount > 0 && (
+                              <span className="text-green-600 text-xs shrink-0">
+                                − {formatCurrency(discountAmount)}
+                              </span>
                             )}
                           </div>
-                          {isSelected && (
-                            <Check className="h-4 w-4 text-bee-gold shrink-0" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 shrink-0 ml-2" />
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="mt-2 rounded-lg border bg-card p-4 space-y-3">
+                          {/* Items list */}
+                          {cartItems.length > 0 && (
+                            <div className="space-y-2">
+                              {cartItems.map((item) => (
+                                <div
+                                  key={item.variantId}
+                                  className="flex items-start justify-between text-sm gap-2"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium truncate">
+                                      {item.productName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      <span className="font-medium">
+                                        Variante:
+                                      </span>{" "}
+                                      {item.variantName} × {item.quantity}
+                                    </p>
+                                  </div>
+                                  <div className="shrink-0 text-right tabular-nums">
+                                    {item.originalPrice && (
+                                      <p className="text-xs line-through text-muted-foreground/70">
+                                        {formatCurrency(
+                                          item.originalPrice * item.quantity,
+                                        )}
+                                      </p>
+                                    )}
+                                    <p
+                                      className={
+                                        item.originalPrice
+                                          ? "font-semibold text-green-600"
+                                          : "font-medium"
+                                      }
+                                    >
+                                      {formatCurrency(
+                                        item.unitPrice * item.quantity,
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Totals */}
+                          {cartItems.length > 0 && (
+                            <>
+                              <Separator />
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">
+                                    Subtotal
+                                  </span>
+                                  <span className="font-medium">
+                                    {formatCurrency(total)}
+                                  </span>
+                                </div>
+                                {discountAmount > 0 && (
+                                  <div className="flex justify-between text-sm text-green-600">
+                                    <span>Desconto</span>
+                                    <span className="font-medium">
+                                      − {formatCurrency(discountAmount)}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between font-bold">
+                                  <span>Total</span>
+                                  <span className="text-bee-gold">
+                                    {formatCurrency(discountedTotal)}
+                                  </span>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          {/* Payment method */}
+                          {paymentMethod && (
+                            <>
+                              <Separator />
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  Pagamento
+                                </span>
+                                {(() => {
+                                  const method = PAYMENT_METHODS.find(
+                                    (m) => m.value === paymentMethod,
+                                  );
+                                  const Icon = method?.icon;
+                                  return (
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                      {Icon && <Icon className="h-4 w-4" />}
+                                      {method?.label}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                            </>
+                          )}
+                          {/* Delivery type */}
+                          {effectiveDeliveryType && (
+                            <>
+                              <Separator />
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  Entrega
+                                </span>
+                                <span className="font-medium">
+                                  {
+                                    DELIVERY_TYPES.find(
+                                      (t) => t.value === effectiveDeliveryType,
+                                    )?.label
+                                  }
+                                </span>
+                              </div>
+                            </>
+                          )}
+                          {/* Gifts */}
+                          {selectedGiftIds.length > 0 && (
+                            <>
+                              <Separator />
+                              <div className="space-y-1.5">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                  Brindes ({selectedGiftIds.length})
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedGiftIds
+                                    .map((id) =>
+                                      activeGiftTiers.find((g) => g.id === id),
+                                    )
+                                    .filter(Boolean)
+                                    .map((gift) => (
+                                      <div
+                                        key={gift!.id}
+                                        className="flex items-center gap-1 px-2 py-1 rounded-full bg-bee-gold/10 text-xs"
+                                      >
+                                        <Gift className="h-3 w-3 text-bee-gold" />
+                                        <span className="truncate max-w-25">
+                                          {gift!.name}
+                                        </span>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            </>
                           )}
                         </div>
-                      );
-                    })}
+                      </CollapsibleContent>
+                    </Collapsible>
+                    <Separator className="mt-4" />
                   </div>
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* ── Step 3: Payment & Shipping ── */}
-          {step === 3 && (
-            <div className="space-y-5">
-              {/* Order summary */}
-              <div className="rounded-lg bg-muted/40 border p-3 space-y-1.5 text-sm">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Resumo do pedido
-                </p>
-                <div className="space-y-1">
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.variantId}
-                      className="flex justify-between items-start"
-                    >
-                      <div className="flex-1 min-w-0 mr-2">
-                        <p className="text-muted-foreground text-sm">
-                          {item.productName} — {item.variantName} ×{" "}
-                          {item.quantity}
-                        </p>
-                        {item.originalPrice && (
-                          <p className="text-xs text-muted-foreground/70 line-through">
-                            {formatCurrency(item.originalPrice)} / un.
-                          </p>
+                  {/* Payment method */}
+                  <div className="space-y-1.5">
+                    <Label>Forma de Pagamento *</Label>
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+                      {PAYMENT_METHODS.map((m, idx) => {
+                        const Icon = m.icon;
+                        const isSelected = paymentMethod === m.value;
+                        const isLastAlone =
+                          PAYMENT_METHODS.length % 2 !== 0 &&
+                          idx === PAYMENT_METHODS.length - 1;
+                        return (
+                          <button
+                            key={m.value}
+                            type="button"
+                            onClick={() => setPaymentMethod(m.value)}
+                            className={[
+                              "flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-all cursor-pointer",
+                              isLastAlone ? "col-span-2 lg:col-span-1" : "",
+                              isSelected
+                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
+                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40 text-foreground",
+                            ].join(" ")}
+                          >
+                            <Icon className="h-6 w-6" />
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Boleto due days */}
+                  {paymentMethod === "BOLETO" && (
+                    <div className="space-y-1.5">
+                      <Label>Vencimento do Boleto *</Label>
+                      <div className="flex gap-2">
+                        {([30, 60] as const).map((days) => (
+                          <button
+                            key={days}
+                            type="button"
+                            onClick={() => setBoletoDueDays(days)}
+                            className={[
+                              "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                              boletoDueDays === days
+                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
+                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
+                            ].join(" ")}
+                          >
+                            {days} dias
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Coupon */}
+                  <div className="space-y-2">
+                    <Label htmlFor="couponCode">
+                      Cupom{" "}
+                      <span className="text-muted-foreground text-xs">
+                        (opcional)
+                      </span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="couponCode"
+                        placeholder="Ex: DESCONTO10"
+                        value={couponCode}
+                        onChange={(e) =>
+                          setCouponCode(e.target.value.toUpperCase())
+                        }
+                        className={[
+                          "pr-9",
+                          couponIsValid
+                            ? "border-green-500 focus-visible:ring-green-500/30"
+                            : "",
+                          couponIsInvalid
+                            ? "border-destructive focus-visible:ring-destructive/30"
+                            : "",
+                        ].join(" ")}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {couponFetching && debouncedCouponCode.length >= 2 && (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        )}
+                        {couponIsValid && (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        )}
+                        {couponIsInvalid && (
+                          <XCircle className="h-4 w-4 text-destructive" />
                         )}
                       </div>
-                      <span
-                        className={
-                          item.originalPrice
-                            ? "shrink-0 tabular-nums font-semibold text-green-600"
-                            : "shrink-0 tabular-nums font-medium"
-                        }
-                      >
-                        {formatCurrency(item.unitPrice * item.quantity)}
-                      </span>
                     </div>
-                  ))}
-                </div>
-                <Separator />
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(total)}</span>
-                </div>
-                {discountAmount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>
-                      Desconto ({couponLookup?.discountPercentage}% —{" "}
-                      {couponLookup?.code})
-                    </span>
-                    <span>− {formatCurrency(discountAmount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold pt-1 border-t">
-                  <span>Total</span>
-                  <span className="text-bee-gold">
-                    {formatCurrency(discountedTotal)}
-                  </span>
-                </div>
-              </div>
 
-              {/* Payment method */}
-              <div className="space-y-1.5">
-                <Label>Forma de Pagamento *</Label>
-                <div className="flex flex-wrap gap-2">
-                  {PAYMENT_METHODS.map((m) => (
-                    <button
-                      key={m.value}
-                      type="button"
-                      onClick={() => setPaymentMethod(m.value)}
-                      className={[
-                        "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
-                        paymentMethod === m.value
-                          ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
-                          : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
-                      ].join(" ")}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Coupon */}
-              <div className="space-y-2">
-                <Label htmlFor="couponCode">
-                  Cupom{" "}
-                  <span className="text-muted-foreground text-xs">
-                    (opcional)
-                  </span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="couponCode"
-                    placeholder="Ex: DESCONTO10"
-                    value={couponCode}
-                    onChange={(e) =>
-                      setCouponCode(e.target.value.toUpperCase())
-                    }
-                    className={[
-                      "pr-9",
-                      couponIsValid
-                        ? "border-green-500 focus-visible:ring-green-500/30"
-                        : "",
-                      couponIsInvalid
-                        ? "border-destructive focus-visible:ring-destructive/30"
-                        : "",
-                    ].join(" ")}
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    {couponFetching && debouncedCouponCode.length >= 2 && (
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    )}
                     {couponIsValid && (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <div className="flex items-center gap-2.5 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 dark:border-green-900 dark:bg-green-950/40">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+                        <div>
+                          <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                            Cupom válido — {couponLookup!.discountPercentage}%
+                            de desconto
+                          </p>
+                          {couponLookup!.minCartValue ? (
+                            <p className="text-xs text-green-600 dark:text-green-500">
+                              Pedido mínimo:{" "}
+                              {formatCurrency(couponLookup!.minCartValue)}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
                     )}
+
                     {couponIsInvalid && (
-                      <XCircle className="h-4 w-4 text-destructive" />
+                      <div className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                        <XCircle className="h-4 w-4 shrink-0 text-destructive" />
+                        <div>
+                          <p className="text-sm font-semibold text-destructive">
+                            {couponError || !couponLookup?.found
+                              ? "Cupom não encontrado"
+                              : "Cupom inativo"}
+                          </p>
+                          <p className="text-xs text-destructive/80">
+                            {couponError || !couponLookup?.found
+                              ? "Verifique o código e tente novamente"
+                              : "Este cupom está desativado"}
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
 
-                {couponIsValid && (
-                  <div className="flex items-center gap-2.5 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 dark:border-green-900 dark:bg-green-950/40">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-                    <div>
-                      <p className="text-sm font-semibold text-green-700 dark:text-green-400">
-                        Cupom válido — {couponLookup!.discountPercentage}% de
-                        desconto
-                      </p>
-                      {couponLookup!.minCartValue ? (
-                        <p className="text-xs text-green-600 dark:text-green-500">
-                          Pedido mínimo:{" "}
-                          {formatCurrency(couponLookup!.minCartValue)}
-                        </p>
-                      ) : null}
+                  {/* Delivery type */}
+                  <div className="space-y-1.5">
+                    <Label>Tipo de Entrega *</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {DELIVERY_TYPES.map((type) => {
+                        const Icon = type.icon;
+                        const isSelected = effectiveDeliveryType === type.value;
+                        return (
+                          <button
+                            key={type.value}
+                            type="button"
+                            onClick={() => setDeliveryType(type.value)}
+                            className={[
+                              "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                              isSelected
+                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
+                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
+                            ].join(" ")}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {type.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                )}
 
-                {couponIsInvalid && (
-                  <div className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
-                    <XCircle className="h-4 w-4 shrink-0 text-destructive" />
-                    <div>
-                      <p className="text-sm font-semibold text-destructive">
-                        {couponError || !couponLookup?.found
-                          ? "Cupom não encontrado"
-                          : "Cupom inativo"}
-                      </p>
-                      <p className="text-xs text-destructive/80">
-                        {couponError || !couponLookup?.found
-                          ? "Verifique o código e tente novamente"
-                          : "Este cupom está desativado"}
-                      </p>
-                    </div>
+                  {/* Shipping form — only when delivery type is "DELIVERY" */}
+                  {effectiveDeliveryType === "DELIVERY" && (
+                    <Collapsible
+                      open={shippingFormOpen}
+                      onOpenChange={setShippingFormOpen}
+                    >
+                      <CollapsibleTrigger className="w-full group">
+                        <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors">
+                          <span>Dados de entrega</span>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="rounded-b-lg border border-t-0 p-4 space-y-4">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Endereço
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* CEP - Primeiro campo */}
+                            <div className="space-y-1.5 sm:col-span-2">
+                              <Label htmlFor="zipCode" className="text-sm">
+                                CEP <span className="text-destructive">*</span>
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="zipCode"
+                                  placeholder="00000-000"
+                                  value={effectiveAddress.zipCode}
+                                  onChange={(e) =>
+                                    handleZipCodeChange(e.target.value)
+                                  }
+                                  maxLength={9}
+                                  className={
+                                    addressLookup.isPending || addressAutoFilled
+                                      ? "pr-10"
+                                      : ""
+                                  }
+                                />
+                                {addressLookup.isPending && (
+                                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
+                                {addressAutoFilled &&
+                                  !addressLookup.isPending && (
+                                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                                  )}
+                              </div>
+                              {addressLookup.error && (
+                                <p className="text-xs text-destructive">
+                                  CEP não encontrado. Preencha o endereço
+                                  manualmente.
+                                </p>
+                              )}
+                              {addressAutoFilled &&
+                                !addressLookup.isPending &&
+                                !addressLookup.error && (
+                                  <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    Endereço preenchido automaticamente
+                                  </p>
+                                )}
+                            </div>
+
+                            {/* Rua */}
+                            <div className="space-y-1.5 sm:col-span-2">
+                              <Label htmlFor="street" className="text-sm">
+                                Rua <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="street"
+                                value={effectiveAddress.street}
+                                onChange={(e) =>
+                                  setAddressOverrides((s) => ({
+                                    ...s,
+                                    street: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+
+                            {/* Número */}
+                            <div className="space-y-1.5">
+                              <Label htmlFor="number" className="text-sm">
+                                Número{" "}
+                                <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="number"
+                                value={effectiveAddress.number}
+                                onChange={(e) =>
+                                  setAddressOverrides((s) => ({
+                                    ...s,
+                                    number: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+
+                            {/* Complemento */}
+                            <div className="space-y-1.5">
+                              <Label htmlFor="complement" className="text-sm">
+                                Complemento
+                              </Label>
+                              <Input
+                                id="complement"
+                                value={effectiveAddress.complement}
+                                onChange={(e) =>
+                                  setAddressOverrides((s) => ({
+                                    ...s,
+                                    complement: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+
+                            {/* Bairro */}
+                            <div className="space-y-1.5">
+                              <Label htmlFor="neighborhood" className="text-sm">
+                                Bairro{" "}
+                                <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="neighborhood"
+                                value={effectiveAddress.neighborhood}
+                                onChange={(e) =>
+                                  setAddressOverrides((s) => ({
+                                    ...s,
+                                    neighborhood: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+
+                            {/* Cidade */}
+                            <div className="space-y-1.5">
+                              <Label htmlFor="city" className="text-sm">
+                                Cidade{" "}
+                                <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="city"
+                                value={effectiveAddress.city}
+                                onChange={(e) =>
+                                  setAddressOverrides((s) => ({
+                                    ...s,
+                                    city: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+
+                            {/* Estado */}
+                            <div className="space-y-1.5">
+                              <Label htmlFor="state" className="text-sm">
+                                Estado{" "}
+                                <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="state"
+                                placeholder="Ex: SP"
+                                maxLength={2}
+                                value={effectiveAddress.state}
+                                onChange={(e) =>
+                                  setAddressOverrides((s) => ({
+                                    ...s,
+                                    state: e.target.value.toUpperCase(),
+                                  }))
+                                }
+                              />
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Shipping Options Selector */}
+                          {!useManualShipping ? (
+                            <ShippingOptionsSelector
+                              cartItems={cartItems.map((item) => ({
+                                productId: item.productId,
+                                variantId: item.variantId,
+                                quantity: item.quantity,
+                              }))}
+                              zipCode={effectiveAddress.zipCode}
+                              isAddressLookupPending={addressLookup.isPending}
+                              selectedOption={selectedShippingOption}
+                              onSelectOption={handleSelectShippingOption}
+                              onManualFallback={handleManualShippingFallback}
+                            />
+                          ) : (
+                            <>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Transportadora (preenchimento manual)
+                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="carrier" className="text-sm">
+                                    Transportadora{" "}
+                                    <span className="text-destructive">*</span>
+                                  </Label>
+                                  <Input
+                                    id="carrier"
+                                    placeholder="Ex: Correios"
+                                    value={shippingInfo.carrier}
+                                    onChange={(e) =>
+                                      setShippingInfo((s) => ({
+                                        ...s,
+                                        carrier: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="service" className="text-sm">
+                                    Serviço{" "}
+                                    <span className="text-destructive">*</span>
+                                  </Label>
+                                  <Input
+                                    id="service"
+                                    placeholder="Ex: PAC"
+                                    value={shippingInfo.service}
+                                    onChange={(e) =>
+                                      setShippingInfo((s) => ({
+                                        ...s,
+                                        service: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label
+                                    htmlFor="shippingPrice"
+                                    className="text-sm"
+                                  >
+                                    Valor do Frete (R$)
+                                  </Label>
+                                  <Input
+                                    id="shippingPrice"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={shippingInfo.price}
+                                    onChange={(e) =>
+                                      setShippingInfo((s) => ({
+                                        ...s,
+                                        price: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label
+                                    htmlFor="deliveryTime"
+                                    className="text-sm"
+                                  >
+                                    Prazo (dias)
+                                  </Label>
+                                  <Input
+                                    id="deliveryTime"
+                                    type="number"
+                                    min="0"
+                                    value={shippingInfo.deliveryTime}
+                                    onChange={(e) =>
+                                      setShippingInfo((s) => ({
+                                        ...s,
+                                        deliveryTime: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUseManualShipping(false)}
+                              >
+                                Voltar para cálculo de frete
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+
+                  {/* Notes */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="notes">
+                      Observações{" "}
+                      <span className="text-muted-foreground text-xs">
+                        (opcional)
+                      </span>
+                    </Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Observações sobre o pedido..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={3}
+                    />
                   </div>
-                )}
-              </div>
-
-              {/* Delivery type */}
-              <div className="space-y-1.5">
-                <Label>Tipo de Entrega *</Label>
-                <div className="flex flex-wrap gap-2">
-                  {DELIVERY_TYPES.map((type) => {
-                    const Icon = type.icon;
-                    const isSelected = effectiveDeliveryType === type.value;
-                    return (
-                      <button
-                        key={type.value}
-                        type="button"
-                        onClick={() => setDeliveryType(type.value)}
-                        className={[
-                          "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
-                          isSelected
-                            ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
-                            : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
-                        ].join(" ")}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {type.label}
-                      </button>
-                    );
-                  })}
                 </div>
-              </div>
+              )}
+            </CardContent>
+          </Card>
 
-              {/* Shipping form — only when delivery type is "DELIVERY" */}
-              {effectiveDeliveryType === "DELIVERY" && (
-                <Collapsible
-                  open={shippingFormOpen}
-                  onOpenChange={setShippingFormOpen}
-                >
-                  <CollapsibleTrigger className="w-full group">
-                    <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors">
-                      <span>Dados de entrega</span>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="rounded-b-lg border border-t-0 p-4 space-y-4">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Endereço
+          {/* Mobile Navigation */}
+          <div className="flex gap-3 lg:hidden">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={handleBack}
+              disabled={createOrderMutation.isPending}
+            >
+              {step > 1 ? "Voltar" : "Cancelar"}
+            </Button>
+            <Button
+              className="flex-1 shadow-md"
+              disabled={!canProceed() || createOrderMutation.isPending}
+              onClick={handleNext}
+            >
+              {createOrderMutation.isPending
+                ? "Criando..."
+                : step === STEPS.length
+                  ? "Criar Pedido"
+                  : "Próximo"}
+            </Button>
+          </div>
+        </div>
+
+        {/* ========== RIGHT COLUMN (1/3) - Sidebar with Order Summary ========== */}
+        <div className="hidden lg:block lg:col-span-1 space-y-4">
+          {/* Order Summary Card - Sticky on desktop */}
+          <Card className="sticky top-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Resumo do Pedido</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Customer Info */}
+              {selectedCustomer ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Cliente
+                  </p>
+                  <div className="flex items-start gap-2">
+                    <User className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {selectedCustomer.name}
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1.5 sm:col-span-2">
-                          <Label htmlFor="street" className="text-sm">
-                            Rua *
-                          </Label>
-                          <Input
-                            id="street"
-                            value={effectiveAddress.street}
-                            onChange={(e) =>
-                              setAddressOverrides((s) => ({
-                                ...s,
-                                street: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="number" className="text-sm">
-                            Número *
-                          </Label>
-                          <Input
-                            id="number"
-                            value={effectiveAddress.number}
-                            onChange={(e) =>
-                              setAddressOverrides((s) => ({
-                                ...s,
-                                number: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="complement" className="text-sm">
-                            Complemento
-                          </Label>
-                          <Input
-                            id="complement"
-                            value={effectiveAddress.complement}
-                            onChange={(e) =>
-                              setAddressOverrides((s) => ({
-                                ...s,
-                                complement: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="neighborhood" className="text-sm">
-                            Bairro *
-                          </Label>
-                          <Input
-                            id="neighborhood"
-                            value={effectiveAddress.neighborhood}
-                            onChange={(e) =>
-                              setAddressOverrides((s) => ({
-                                ...s,
-                                neighborhood: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="city" className="text-sm">
-                            Cidade *
-                          </Label>
-                          <Input
-                            id="city"
-                            value={effectiveAddress.city}
-                            onChange={(e) =>
-                              setAddressOverrides((s) => ({
-                                ...s,
-                                city: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="state" className="text-sm">
-                            Estado *
-                          </Label>
-                          <Input
-                            id="state"
-                            placeholder="Ex: SP"
-                            maxLength={2}
-                            value={effectiveAddress.state}
-                            onChange={(e) =>
-                              setAddressOverrides((s) => ({
-                                ...s,
-                                state: e.target.value.toUpperCase(),
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="zipCode" className="text-sm">
-                            CEP *
-                          </Label>
-                          <Input
-                            id="zipCode"
-                            placeholder="00000-000"
-                            value={effectiveAddress.zipCode}
-                            onChange={(e) =>
-                              setAddressOverrides((s) => ({
-                                ...s,
-                                zipCode: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Transportadora
+                      <p className="text-xs text-muted-foreground truncate">
+                        {selectedCustomer.email}
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="carrier" className="text-sm">
-                            Transportadora *
-                          </Label>
-                          <Input
-                            id="carrier"
-                            placeholder="Ex: Correios"
-                            value={shippingInfo.carrier}
-                            onChange={(e) =>
-                              setShippingInfo((s) => ({
-                                ...s,
-                                carrier: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="service" className="text-sm">
-                            Serviço
-                          </Label>
-                          <Input
-                            id="service"
-                            placeholder="Ex: PAC"
-                            value={shippingInfo.service}
-                            onChange={(e) =>
-                              setShippingInfo((s) => ({
-                                ...s,
-                                service: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="shippingPrice" className="text-sm">
-                            Valor do Frete (R$)
-                          </Label>
-                          <Input
-                            id="shippingPrice"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={shippingInfo.price}
-                            onChange={(e) =>
-                              setShippingInfo((s) => ({
-                                ...s,
-                                price: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="deliveryTime" className="text-sm">
-                            Prazo (dias)
-                          </Label>
-                          <Input
-                            id="deliveryTime"
-                            type="number"
-                            min="0"
-                            value={shippingInfo.deliveryTime}
-                            onChange={(e) =>
-                              setShippingInfo((s) => ({
-                                ...s,
-                                deliveryTime: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
                     </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => {
+                        setSelectedCustomer(null);
+                        setAddressOverrides({});
+                        setDeliveryType("");
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-muted/50 text-center">
+                  <User className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+                  <p className="text-xs text-muted-foreground">
+                    Nenhum cliente selecionado
+                  </p>
+                </div>
               )}
 
-              {/* Notes */}
-              <div className="space-y-1.5">
-                <Label htmlFor="notes">
-                  Observações{" "}
-                  <span className="text-muted-foreground text-xs">
-                    (opcional)
-                  </span>
-                </Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Observações sobre o pedido..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              {selectedCustomer && <Separator />}
 
-      {/* Navigation */}
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={handleBack}
-          disabled={createOrderMutation.isPending}
-        >
-          {step > 1 ? "Voltar" : "Cancelar"}
-        </Button>
-        <Button
-          className="flex-1 shadow-md"
-          disabled={!canProceed() || createOrderMutation.isPending}
-          onClick={handleNext}
-        >
-          {createOrderMutation.isPending
-            ? "Criando pedido..."
-            : step === STEPS.length
-              ? "Criar Pedido"
-              : "Próximo"}
-        </Button>
+              {/* Items Summary */}
+              {cartItems.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Itens ({cartItems.length})
+                  </p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {cartItems.map((item) => (
+                      <div
+                        key={item.variantId}
+                        className="flex items-start justify-between text-sm gap-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">
+                            {item.productName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium">Variante:</span>{" "}
+                            {item.variantName} × {item.quantity}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right tabular-nums">
+                          {item.originalPrice && (
+                            <p className="text-xs line-through text-muted-foreground/70">
+                              {formatCurrency(
+                                item.originalPrice * item.quantity,
+                              )}
+                            </p>
+                          )}
+                          <p
+                            className={
+                              item.originalPrice
+                                ? "text-sm font-semibold text-green-600"
+                                : "text-sm font-medium"
+                            }
+                          >
+                            {formatCurrency(item.unitPrice * item.quantity)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-muted/50 text-center">
+                  <Package className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+                  <p className="text-xs text-muted-foreground">
+                    Nenhum item adicionado
+                  </p>
+                </div>
+              )}
+
+              {cartItems.length > 0 && <Separator />}
+
+              {/* Totals */}
+              {cartItems.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-medium">{formatCurrency(total)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Desconto</span>
+                      <span className="font-medium">
+                        − {formatCurrency(discountAmount)}
+                      </span>
+                    </div>
+                  )}
+                  <Separator />
+                  <div className="flex justify-between text-base font-bold">
+                    <span>Total</span>
+                    <span className="text-bee-gold">
+                      {formatCurrency(discountedTotal)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Method */}
+              {paymentMethod && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Pagamento
+                    </span>
+                    {(() => {
+                      const method = PAYMENT_METHODS.find(
+                        (m) => m.value === paymentMethod,
+                      );
+                      const Icon = method?.icon;
+                      return (
+                        <span className="flex items-center gap-1.5 text-sm font-medium">
+                          {Icon && <Icon className="h-4 w-4" />}
+                          {method?.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </>
+              )}
+
+              {/* Delivery Type */}
+              {effectiveDeliveryType && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Entrega
+                    </span>
+                    <span className="text-sm font-medium">
+                      {
+                        DELIVERY_TYPES.find(
+                          (t) => t.value === effectiveDeliveryType,
+                        )?.label
+                      }
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {/* Selected Gifts */}
+              {selectedGiftIds.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Brindes ({selectedGiftIds.length})
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedGiftIds
+                        .map((id) => activeGiftTiers.find((g) => g.id === id))
+                        .filter(Boolean)
+                        .map((gift) => (
+                          <div
+                            key={gift!.id}
+                            className="flex items-center gap-1 px-2 py-1 rounded-full bg-bee-gold/10 text-xs"
+                          >
+                            <Gift className="h-3 w-3 text-bee-gold" />
+                            <span className="truncate max-w-25">
+                              {gift!.name}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Desktop Navigation Buttons */}
+              <div className="hidden lg:block pt-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleBack}
+                    disabled={createOrderMutation.isPending}
+                  >
+                    {step > 1 ? "Voltar" : "Cancelar"}
+                  </Button>
+                  <Button
+                    className="flex-1 shadow-md"
+                    disabled={!canProceed() || createOrderMutation.isPending}
+                    onClick={handleNext}
+                  >
+                    {createOrderMutation.isPending
+                      ? "Criando..."
+                      : step === STEPS.length
+                        ? "Criar Pedido"
+                        : "Próximo"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

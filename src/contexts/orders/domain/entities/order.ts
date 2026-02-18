@@ -74,6 +74,9 @@ export interface OrderDetail extends OrderListItem {
   couponCode?: string;
   gifts: { giftName: string; giftImageUrl?: string }[];
   statusHistory: { status: string; changedAt: string }[];
+  boletoBarcode?: string;
+  boletoPdfUrl?: string;
+  boletoDueDate?: string;
 }
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
