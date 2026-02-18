@@ -93,8 +93,17 @@ const menuItems: MenuItem[] = [
   },
   {
     title: "Afiliados",
-    href: "/dashboard/affiliates",
     icon: Users,
+    submenu: [
+      {
+        title: "Lista de Afiliados",
+        href: "/dashboard/affiliates/list",
+      },
+      {
+        title: "Categorias de Afiliados",
+        href: "/dashboard/affiliates/categories",
+      },
+    ],
   },
   {
     title: "Brindes",

@@ -36,6 +36,7 @@ import {
   Percent,
   Calendar,
   MoreHorizontal,
+  FolderTree,
 } from "lucide-react";
 import { Affiliate } from "../../domain/entities/affiliate";
 import { useAffiliates } from "../hooks/use-affiliates";
@@ -78,6 +79,20 @@ function SocialMediaLinksDesktop({ urls }: { urls: string[] }) {
         ))}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/* ─── Category Badge ─── */
+function CategoryBadge({ categoryName, category }: { categoryName?: string | null; category?: { name: string } | null }) {
+  const name = category?.name ?? categoryName ?? null;
+  if (!name) {
+    return <span className="text-muted-foreground text-sm">—</span>;
+  }
+  return (
+    <div className="flex items-center gap-1.5 text-sm">
+      <FolderTree className="h-3.5 w-3.5 text-muted-foreground" />
+      <span className="font-medium">{name}</span>
+    </div>
   );
 }
 
@@ -152,6 +167,16 @@ function AffiliateCard({
           <AffiliateActions onEdit={onEdit} onDelete={onDelete} />
         </div>
 
+        {/* Category Badge */}
+        {(affiliate.category || affiliate.categoryName) && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1.5 text-xs font-medium bg-muted/50">
+              <FolderTree className="h-3 w-3" />
+              {affiliate.category?.name ?? affiliate.categoryName}
+            </Badge>
+          </div>
+        )}
+
         {/* Contact info */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
           {affiliate.phone && (
@@ -224,6 +249,9 @@ function AffiliateRow({
         </div>
       </TableCell>
       <TableCell>
+        <CategoryBadge categoryName={affiliate.categoryName} category={affiliate.category} />
+      </TableCell>
+      <TableCell>
         <div className="flex flex-col gap-1 text-sm">
           {affiliate.phone && (
             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -291,6 +319,9 @@ function TableSkeleton() {
         <TableRow key={i}>
           <TableCell>
             <Skeleton className="h-9 w-48" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-28" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-32" />
@@ -384,11 +415,12 @@ export function AffiliatesTable() {
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[250px]">Afiliado</TableHead>
-            <TableHead className="w-[200px]">Contato</TableHead>
-            <TableHead className="w-[120px]">Comissão</TableHead>
-            <TableHead className="w-[150px]">Redes Sociais</TableHead>
-            <TableHead className="w-[120px]">Cadastro</TableHead>
+            <TableHead className="w-[220px]">Afiliado</TableHead>
+            <TableHead className="w-[150px]">Categoria</TableHead>
+            <TableHead className="w-[180px]">Contato</TableHead>
+            <TableHead className="w-[100px]">Comissão</TableHead>
+            <TableHead className="w-[130px]">Redes Sociais</TableHead>
+            <TableHead className="w-[110px]">Cadastro</TableHead>
             <TableHead className="w-[50px] text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -396,14 +428,14 @@ export function AffiliatesTable() {
           {isLoading && <TableSkeleton />}
           {isError && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center">
+              <TableCell colSpan={7} className="text-center">
                 <ErrorState />
               </TableCell>
             </TableRow>
           )}
           {!isLoading && !isError && affiliates.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center">
+              <TableCell colSpan={7} className="text-center">
                 <EmptyState />
               </TableCell>
             </TableRow>

@@ -29,7 +29,14 @@ const emailValidator = z
     { message: "Informe um e-mail válido" }
   );
 
-export const createAffiliateSchema = z.object({
+const categoryIdSchema = z
+  .string()
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => (v && v.trim() ? v : undefined));
+
+// Base schema with all fields
+const baseAffiliateSchema = z.object({
   name: z
     .string()
     .min(3, "O nome deve ter pelo menos 3 caracteres")
@@ -42,25 +49,14 @@ export const createAffiliateSchema = z.object({
     .number({ message: "Informe a taxa de comissão" })
     .min(0, "A taxa deve ser maior ou igual a 0")
     .max(100, "A taxa deve ser menor ou igual a 100"),
+  categoryId: categoryIdSchema,
 });
+
+// Create schema - all required fields present
+export const createAffiliateSchema = baseAffiliateSchema;
+
+// Update schema - all fields optional
+export const updateAffiliateSchema = baseAffiliateSchema.partial();
 
 export type CreateAffiliateFormValues = z.infer<typeof createAffiliateSchema>;
-
-// Update schema with all optional fields
-export const updateAffiliateSchema = z.object({
-  name: z
-    .string()
-    .min(3, "O nome deve ter pelo menos 3 caracteres")
-    .max(100, "O nome deve ter no máximo 100 caracteres")
-    .optional(),
-  email: emailValidator.optional(),
-  phone: z.string().optional(),
-  cpf: z.string().optional(),
-  socialMedia: socialMediaSchema.optional(),
-  commissionRate: z
-    .number({ message: "Informe a taxa de comissão" })
-    .min(0, "A taxa deve ser maior ou igual a 0")
-    .max(100, "A taxa deve ser menor ou igual a 100"),
-});
-
 export type UpdateAffiliateFormValues = z.infer<typeof updateAffiliateSchema>;

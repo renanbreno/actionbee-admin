@@ -5,4 +5,5 @@ export interface UpdateAffiliateDto {
   cpf?: string;
   socialMedia?: string[];
   commissionRate?: number;
+  categoryId?: string;
 }

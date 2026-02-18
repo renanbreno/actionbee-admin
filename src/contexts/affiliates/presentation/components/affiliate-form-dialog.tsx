@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, useFieldArray, FieldError } from "react-hook-form";
+import { useForm, useFieldArray, Controller, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -14,7 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Link as LinkIcon } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Trash2, Link as LinkIcon, FolderTree, Loader2 } from "lucide-react";
 import { Affiliate } from "../../domain/entities/affiliate";
 import {
   createAffiliateSchema,
@@ -24,6 +31,7 @@ import {
 } from "../schemas/affiliate.schema";
 import { useCreateAffiliate } from "../hooks/use-create-affiliate";
 import { useUpdateAffiliate } from "../hooks/use-update-affiliate";
+import { useAffiliateCategories } from "@/contexts/affiliate-categories/presentation/hooks/use-affiliate-categories";
 import {
   maskPhone,
   maskCPF,
@@ -57,6 +65,8 @@ export function AffiliateFormDialog({
   const updateMutation = useUpdateAffiliate();
   const mutation = isEditing ? updateMutation : createMutation;
 
+  const { data: categories, isLoading: isLoadingCategories } = useAffiliateCategories(true);
+
   const [phoneDisplay, setPhoneDisplay] = useState("");
   const [cpfDisplay, setCpfDisplay] = useState("");
 
@@ -75,6 +85,7 @@ export function AffiliateFormDialog({
       cpf: "",
       socialMedia: [],
       commissionRate: isEditing ? undefined : 0,
+      categoryId: "",
     },
   });
 
@@ -94,6 +105,7 @@ export function AffiliateFormDialog({
         cpf: cpfFormatted,
         socialMedia: affiliate.socialMedia || [],
         commissionRate: affiliate.commissionRate,
+        categoryId: affiliate.categoryId || "",
       });
     } else {
       setPhoneDisplay("");
@@ -105,6 +117,7 @@ export function AffiliateFormDialog({
         cpf: "",
         socialMedia: [],
         commissionRate: 0,
+        categoryId: "",
       });
     }
   }, [affiliate, reset]);
@@ -120,6 +133,7 @@ export function AffiliateFormDialog({
           ? data.socialMedia
           : undefined,
       commissionRate: data.commissionRate,
+      categoryId: data.categoryId || undefined,
     };
 
     const onSuccess = () => {
@@ -161,6 +175,8 @@ export function AffiliateFormDialog({
     onOpenChange(false);
   };
 
+  const activeCategories = categories?.filter((c) => c.isActive) ?? [];
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       {open && (
@@ -176,112 +192,122 @@ export function AffiliateFormDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
-            {/* Nome */}
-            <div className="space-y-2">
-              <Label htmlFor="af-name" className="text-sm font-medium">
-                Nome completo <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="af-name"
-                placeholder="Ex: João Silva"
-                {...register("name")}
-              />
-              {errors.name && (
-                <p className="text-destructive text-sm">
-                  {getErrorMessage(errors.name)}
-                </p>
-              )}
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="af-email" className="text-sm font-medium">
-                E-mail <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="af-email"
-                type="email"
-                placeholder="Ex: joao@email.com"
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className="text-destructive text-sm">
-                  {getErrorMessage(errors.email)}
-                </p>
-              )}
-            </div>
-
-            {/* Taxa de Comissão */}
-            <div className="space-y-2">
-              <Label htmlFor="af-commissionRate" className="text-sm font-medium">
-                Taxa de comissão (%) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="af-commissionRate"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="Ex: 5.00 para 5%"
-                {...register("commissionRate", { valueAsNumber: true })}
-              />
-              {errors.commissionRate && (
-                <p className="text-destructive text-sm">
-                  {getErrorMessage(errors.commissionRate)}
-                </p>
-              )}
-              {isEditing && (
-                <p className="text-xs text-muted-foreground">
-                  Alterações na taxa só afetam comissões futuras. Comissões já
-                  registradas mantêm o valor original.
-                </p>
-              )}
-            </div>
-
-            {/* Telefone e CPF */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+            {/* Nome e Email - lado a lado */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="af-phone" className="text-sm font-medium">
-                  Telefone{" "}
-                  <span className="text-muted-foreground/60 font-normal">
-                    (opcional)
-                  </span>
+                <Label htmlFor="af-name" className="text-sm font-medium">
+                  Nome completo <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="af-phone"
-                  type="tel"
-                  placeholder="Ex: (11) 98765-4321"
-                  value={phoneDisplay}
-                  onChange={(e) => {
-                    const masked = maskPhone(e.target.value);
-                    setPhoneDisplay(masked);
-                    register("phone").onChange({
-                      target: { value: masked, name: "phone" },
-                    });
-                  }}
-                  onBlur={() => {
-                    register("phone").onBlur({
-                      target: { value: phoneDisplay, name: "phone" },
-                    });
-                  }}
+                  id="af-name"
+                  placeholder="Ex: João Silva"
+                  {...register("name")}
                 />
-                {errors.phone && (
+                {errors.name && (
                   <p className="text-destructive text-sm">
-                    {getErrorMessage(errors.phone)}
+                    {getErrorMessage(errors.name)}
                   </p>
                 )}
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="af-email" className="text-sm font-medium">
+                  E-mail <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="af-email"
+                  type="email"
+                  placeholder="Ex: joao@email.com"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-destructive text-sm">
+                    {getErrorMessage(errors.email)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Taxa de Comissão, Categoria e CPF - 3 colunas */}
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.5fr_1fr] gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="af-commissionRate" className="text-sm font-medium">
+                  Comissão (%) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="af-commissionRate"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="Ex: 5"
+                  className="w-full"
+                  {...register("commissionRate", { valueAsNumber: true })}
+                />
+                {errors.commissionRate && (
+                  <p className="text-destructive text-sm">
+                    {getErrorMessage(errors.commissionRate)}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="af-categoryId" className="text-sm font-medium">
+                  Categoria
+                </Label>
+                <Controller
+                  name="categoryId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || "none"}
+                      onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger id="af-categoryId" className="w-full">
+                        {isLoadingCategories ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Carregando...</span>
+                          </div>
+                        ) : (
+                          <SelectValue placeholder="Selecione" />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem categoria</SelectItem>
+                        {activeCategories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            <div className="flex items-center gap-2">
+                              <FolderTree className="h-4 w-4 text-muted-foreground" />
+                              <span>{category.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {activeCategories.length === 0 && !isLoadingCategories && (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            Nenhuma categoria ativa
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.categoryId && (
+                  <p className="text-destructive text-sm">
+                    {getErrorMessage(errors.categoryId)}
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="af-cpf" className="text-sm font-medium">
-                  CPF{" "}
-                  <span className="text-muted-foreground/60 font-normal">
-                    (opcional)
-                  </span>
+                  CPF
                 </Label>
                 <Input
                   id="af-cpf"
                   placeholder="Ex: 123.456.789-00"
+                  className="w-full"
                   value={cpfDisplay}
                   onChange={(e) => {
                     const masked = maskCPF(e.target.value);
@@ -302,6 +328,41 @@ export function AffiliateFormDialog({
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Telefone - linha completa */}
+            <div className="space-y-2">
+              <Label htmlFor="af-phone" className="text-sm font-medium">
+                Telefone
+              </Label>
+              <Input
+                id="af-phone"
+                type="tel"
+                placeholder="Ex: (11) 98765-4321"
+                value={phoneDisplay}
+                onChange={(e) => {
+                  const masked = maskPhone(e.target.value);
+                  setPhoneDisplay(masked);
+                  register("phone").onChange({
+                    target: { value: masked, name: "phone" },
+                  });
+                }}
+                onBlur={() => {
+                  register("phone").onBlur({
+                    target: { value: phoneDisplay, name: "phone" },
+                });
+                }}
+              />
+              {errors.phone && (
+                <p className="text-destructive text-sm">
+                  {getErrorMessage(errors.phone)}
+                </p>
+              )}
+              {isEditing && (
+                <p className="text-xs text-muted-foreground">
+                  Alterações na taxa só afetam comissões futuras.
+                </p>
+              )}
             </div>
 
             {/* Redes Sociais */}

@@ -7,6 +7,7 @@ export interface CreateAffiliateParams {
   cpf?: string;
   socialMedia?: string[];
   commissionRate: number;
+  categoryId?: string;
 }
 
 export interface UpdateAffiliateParams {
@@ -15,6 +16,8 @@ export interface UpdateAffiliateParams {
   phone?: string;
   cpf?: string;
   socialMedia?: string[];
+  commissionRate?: number;
+  categoryId?: string;
 }
 
 export interface AffiliateRepository {

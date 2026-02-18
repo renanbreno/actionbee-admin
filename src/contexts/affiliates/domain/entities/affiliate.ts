@@ -6,6 +6,12 @@ export interface Affiliate {
   cpf?: string;
   socialMedia?: string[];
   commissionRate: number;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  category?: {
+    id: string;
+    name: string;
+  } | null;
   createdAt: string;
   updatedAt?: string;
 }
