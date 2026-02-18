@@ -2,6 +2,8 @@ export interface CreateOrderItemDTO {
   productId: string;
   variantId: string;
   quantity: number;
+  price: number;
+  originalPrice?: number;
 }
 
 export interface CreateOrderShippingAddressDTO {

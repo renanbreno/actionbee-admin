@@ -23,6 +23,12 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +52,48 @@ interface GiftTier {
   imageUrl?: string;
   minOrderValue: number;
   isActive: boolean;
+}
+
+/* ─── Gift Image Dialog ─── */
+function GiftImageWithDialog({ src, alt }: { src?: string; alt: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!src) {
+    return (
+      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+        <Gift className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0 group"
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="w-full h-full object-cover rounded-lg border-2 border-transparent group-hover:border-bee-gold/50 transition-all duration-200"
+        />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <Search className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+        </div>
+      </button>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="w-full max-w-lg max-h-[90dvh] overflow-y-auto p-2">
+          <DialogTitle className="sr-only">{alt}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Imagem do brinde {alt}
+          </DialogDescription>
+          <img src={src} alt={alt} className="w-full h-auto rounded-lg" />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 interface CustomerResult {
@@ -87,6 +135,7 @@ interface CartItem {
   variantId: string;
   variantName: string;
   unitPrice: number;
+  originalPrice?: number;
   quantity: number;
 }
 
@@ -113,8 +162,14 @@ const STEPS = [
 
 const STEP_META = [
   { title: "Cliente", description: "Selecione o cliente para o pedido" },
-  { title: "Itens & Brindes", description: "Adicione produtos e brindes ao pedido" },
-  { title: "Pagamento & Entrega", description: "Finalize as informações do pedido" },
+  {
+    title: "Itens & Brindes",
+    description: "Adicione produtos e brindes ao pedido",
+  },
+  {
+    title: "Pagamento & Entrega",
+    description: "Finalize as informações do pedido",
+  },
 ];
 
 function formatCurrency(value: number): string {
@@ -290,6 +345,9 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
       variantId: selectedVariant.id,
       variantName: selectedVariant.name,
       unitPrice: selectedVariant.offerPrice ?? selectedVariant.price,
+      originalPrice: selectedVariant.offerPrice
+        ? selectedVariant.price
+        : undefined,
       quantity: qty,
     });
     setSelectedProduct(null);
@@ -452,7 +510,18 @@ export default function NewOrderPage() {
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("");
   const [shippingFormOpen, setShippingFormOpen] = useState(false);
   const [addressOverrides, setAddressOverrides] = useState<
-    Partial<Record<"street" | "number" | "complement" | "neighborhood" | "city" | "state" | "zipCode", string>>
+    Partial<
+      Record<
+        | "street"
+        | "number"
+        | "complement"
+        | "neighborhood"
+        | "city"
+        | "state"
+        | "zipCode",
+        string
+      >
+    >
   >({});
   const [shippingInfo, setShippingInfo] = useState({
     carrier: "",
@@ -475,14 +544,17 @@ export default function NewOrderPage() {
   const effectiveAddress = {
     street: addressOverrides.street ?? customerAddress?.street ?? "",
     number: addressOverrides.number ?? customerAddress?.number ?? "",
-    complement: addressOverrides.complement ?? customerAddress?.complement ?? "",
-    neighborhood: addressOverrides.neighborhood ?? customerAddress?.neighborhood ?? "",
+    complement:
+      addressOverrides.complement ?? customerAddress?.complement ?? "",
+    neighborhood:
+      addressOverrides.neighborhood ?? customerAddress?.neighborhood ?? "",
     city: addressOverrides.city ?? customerAddress?.city ?? "",
     state: addressOverrides.state ?? customerAddress?.state ?? "",
     zipCode: addressOverrides.zipCode ?? customerAddress?.zipCode ?? "",
   };
   // Auto-select "DELIVERY" when the customer has a saved address and user hasn't chosen yet
-  const effectiveDeliveryType: DeliveryType = deliveryType || (customerAddress ? "DELIVERY" : "");
+  const effectiveDeliveryType: DeliveryType =
+    deliveryType || (customerAddress ? "DELIVERY" : "");
 
   const { data: giftTiersData } = useQuery({
     queryKey: ["gift-tiers"],
@@ -603,6 +675,8 @@ export default function NewOrderPage() {
           productId: i.productId,
           variantId: i.variantId,
           quantity: i.quantity,
+          price: i.unitPrice,
+          originalPrice: i.originalPrice,
         })),
         paymentMethod,
         couponCode: couponCode || undefined,
@@ -678,7 +752,7 @@ export default function NewOrderPage() {
           </p>
         </CardHeader>
 
-        <CardContent className="pt-5">
+        <CardContent>
           {/* ── Step 1: Customer ── */}
           {step === 1 && (
             <CustomerSearch
@@ -707,55 +781,79 @@ export default function NewOrderPage() {
                   {cartItems.map((item) => (
                     <div
                       key={item.variantId}
-                      className="flex items-center gap-2 rounded-lg border bg-card p-3"
+                      className="rounded-lg border bg-card p-3"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {item.productName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
+                      {/* Header row: product name and delete button */}
+                      <div className="flex items-start gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">
+                            {item.productName}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                          onClick={() => removeItem(item.variantId)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+
+                      {/* Variant and price row */}
+                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                        <span className="flex-1 min-w-0">
                           {item.variantName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatCurrency(item.unitPrice)} / un.
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() =>
-                            updateQty(item.variantId, item.quantity - 1)
-                          }
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-7 text-center text-sm tabular-nums font-medium">
-                          {item.quantity}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() =>
-                            updateQty(item.variantId, item.quantity + 1)
-                          }
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {item.originalPrice && (
+                            <span className="line-through text-xs text-muted-foreground/70">
+                              {formatCurrency(item.originalPrice)}
+                            </span>
+                          )}
+                          <span
+                            className={
+                              item.originalPrice
+                                ? "text-green-600 font-semibold"
+                                : ""
+                            }
+                          >
+                            {formatCurrency(item.unitPrice)} / un.
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-sm font-semibold w-20 text-right shrink-0">
-                        {formatCurrency(item.unitPrice * item.quantity)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
-                        onClick={() => removeItem(item.variantId)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+
+                      {/* Controls row: quantity and total */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() =>
+                              updateQty(item.variantId, item.quantity - 1)
+                            }
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-7 text-center text-sm tabular-nums font-medium">
+                            {item.quantity}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() =>
+                              updateQty(item.variantId, item.quantity + 1)
+                            }
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <span className="text-sm font-semibold tabular-nums">
+                          {formatCurrency(item.unitPrice * item.quantity)}
+                        </span>
+                      </div>
                     </div>
                   ))}
 
@@ -779,37 +877,49 @@ export default function NewOrderPage() {
                 <div className="space-y-2 pt-2">
                   <Separator />
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-1">
-                    Brindes <span className="font-normal normal-case">(opcional)</span>
+                    Brindes{" "}
+                    <span className="font-normal normal-case">(opcional)</span>
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {activeGiftTiers.map((gift) => {
                       const isSelected = selectedGiftIds.includes(gift.id);
                       return (
-                        <button
+                        <div
                           key={gift.id}
-                          type="button"
+                          role="button"
+                          tabIndex={0}
                           onClick={() => toggleGift(gift.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              toggleGift(gift.id);
+                            }
+                          }}
                           className={[
-                            "flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-all",
+                            "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all cursor-pointer",
                             isSelected
                               ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold"
                               : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
                           ].join(" ")}
                         >
-                          <Gift
-                            className={`h-3.5 w-3.5 shrink-0 ${
-                              isSelected ? "text-bee-gold" : "text-muted-foreground"
-                            }`}
+                          <GiftImageWithDialog
+                            src={gift.imageUrl}
+                            alt={gift.name}
                           />
-                          <div>
-                            <p className="text-xs font-medium leading-tight">{gift.name}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold leading-tight">
+                              {gift.name}
+                            </p>
                             {gift.description && (
-                              <p className="text-[10px] text-muted-foreground leading-tight">
+                              <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2">
                                 {gift.description}
                               </p>
                             )}
                           </div>
-                        </button>
+                          {isSelected && (
+                            <Check className="h-4 w-4 text-bee-gold shrink-0" />
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -822,18 +932,34 @@ export default function NewOrderPage() {
           {step === 3 && (
             <div className="space-y-5">
               {/* Order summary */}
-              <div className="rounded-lg bg-muted/40 border p-3 space-y-2 text-sm">
+              <div className="rounded-lg bg-muted/40 border p-3 space-y-1.5 text-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Resumo do pedido
                 </p>
                 <div className="space-y-1">
                   {cartItems.map((item) => (
-                    <div key={item.variantId} className="flex justify-between">
-                      <span className="text-muted-foreground truncate mr-2">
-                        {item.productName} — {item.variantName} ×{" "}
-                        {item.quantity}
-                      </span>
-                      <span className="shrink-0 tabular-nums">
+                    <div
+                      key={item.variantId}
+                      className="flex justify-between items-start"
+                    >
+                      <div className="flex-1 min-w-0 mr-2">
+                        <p className="text-muted-foreground text-sm">
+                          {item.productName} — {item.variantName} ×{" "}
+                          {item.quantity}
+                        </p>
+                        {item.originalPrice && (
+                          <p className="text-xs text-muted-foreground/70 line-through">
+                            {formatCurrency(item.originalPrice)} / un.
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={
+                          item.originalPrice
+                            ? "shrink-0 tabular-nums font-semibold text-green-600"
+                            : "shrink-0 tabular-nums font-medium"
+                        }
+                      >
                         {formatCurrency(item.unitPrice * item.quantity)}
                       </span>
                     </div>

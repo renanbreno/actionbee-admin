@@ -11,7 +11,7 @@ export interface GetOrdersFilters {
 
 export interface CreateOrderParams {
   customerId: string;
-  items: { productId: string; variantId: string; quantity: number }[];
+  items: { productId: string; variantId: string; quantity: number; price: number; originalPrice?: number }[];
   paymentMethod: string;
   couponCode?: string;
   shippingAddress?: {
@@ -29,6 +29,7 @@ export interface CreateOrderParams {
     price: number;
     deliveryTime: number;
   };
+  giftTierIds?: string[];
   notes?: string;
 }
 

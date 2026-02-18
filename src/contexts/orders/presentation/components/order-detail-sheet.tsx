@@ -103,11 +103,37 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
               key={i}
               className="flex items-center justify-between rounded-lg border bg-card p-4 text-sm"
             >
-              <div>
+              <div className="flex-1">
                 <p className="font-medium">{item.productName}</p>
-                <p className="text-xs text-muted-foreground">{item.variantName} × {item.quantity}</p>
+                <p className="text-xs text-muted-foreground mb-1">{item.variantName} × {item.quantity}</p>
+                {item.originalPrice ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground line-through">
+                      de {formatCurrency(item.originalPrice)}
+                    </span>
+                    <span className="text-xs font-semibold text-green-600">
+                      por {formatCurrency(item.unitPrice)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    {formatCurrency(item.unitPrice)} un.
+                  </span>
+                )}
               </div>
-              <span className="font-semibold">{formatCurrency(item.totalPrice)}</span>
+              <div className="text-right ml-4">
+                {item.originalPrice && (
+                  <p className="text-xs text-muted-foreground line-through">
+                    {formatCurrency(item.originalPrice * item.quantity)}
+                  </p>
+                )}
+                <span className={[
+                  "font-semibold",
+                  item.originalPrice ? "text-green-600" : ""
+                ].join(" ")}>
+                  {formatCurrency(item.totalPrice)}
+                </span>
+              </div>
             </div>
           ))}
           <div className="rounded-lg bg-muted/50 p-4 space-y-1.5 text-sm">

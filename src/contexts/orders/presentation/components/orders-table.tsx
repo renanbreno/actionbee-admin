@@ -27,7 +27,9 @@ import {
   Eye,
   MoreHorizontal,
   Package,
+  Percent,
   RefreshCw,
+  Ticket,
   User,
   XCircle,
 } from "lucide-react";
@@ -180,6 +182,15 @@ function OrderCard({
           <span className="font-medium text-foreground">{order.customerName}</span>
         </div>
 
+        <div className="flex items-center gap-2 flex-wrap">
+          {order.couponCode && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Percent className="h-3 w-3" />
+              {order.couponCode}
+            </span>
+          )}
+        </div>
+
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <p className="text-muted-foreground text-xs">Valor</p>
@@ -231,13 +242,18 @@ function OrderRow({
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <div>
-          <p className="font-semibold text-bee-gold">{formatCurrency(order.discountedAmount)}</p>
-          {order.totalAmount !== order.discountedAmount && (
-            <p className="text-xs text-muted-foreground line-through">
-              {formatCurrency(order.totalAmount)}
-            </p>
+        <div className="flex items-center justify-end gap-2">
+          {order.couponCode && (
+            <Ticket className="h-4 w-4 text-emerald-600" />
           )}
+          <div>
+            <p className="font-semibold text-bee-gold">{formatCurrency(order.discountedAmount)}</p>
+            {order.totalAmount !== order.discountedAmount && (
+              <p className="text-xs text-muted-foreground line-through">
+                {formatCurrency(order.totalAmount)}
+              </p>
+            )}
+          </div>
         </div>
       </TableCell>
       <TableCell>

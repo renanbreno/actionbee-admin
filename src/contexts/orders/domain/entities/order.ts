@@ -24,6 +24,9 @@ export interface OrderListItem {
   paymentMethod: PaymentMethod;
   createdAt: string;
   itemsCount: number;
+  couponCode?: string;
+  hasOfferItems: boolean;
+  hasDiscount: boolean;  // true quando totalAmount > discountedAmount (cupom ou oferta)
 }
 
 export interface PaginatedOrders {
@@ -41,6 +44,7 @@ export interface OrderDetailItem {
   variantName: string;
   quantity: number;
   unitPrice: number;
+  originalPrice?: number;
   totalPrice: number;
 }
 
