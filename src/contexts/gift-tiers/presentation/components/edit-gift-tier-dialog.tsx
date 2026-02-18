@@ -48,10 +48,10 @@ export function EditGiftTierDialog({
     if (giftTier && open) {
       reset({
         name: giftTier.name,
-        description: giftTier.description ?? "",
-        imageUrl: giftTier.imageUrl ?? "",
+        description: giftTier.description ?? undefined,
+        imageUrl: giftTier.imageUrl ?? undefined,
         minOrderValue: giftTier.minOrderValue,
-        productId: giftTier.productId ?? "",
+        productId: giftTier.productId ?? undefined,
       });
     }
     if (!open) reset();

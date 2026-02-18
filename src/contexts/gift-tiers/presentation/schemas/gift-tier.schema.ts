@@ -8,23 +8,15 @@ export const createGiftTierSchema = z.object({
   description: z
     .string()
     .max(500, "A descrição deve ter no máximo 500 caracteres")
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim() ? v : undefined)),
+    .optional(),
   imageUrl: z
     .string()
-    .url("Informe uma URL válida")
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim() ? v : undefined)),
+    .url()
+    .optional(),
   minOrderValue: z
     .number({ message: "Informe o valor mínimo do pedido" })
     .min(0.01, "O valor mínimo deve ser maior que zero"),
-  productId: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim() ? v : undefined)),
+  productId: z.string().optional(),
 });
 
 export const updateGiftTierSchema = createGiftTierSchema;

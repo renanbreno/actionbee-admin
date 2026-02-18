@@ -41,10 +41,10 @@ export function CreateGiftTierDialog({
     resolver: zodResolver(createGiftTierSchema),
     defaultValues: {
       name: "",
-      description: "",
-      imageUrl: "",
-      minOrderValue: undefined,
-      productId: "",
+      description: undefined,
+      imageUrl: undefined,
+      minOrderValue: 0,
+      productId: undefined,
     },
   });
 
