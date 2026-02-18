@@ -20,19 +20,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { cn } from "@/lib/utils";
 import {
   ShoppingCart,
   Package,
   Sparkles,
   Store,
+  Info,
+  User,
+  Loader2,
 } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   createCouponSchema,
   CreateCouponFormValues,
+  CreateCouponFormInput,
 } from "../schemas/coupon.schema";
 import { useCreateCoupon } from "../hooks/use-create-coupon";
+import { useAffiliates } from "@/contexts/affiliates/presentation/hooks/use-affiliates";
 
 const typeOptions = [
   {
@@ -75,6 +86,7 @@ export function CreateCouponDialog({
   onOpenChange,
 }: CreateCouponDialogProps) {
   const createMutation = useCreateCoupon();
+  const { data: affiliates, isLoading: isLoadingAffiliates } = useAffiliates();
 
   const {
     register,
@@ -83,7 +95,7 @@ export function CreateCouponDialog({
     reset,
     watch,
     formState: { errors },
-  } = useForm<CreateCouponFormValues>({
+  } = useForm<CreateCouponFormInput, unknown, CreateCouponFormValues>({
     resolver: zodResolver(createCouponSchema),
     defaultValues: {
       code: "",
@@ -93,12 +105,16 @@ export function CreateCouponDialog({
       minCartValue: undefined,
       expiresAt: undefined,
       usageLimit: undefined,
-      customerId: "",
+      customerEmail: "",
       productId: "",
+      affiliateId: "",
     },
   });
 
   const selectedType = watch("type");
+  const selectedAffiliateId = watch("affiliateId");
+
+  const selectedAffiliate = affiliates?.find((a) => a.id === selectedAffiliateId);
 
   const onSubmit = (data: CreateCouponFormValues) => {
     createMutation.mutate(
@@ -110,8 +126,9 @@ export function CreateCouponDialog({
         minCartValue: data.minCartValue,
         expiresAt: data.expiresAt ? data.expiresAt.toISOString() : undefined,
         usageLimit: data.usageLimit,
-        customerId: data.customerId || undefined,
+        customerEmail: data.customerEmail || undefined,
         productId: data.productId || undefined,
+        affiliateId: data.affiliateId || undefined,
       },
       {
         onSuccess: () => {
@@ -128,7 +145,7 @@ export function CreateCouponDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl">Criar Cupom</DialogTitle>
           <DialogDescription>
@@ -139,7 +156,9 @@ export function CreateCouponDialog({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
           {/* Tipo */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Tipo do cupom</Label>
+            <Label className="text-sm font-medium">
+              Tipo do cupom <span className="text-destructive">*</span>
+            </Label>
             <Controller
               name="type"
               control={control}
@@ -175,7 +194,7 @@ export function CreateCouponDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="code" className="text-sm font-medium">
-                Código
+                Código <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="code"
@@ -189,7 +208,7 @@ export function CreateCouponDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="discountPercentage" className="text-sm font-medium">
-                Desconto (%)
+                Desconto (%) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="discountPercentage"
@@ -210,10 +229,23 @@ export function CreateCouponDialog({
           {/* Valores limites */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="maxDiscountAmount" className="text-sm font-medium">
-                Desconto máximo (R$){" "}
-                <span className="text-muted-foreground/60 font-normal">(opcional)</span>
-              </Label>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="maxDiscountAmount" className="text-sm font-medium">
+                  Desconto máximo <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Valor máximo de desconto que o cupom pode oferecer, mesmo que a porcentagem seja maior.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 id="maxDiscountAmount"
                 type="number"
@@ -229,10 +261,23 @@ export function CreateCouponDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="minCartValue" className="text-sm font-medium">
-                Valor mínimo do carrinho (R$){" "}
-                <span className="text-muted-foreground/60 font-normal">(opcional)</span>
-              </Label>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="minCartValue" className="text-sm font-medium">
+                  Valor mínimo do carrinho <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Valor mínimo que o carrinho deve ter para que o cupom seja aplicado.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 id="minCartValue"
                 type="number"
@@ -260,10 +305,10 @@ export function CreateCouponDialog({
                 name="expiresAt"
                 control={control}
                 render={({ field }) => (
-                  <DateTimePicker
-                    value={field.value}
+                  <DatePicker
+                    value={field.value || ""}
                     onChange={field.onChange}
-                    placeholder="Sem expiração"
+                    placeholder="Selecione a data"
                   />
                 )}
               />
@@ -293,20 +338,89 @@ export function CreateCouponDialog({
             </div>
           </div>
 
+          {/* Afiliado */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="affiliateId" className="text-sm font-medium">
+                Afiliado <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+              </Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Associe este cupom a um afiliado. Quando o cupom for usado, o afiliado receberá a comissão conforme sua taxa cadastrada.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Controller
+              name="affiliateId"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value || "none"}
+                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                >
+                  <SelectTrigger>
+                    {isLoadingAffiliates ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Carregando afiliados...</span>
+                      </div>
+                    ) : (
+                      <SelectValue placeholder="Selecione um afiliado (opcional)" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem afiliado</SelectItem>
+                    {affiliates?.map((affiliate) => (
+                      <SelectItem key={affiliate.id} value={affiliate.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span>{affiliate.name}</span>
+                          <span className="text-muted-foreground text-xs">
+                            ({affiliate.commissionRate}%)
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {selectedAffiliate && (
+              <div className="rounded-lg border border-bee-gold/30 bg-bee-gold/5 p-2 text-sm text-amber-800 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span>
+                  <strong>{selectedAffiliate.name}</strong> receberá{" "}
+                  <strong>{selectedAffiliate.commissionRate}%</strong> de comissão sobre as vendas com este cupom.
+                </span>
+              </div>
+            )}
+            {errors.affiliateId && (
+              <p className="text-destructive text-sm">{errors.affiliateId.message}</p>
+            )}
+          </div>
+
           {/* Campos condicionais: Cliente / Produto */}
           {selectedType === "BY_CUSTOMER" && (
             <div className="space-y-2">
-              <Label htmlFor="customerId" className="text-sm font-medium">
-                ID do Cliente
+              <Label htmlFor="customerEmail" className="text-sm font-medium">
+                E-mail do Cliente <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="customerId"
-                placeholder="ID do cliente"
-                {...register("customerId")}
+                id="customerEmail"
+                type="email"
+                placeholder="cliente@email.com"
+                {...register("customerEmail")}
               />
-              {errors.customerId && (
+              {errors.customerEmail && (
                 <p className="text-destructive text-sm">
-                  {errors.customerId.message}
+                  {errors.customerEmail.message}
                 </p>
               )}
             </div>
@@ -315,8 +429,9 @@ export function CreateCouponDialog({
           {selectedType === "BY_PRODUCT" && (
             <div className="space-y-2">
               <Label htmlFor="productId" className="text-sm font-medium">
-                ID do Produto
+                Produto <span className="text-destructive">*</span>
               </Label>
+              {/* TODO: Substituir por select com carregamento dos produtos da API */}
               <Input
                 id="productId"
                 placeholder="ID do produto"

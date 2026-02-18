@@ -1,8 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAffiliates } from "@/contexts/affiliates/presentation/hooks/use-affiliates";
 import {
   Table,
   TableBody,
@@ -11,6 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -27,13 +36,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Hash,
-  Percent,
+  Trash2,
+  User,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Coupon, CouponStatus, CouponType } from "../../domain/entities/coupon";
 import { useCoupons } from "../hooks/use-coupons";
 import { useActivateCoupon } from "../hooks/use-activate-coupon";
 import { useDeactivateCoupon } from "../hooks/use-deactivate-coupon";
+import { useDeleteCoupon } from "../hooks/use-delete-coupon";
 
 const TYPE_CONFIG: Record<
   CouponType,
@@ -97,6 +109,28 @@ function formatCurrency(value: number | null): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
+/* ─── Affiliate Badge ─── */
+function AffiliateBadge({ coupon }: { coupon: Coupon }) {
+  if (coupon.affiliate) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs">
+        <User className="h-3 w-3 text-muted-foreground" />
+        <span className="font-medium">{coupon.affiliate.name}</span>
+        <span className="text-muted-foreground">({coupon.affiliate.commissionRate}%)</span>
+      </div>
+    );
+  }
+  if (coupon.affiliateId) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <User className="h-3 w-3" />
+        <span>Afiliado</span>
+      </div>
+    );
+  }
+  return <span className="text-muted-foreground text-xs">—</span>;
+}
+
 /* ─── Status Badge ─── */
 function StatusIndicator({ status }: { status: CouponStatus }) {
   const config = STATUS_CONFIG[status];
@@ -125,12 +159,15 @@ function StatusIndicator({ status }: { status: CouponStatus }) {
   );
 }
 
-/* ─── Mobile Card ─── */
-function CouponCard({ coupon }: { coupon: Coupon }) {
+/* ─── Actions Dropdown ─── */
+function CouponActions({ coupon }: { coupon: Coupon }) {
   const activateMutation = useActivateCoupon();
   const deactivateMutation = useDeactivateCoupon();
-  const typeConfig = TYPE_CONFIG[coupon.type] ?? TYPE_CONFIG.STORE_WIDE;
-  const TypeIcon = typeConfig.icon;
+  const deleteMutation = useDeleteCoupon();
+  const isPending =
+    activateMutation.isPending || deactivateMutation.isPending || deleteMutation.isPending;
+
+  if (coupon.status === "EXPIRED") return null;
 
   const handleActivate = () => {
     activateMutation.mutate(coupon.code, {
@@ -145,6 +182,66 @@ function CouponCard({ coupon }: { coupon: Coupon }) {
       onError: () => toast.error("Erro ao desativar cupom"),
     });
   };
+
+  const handleDelete = () => {
+    if (confirm(`Tem certeza que deseja excluir o cupom ${coupon.code}?`)) {
+      deleteMutation.mutate(coupon.code, {
+        onSuccess: () => toast.success("Cupom excluído"),
+        onError: () => toast.error("Erro ao excluir cupom"),
+      });
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          disabled={isPending}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Ações</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        {coupon.status === "INACTIVE" && (
+          <DropdownMenuItem
+            onClick={handleActivate}
+            disabled={activateMutation.isPending}
+          >
+            <Power className="mr-2 h-3.5 w-3.5" />
+            Ativar
+          </DropdownMenuItem>
+        )}
+        {coupon.status === "ACTIVE" && (
+          <DropdownMenuItem
+            onClick={handleDeactivate}
+            disabled={deactivateMutation.isPending}
+          >
+            <Ban className="mr-2 h-3.5 w-3.5" />
+            Desativar
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleDelete}
+          disabled={deleteMutation.isPending}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="mr-2 h-3.5 w-3.5" />
+          Excluir
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/* ─── Mobile Card ─── */
+function CouponCard({ coupon }: { coupon: Coupon }) {
+  const typeConfig = TYPE_CONFIG[coupon.type] ?? TYPE_CONFIG.STORE_WIDE;
+  const TypeIcon = typeConfig.icon;
 
   return (
     <Card className="shadow-sm">
@@ -160,7 +257,10 @@ function CouponCard({ coupon }: { coupon: Coupon }) {
               {typeConfig.label}
             </Badge>
           </div>
-          <StatusIndicator status={coupon.status} />
+          <div className="flex items-center gap-2">
+            <StatusIndicator status={coupon.status} />
+            <CouponActions coupon={coupon} />
+          </div>
         </div>
 
         {/* Code + Discount */}
@@ -176,60 +276,47 @@ function CouponCard({ coupon }: { coupon: Coupon }) {
         </div>
 
         {/* Details */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-          {coupon.maxDiscountAmount && (
-            <span>Máx: {formatCurrency(coupon.maxDiscountAmount)}</span>
-          )}
-          {coupon.minCartValue && (
-            <span>Mín: {formatCurrency(coupon.minCartValue)}</span>
-          )}
-          <div className="flex items-center gap-1">
-            <Hash className="h-3 w-3" />
-            {coupon.usedCount}/{coupon.usageLimit ?? "∞"}
+        <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {coupon.maxDiscountAmount && (
+              <span>Máx: {formatCurrency(coupon.maxDiscountAmount)}</span>
+            )}
+            {coupon.minCartValue && (
+              <span>Mín: {formatCurrency(coupon.minCartValue)}</span>
+            )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <Hash className="h-3 w-3" />
+              {coupon.usedCount}/{coupon.usageLimit ?? "∞"}
+            </div>
             {coupon.expiresAt ? (
-              <>
+              <div className="flex items-center gap-1">
                 <CalendarDays className="h-3 w-3" />
                 {formatDate(coupon.expiresAt)}
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-1">
                 <Infinity className="h-3 w-3" />
                 Sem expiração
-              </>
+              </div>
+            )}
+          </div>
+          {/* Affiliate */}
+          <div className="flex items-center gap-1 pt-1 border-t border-border/50">
+            <User className="h-3 w-3 text-muted-foreground" />
+            {coupon.affiliate ? (
+              <span>
+                <span className="font-medium text-foreground">{coupon.affiliate.name}</span>
+                <span className="text-muted-foreground"> ({coupon.affiliate.commissionRate}% comissão)</span>
+              </span>
+            ) : coupon.affiliateId ? (
+              <span className="text-muted-foreground">Afiliado vinculado</span>
+            ) : (
+              <span className="text-muted-foreground">Sem afiliado</span>
             )}
           </div>
         </div>
-
-        {/* Actions */}
-        {coupon.status !== "EXPIRED" && (
-          <div className="flex gap-2 border-t pt-3">
-            {coupon.status === "ACTIVE" ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeactivate}
-                disabled={deactivateMutation.isPending}
-                className="flex-1 gap-1.5 transition-all duration-200 hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <Ban className="h-3.5 w-3.5" />
-                Desativar
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleActivate}
-                disabled={activateMutation.isPending}
-                className="flex-1 gap-1.5 transition-all duration-200 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <Power className="h-3.5 w-3.5" />
-                Ativar
-              </Button>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -237,24 +324,8 @@ function CouponCard({ coupon }: { coupon: Coupon }) {
 
 /* ─── Desktop Row ─── */
 function CouponRow({ coupon }: { coupon: Coupon }) {
-  const activateMutation = useActivateCoupon();
-  const deactivateMutation = useDeactivateCoupon();
   const typeConfig = TYPE_CONFIG[coupon.type] ?? TYPE_CONFIG.STORE_WIDE;
   const TypeIcon = typeConfig.icon;
-
-  const handleActivate = () => {
-    activateMutation.mutate(coupon.code, {
-      onSuccess: () => toast.success("Cupom ativado"),
-      onError: () => toast.error("Erro ao ativar cupom"),
-    });
-  };
-
-  const handleDeactivate = () => {
-    deactivateMutation.mutate(coupon.code, {
-      onSuccess: () => toast.success("Cupom desativado"),
-      onError: () => toast.error("Erro ao desativar cupom"),
-    });
-  };
 
   return (
     <TableRow className="group">
@@ -297,33 +368,10 @@ function CouponRow({ coupon }: { coupon: Coupon }) {
         )}
       </TableCell>
       <TableCell>
-        {coupon.status !== "EXPIRED" && (
-          <>
-            {coupon.status === "ACTIVE" ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDeactivate}
-                disabled={deactivateMutation.isPending}
-                className="gap-1.5 text-muted-foreground transition-all duration-200 hover:text-destructive hover:bg-destructive/10 hover:scale-[1.03] active:scale-[0.97]"
-              >
-                <Ban className="h-3.5 w-3.5" />
-                Desativar
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleActivate}
-                disabled={activateMutation.isPending}
-                className="gap-1.5 text-muted-foreground transition-all duration-200 hover:text-emerald-600 hover:bg-emerald-500/10 hover:scale-[1.03] active:scale-[0.97]"
-              >
-                <Power className="h-3.5 w-3.5" />
-                Ativar
-              </Button>
-            )}
-          </>
-        )}
+        <AffiliateBadge coupon={coupon} />
+      </TableCell>
+      <TableCell className="text-right">
+        <CouponActions coupon={coupon} />
       </TableCell>
     </TableRow>
   );
@@ -373,7 +421,10 @@ function TableSkeleton() {
             <Skeleton className="h-5 w-28" />
           </TableCell>
           <TableCell>
-            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-5 w-32" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-8 w-8 rounded" />
           </TableCell>
         </TableRow>
       ))}
@@ -450,13 +501,37 @@ function Pagination({
 interface CouponsTableProps {
   page: number;
   onPageChange: (page: number) => void;
+  search?: string;
+  status?: string;
 }
 
-export function CouponsTable({ page, onPageChange }: CouponsTableProps) {
-  const { data, isLoading, isError } = useCoupons(page, 10);
+export function CouponsTable({ page, onPageChange, search, status }: CouponsTableProps) {
+  const { data, isLoading, isError } = useCoupons(page, 10, search, status);
+  const { data: affiliates } = useAffiliates();
 
-  const coupons = data?.coupons ?? [];
   const totalPages = data?.totalPages ?? 1;
+
+  // Enrich coupons with affiliate data when API only returns affiliateId
+  const coupons = useMemo(() => {
+    const raw = data?.coupons ?? [];
+    if (!affiliates || affiliates.length === 0) return raw;
+
+    const affiliateMap = new Map(affiliates.map((a) => [a.id, a]));
+    return raw.map((coupon) => {
+      if (coupon.affiliate || !coupon.affiliateId) return coupon;
+      const aff = affiliateMap.get(coupon.affiliateId);
+      if (!aff) return coupon;
+      return {
+        ...coupon,
+        affiliate: {
+          id: aff.id,
+          name: aff.name,
+          email: aff.email,
+          commissionRate: aff.commissionRate,
+        },
+      };
+    });
+  }, [data?.coupons, affiliates]);
 
   /* Mobile: card list */
   const mobileView = (
@@ -473,31 +548,32 @@ export function CouponsTable({ page, onPageChange }: CouponsTableProps) {
 
   /* Desktop: table */
   const desktopView = (
-    <div className="hidden md:block rounded-xl border bg-card shadow-sm">
+    <div className="hidden md:block rounded-xl border bg-card shadow-sm overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[150px]">Código</TableHead>
-            <TableHead className="w-[130px]">Tipo</TableHead>
-            <TableHead className="w-[90px]">Desconto</TableHead>
-            <TableHead className="w-[100px]">Status</TableHead>
-            <TableHead className="w-[90px]">Uso</TableHead>
-            <TableHead className="w-[150px]">Expiração</TableHead>
-            <TableHead className="w-[130px]">Ações</TableHead>
+            <TableHead className="w-[130px]">Código</TableHead>
+            <TableHead className="w-[110px]">Tipo</TableHead>
+            <TableHead className="w-[80px]">Desconto</TableHead>
+            <TableHead className="w-[90px]">Status</TableHead>
+            <TableHead className="w-[70px]">Uso</TableHead>
+            <TableHead className="w-[130px]">Expiração</TableHead>
+            <TableHead className="w-[180px]">Afiliado</TableHead>
+            <TableHead className="w-[50px] text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading && <TableSkeleton />}
           {isError && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={8} className="text-center">
                 <ErrorState />
               </TableCell>
             </TableRow>
           )}
           {!isLoading && !isError && coupons.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={8} className="text-center">
                 <EmptyState />
               </TableCell>
             </TableRow>

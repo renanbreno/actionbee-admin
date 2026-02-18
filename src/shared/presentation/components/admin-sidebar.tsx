@@ -2,18 +2,22 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -24,14 +28,30 @@ import {
   FolderTree,
   ShoppingCart,
   LogOut,
-  ChevronRight,
   Percent,
+  ChevronDown,
+  Users,
+  Gift,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 
-const menuItems = [
+interface MenuItem {
+  title: string;
+  href?: string;
+  icon: LucideIcon;
+  submenu?: SubMenuItem[];
+}
+
+interface SubMenuItem {
+  title: string;
+  href: string;
+  icon?: LucideIcon;
+}
+
+const menuItems: MenuItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
@@ -59,8 +79,27 @@ const menuItems = [
   },
   {
     title: "Cupons",
-    href: "/dashboard/coupons",
     icon: Percent,
+    submenu: [
+      {
+        title: "Lista de Cupons",
+        href: "/dashboard/coupons",
+      },
+      {
+        title: "Relatório de Uso",
+        href: "/dashboard/commissions",
+      },
+    ],
+  },
+  {
+    title: "Afiliados",
+    href: "/dashboard/affiliates",
+    icon: Users,
+  },
+  {
+    title: "Brindes",
+    href: "/dashboard/gift-tiers",
+    icon: Gift,
   },
 ];
 
@@ -78,6 +117,25 @@ export function AdminSidebar() {
   const { user } = useAuthContext();
   const logoutMutation = useLogout();
   const router = useRouter();
+  const { setOpenMobile } = useSidebar();
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const toggleSubmenu = (title: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) {
+        next.delete(title);
+      } else {
+        next.add(title);
+      }
+      return next;
+    });
+  };
+
+  const isSubmenuActive = (submenu: typeof menuItems[0]["submenu"]) => {
+    if (!submenu) return false;
+    return submenu.some((item) => pathname.startsWith(item.href));
+  };
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -88,7 +146,7 @@ export function AdminSidebar() {
   return (
     <Sidebar className="border-r-0">
       <SidebarHeader className="px-6 py-5">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
+        <Link href="/dashboard" onClick={() => setOpenMobile(false)} className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-bee-gold">
             <span className="text-sm font-black text-black">A</span>
           </div>
@@ -107,44 +165,110 @@ export function AdminSidebar() {
 
       <SidebarContent className="px-3 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
-            Menu
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
-                const isActive =
-                  item.href === "/dashboard"
+                const hasSubmenu = "submenu" in item && item.submenu;
+                const href = "href" in item ? item.href : undefined;
+                const isActive = href
+                  ? href === "/dashboard"
                     ? pathname === "/dashboard"
-                    : pathname.startsWith(item.href);
+                    : pathname.startsWith(href)
+                  : isSubmenuActive(item.submenu);
+                const isExpanded = expandedItems.has(item.title);
 
                 return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={cn(
-                        "group/item h-10 rounded-lg px-3 transition-all duration-150",
-                        isActive
-                          ? "bg-sidebar-accent text-bee-gold font-semibold"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                      )}
-                    >
-                      <Link href={item.href}>
-                        <item.icon
+                  <SidebarMenuItem key={item.title}>
+                    {hasSubmenu ? (
+                      <>
+                        <SidebarMenuButton
+                          onClick={() => toggleSubmenu(item.title)}
                           className={cn(
-                            "h-4 w-4 shrink-0",
+                            "group/item h-10 rounded-lg px-3 transition-all duration-150 cursor-pointer",
                             isActive
-                              ? "text-bee-gold"
-                              : "text-sidebar-foreground/50",
+                              ? "bg-sidebar-accent text-bee-gold font-semibold"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                           )}
-                        />
-                        <span className="flex-1">{item.title}</span>
-                        {isActive && (
-                          <ChevronRight className="h-3.5 w-3.5 text-bee-gold/60" />
+                        >
+                          <item.icon
+                            className={cn(
+                              "h-4 w-4 shrink-0",
+                              isActive
+                                ? "text-bee-gold"
+                                : "text-sidebar-foreground/50",
+                            )}
+                          />
+                          <span className="flex-1">{item.title}</span>
+                          <ChevronDown
+                            className={cn(
+                              "h-3.5 w-3.5 transition-transform duration-200",
+                              isActive && !isExpanded
+                                ? "text-bee-gold/60"
+                                : "text-sidebar-foreground/50",
+                              isExpanded && "rotate-180",
+                            )}
+                          />
+                        </SidebarMenuButton>
+                        {(isExpanded || isActive) && item.submenu && (
+                          <SidebarMenuSub className="mt-1">
+                            {item.submenu.map((subitem) => {
+                              const isSubActive = pathname.startsWith(subitem.href);
+                              return (
+                                <SidebarMenuSubItem key={subitem.href}>
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    isActive={isSubActive}
+                                    className={cn(
+                                      "h-9 rounded-md transition-all duration-150",
+                                      isSubActive
+                                        ? "bg-sidebar-accent text-bee-gold font-semibold"
+                                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                                    )}
+                                  >
+                                    <Link href={subitem.href} onClick={() => setOpenMobile(false)}>
+                                      {subitem.icon && (
+                                        <subitem.icon
+                                          className={cn(
+                                            "h-3.5 w-3.5",
+                                            isSubActive
+                                              ? "text-bee-gold"
+                                              : "text-sidebar-foreground/50",
+                                          )}
+                                        />
+                                      )}
+                                      <span className="flex-1">{subitem.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              );
+                            })}
+                          </SidebarMenuSub>
                         )}
-                      </Link>
-                    </SidebarMenuButton>
+                      </>
+                    ) : (
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        className={cn(
+                          "group/item h-10 rounded-lg px-3 transition-all duration-150",
+                          isActive
+                            ? "bg-sidebar-accent text-bee-gold font-semibold"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                        )}
+                      >
+                        <Link href={item.href!} onClick={() => setOpenMobile(false)}>
+                          <item.icon
+                            className={cn(
+                              "h-4 w-4 shrink-0",
+                              isActive
+                                ? "text-bee-gold"
+                                : "text-sidebar-foreground/50",
+                            )}
+                          />
+                          <span className="flex-1">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    )}
                   </SidebarMenuItem>
                 );
               })}
@@ -153,32 +277,31 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        <div className="rounded-xl bg-sidebar-accent/60 p-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border-2 border-bee-gold/30">
-              <AvatarFallback className="bg-bee-gold/10 text-xs font-bold text-bee-gold">
-                {user ? getInitials(user.name) : "?"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-semibold text-sidebar-foreground">
-                {user?.name}
-              </p>
-              <p className="truncate text-xs text-sidebar-foreground/50">
-                {user?.email.toString()}
-              </p>
-            </div>
+      <SidebarFooter className="px-4 py-3">
+        <SidebarSeparator className="mb-3" />
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8 shrink-0">
+            <AvatarFallback className="bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
+              {user ? getInitials(user.name) : "?"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 overflow-hidden">
+            <p className="truncate text-sm font-medium text-sidebar-foreground">
+              {user?.name}
+            </p>
+            <p className="truncate text-xs text-sidebar-foreground/40">
+              {user?.email.toString()}
+            </p>
           </div>
           <Button
             variant="ghost"
-            size="sm"
-            className="mt-3 w-full justify-start gap-2 text-sidebar-foreground/60 hover:text-red-400 hover:bg-red-500/10 transition-colors duration-200"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-sidebar-foreground/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
             onClick={handleLogout}
             disabled={logoutMutation.isPending}
+            title="Sair"
           >
             <LogOut className="h-4 w-4" />
-            Sair
           </Button>
         </div>
       </SidebarFooter>

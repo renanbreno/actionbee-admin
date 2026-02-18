@@ -9,15 +9,17 @@ export interface CreateCouponApiRequest {
   minCartValue?: number;
   expiresAt?: string;
   usageLimit?: number;
-  customerId?: string;
+  customerEmail?: string;
   productId?: string;
+  affiliateId?: string;
 }
 
 export const couponsApiClient = {
-  getAll(page: number, limit: number): Promise<PaginatedCoupons> {
-    return apiFetch<PaginatedCoupons>(
-      `/admin/coupons?page=${page}&limit=${limit}`,
-    );
+  getAll(page: number, limit: number, search?: string, status?: string): Promise<PaginatedCoupons> {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+    return apiFetch<PaginatedCoupons>(`/admin/coupons?${params.toString()}`);
   },
 
   create(data: CreateCouponApiRequest): Promise<Coupon> {
@@ -36,6 +38,12 @@ export const couponsApiClient = {
   deactivate(code: string): Promise<void> {
     return apiFetch<void>(`/admin/coupons/${code}/deactivate`, {
       method: "PATCH",
+    });
+  },
+
+  delete(code: string): Promise<void> {
+    return apiFetch<void>(`/admin/coupons/${code}`, {
+      method: "DELETE",
     });
   },
 };

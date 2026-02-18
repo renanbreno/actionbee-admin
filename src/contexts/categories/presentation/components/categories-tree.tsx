@@ -7,14 +7,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ChevronRight,
-  ChevronDown,
   Pencil,
   Trash2,
   Star,
   FolderOpen,
   Folder,
   AlertTriangle,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Category } from "../../domain/entities/category";
@@ -109,24 +116,28 @@ function CategoryItem({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setEditOpen(true)}
-            className="h-8 w-8 p-0 text-muted-foreground transition-all duration-200 hover:text-foreground hover:bg-muted hover:scale-[1.05] active:scale-[0.95]"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setDeleteOpen(true)}
-            className="h-8 w-8 p-0 text-muted-foreground transition-all duration-200 hover:text-destructive hover:bg-destructive/10 hover:scale-[1.05] active:scale-[0.95]"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <MoreHorizontal className="h-4 w-4" />
+              <span className="sr-only">Ações</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <Pencil className="mr-2 h-3.5 w-3.5" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => setDeleteOpen(true)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Children (animated) */}
@@ -185,10 +196,7 @@ function TreeSkeleton() {
                 <Skeleton className="h-5 w-48" />
                 <Skeleton className="h-4 w-72" />
               </div>
-              <div className="flex gap-1">
-                <Skeleton className="h-8 w-8 rounded-md" />
-                <Skeleton className="h-8 w-8 rounded-md" />
-              </div>
+              <Skeleton className="h-8 w-8 rounded-md" />
             </div>
           </CardContent>
         </Card>
@@ -229,7 +237,6 @@ export function CategoriesTree() {
   if (isError) return <ErrorState />;
   if (!categories || categories.length === 0) return <EmptyState />;
 
-  // Separate root categories (no parentId) from all
   const rootCategories = categories.filter((c) => !c.parentId);
 
   return (

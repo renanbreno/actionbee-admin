@@ -14,6 +14,13 @@ export interface Coupon {
   status: CouponStatus;
   customerId?: string;
   productId?: string;
+  affiliateId?: string;
+  affiliate?: {
+    id: string;
+    name: string;
+    email: string;
+    commissionRate: number;
+  };
   createdAt: string;
   updatedAt?: string;
 }

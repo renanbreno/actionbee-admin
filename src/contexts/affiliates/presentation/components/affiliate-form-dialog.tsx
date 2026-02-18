@@ -1,0 +1,388 @@
+"use client";
+
+import { useForm, useFieldArray, FieldError } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Trash2, Link as LinkIcon } from "lucide-react";
+import { Affiliate } from "../../domain/entities/affiliate";
+import {
+  createAffiliateSchema,
+  updateAffiliateSchema,
+  CreateAffiliateFormValues,
+  UpdateAffiliateFormValues,
+} from "../schemas/affiliate.schema";
+import { useCreateAffiliate } from "../hooks/use-create-affiliate";
+import { useUpdateAffiliate } from "../hooks/use-update-affiliate";
+import {
+  maskPhone,
+  maskCPF,
+  unmaskPhone,
+  unmaskCPF,
+  formatPhone,
+  formatCPF,
+} from "@/shared/utils/masks";
+
+type FormValues = CreateAffiliateFormValues | UpdateAffiliateFormValues;
+
+interface AffiliateFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  affiliate?: Affiliate | null;
+}
+
+function getErrorMessage(error: FieldError | undefined): string {
+  if (!error) return "";
+  if (typeof error.message === "string") return error.message;
+  return "Valor inválido";
+}
+
+export function AffiliateFormDialog({
+  open,
+  onOpenChange,
+  affiliate,
+}: AffiliateFormDialogProps) {
+  const isEditing = !!affiliate;
+  const createMutation = useCreateAffiliate();
+  const updateMutation = useUpdateAffiliate();
+  const mutation = isEditing ? updateMutation : createMutation;
+
+  const [phoneDisplay, setPhoneDisplay] = useState("");
+  const [cpfDisplay, setCpfDisplay] = useState("");
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(isEditing ? updateAffiliateSchema : createAffiliateSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      cpf: "",
+      socialMedia: [],
+      commissionRate: isEditing ? undefined : 0,
+    },
+  });
+
+  // @ts-ignore - react-hook-form useFieldArray has known TypeScript limitation with Zod inferred types
+  const { fields, append, remove } = useFieldArray({ control, name: "socialMedia" });
+
+  useEffect(() => {
+    if (affiliate) {
+      const phoneFormatted = affiliate.phone ? formatPhone(affiliate.phone) : "";
+      const cpfFormatted = affiliate.cpf ? formatCPF(affiliate.cpf) : "";
+      setPhoneDisplay(phoneFormatted);
+      setCpfDisplay(cpfFormatted);
+      reset({
+        name: affiliate.name,
+        email: affiliate.email,
+        phone: phoneFormatted,
+        cpf: cpfFormatted,
+        socialMedia: affiliate.socialMedia || [],
+        commissionRate: affiliate.commissionRate,
+      });
+    } else {
+      setPhoneDisplay("");
+      setCpfDisplay("");
+      reset({
+        name: "",
+        email: "",
+        phone: "",
+        cpf: "",
+        socialMedia: [],
+        commissionRate: 0,
+      });
+    }
+  }, [affiliate, reset]);
+
+  const onSubmit = (data: FormValues) => {
+    const payload = {
+      name: data.name,
+      email: data.email,
+      phone: unmaskPhone(data.phone ?? "") || undefined,
+      cpf: unmaskCPF(data.cpf ?? "") || undefined,
+      socialMedia:
+        data.socialMedia && data.socialMedia.length > 0
+          ? data.socialMedia
+          : undefined,
+      commissionRate: data.commissionRate,
+    };
+
+    const onSuccess = () => {
+      toast.success(
+        isEditing
+          ? "Afiliado atualizado com sucesso!"
+          : "Afiliado criado com sucesso!"
+      );
+      reset();
+      onOpenChange(false);
+    };
+
+    const onError = (error: Error) => {
+      toast.error(
+        error.message ||
+          (isEditing
+            ? "Erro ao atualizar afiliado. Tente novamente."
+            : "Erro ao criar afiliado. Tente novamente.")
+      );
+    };
+
+    if (isEditing) {
+      updateMutation.mutate(
+        { id: affiliate!.id, data: payload },
+        { onSuccess, onError }
+      );
+    } else {
+      createMutation.mutate(
+        payload as Parameters<typeof createMutation.mutate>[0],
+        { onSuccess, onError }
+      );
+    }
+  };
+
+  const handleClose = () => {
+    reset();
+    setPhoneDisplay("");
+    setCpfDisplay("");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      {open && (
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {isEditing ? "Editar Afiliado" : "Cadastrar Afiliado"}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditing
+                ? "Atualize os dados do afiliado."
+                : "Preencha os dados do novo afiliado e defina sua taxa de comissão."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
+            {/* Nome */}
+            <div className="space-y-2">
+              <Label htmlFor="af-name" className="text-sm font-medium">
+                Nome completo <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="af-name"
+                placeholder="Ex: João Silva"
+                {...register("name")}
+              />
+              {errors.name && (
+                <p className="text-destructive text-sm">
+                  {getErrorMessage(errors.name)}
+                </p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="af-email" className="text-sm font-medium">
+                E-mail <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="af-email"
+                type="email"
+                placeholder="Ex: joao@email.com"
+                {...register("email")}
+              />
+              {errors.email && (
+                <p className="text-destructive text-sm">
+                  {getErrorMessage(errors.email)}
+                </p>
+              )}
+            </div>
+
+            {/* Taxa de Comissão */}
+            <div className="space-y-2">
+              <Label htmlFor="af-commissionRate" className="text-sm font-medium">
+                Taxa de comissão (%) <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="af-commissionRate"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="Ex: 5.00 para 5%"
+                {...register("commissionRate", { valueAsNumber: true })}
+              />
+              {errors.commissionRate && (
+                <p className="text-destructive text-sm">
+                  {getErrorMessage(errors.commissionRate)}
+                </p>
+              )}
+              {isEditing && (
+                <p className="text-xs text-muted-foreground">
+                  Alterações na taxa só afetam comissões futuras. Comissões já
+                  registradas mantêm o valor original.
+                </p>
+              )}
+            </div>
+
+            {/* Telefone e CPF */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="af-phone" className="text-sm font-medium">
+                  Telefone{" "}
+                  <span className="text-muted-foreground/60 font-normal">
+                    (opcional)
+                  </span>
+                </Label>
+                <Input
+                  id="af-phone"
+                  type="tel"
+                  placeholder="Ex: (11) 98765-4321"
+                  value={phoneDisplay}
+                  onChange={(e) => {
+                    const masked = maskPhone(e.target.value);
+                    setPhoneDisplay(masked);
+                    register("phone").onChange({
+                      target: { value: masked, name: "phone" },
+                    });
+                  }}
+                  onBlur={() => {
+                    register("phone").onBlur({
+                      target: { value: phoneDisplay, name: "phone" },
+                    });
+                  }}
+                />
+                {errors.phone && (
+                  <p className="text-destructive text-sm">
+                    {getErrorMessage(errors.phone)}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="af-cpf" className="text-sm font-medium">
+                  CPF{" "}
+                  <span className="text-muted-foreground/60 font-normal">
+                    (opcional)
+                  </span>
+                </Label>
+                <Input
+                  id="af-cpf"
+                  placeholder="Ex: 123.456.789-00"
+                  value={cpfDisplay}
+                  onChange={(e) => {
+                    const masked = maskCPF(e.target.value);
+                    setCpfDisplay(masked);
+                    register("cpf").onChange({
+                      target: { value: masked, name: "cpf" },
+                    });
+                  }}
+                  onBlur={() => {
+                    register("cpf").onBlur({
+                      target: { value: cpfDisplay, name: "cpf" },
+                    });
+                  }}
+                />
+                {errors.cpf && (
+                  <p className="text-destructive text-sm">
+                    {getErrorMessage(errors.cpf)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Redes Sociais */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">
+                  Redes Sociais{" "}
+                  <span className="text-muted-foreground/60 font-normal">
+                    (opcional)
+                  </span>
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append("")}
+                  className="gap-1 h-8 text-xs"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Adicionar
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="flex gap-2">
+                    <div className="relative flex-1">
+                      <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        placeholder="https://instagram.com/usuario"
+                        className="pl-9"
+                        {...register(`socialMedia.${index}`)}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => remove(index)}
+                      className="h-10 w-10 shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {fields.length === 0 && (
+                  <p className="text-muted-foreground text-sm">
+                    Nenhuma rede social adicionada
+                  </p>
+                )}
+              </div>
+              {errors.socialMedia && (
+                <p className="text-destructive text-sm">
+                  {typeof errors.socialMedia.message === "string"
+                    ? errors.socialMedia.message
+                    : "Verifique os campos de redes sociais"}
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 border-t pt-4">
+              <Button type="button" variant="ghost" onClick={handleClose}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={mutation.isPending}
+                className="min-w-[140px] shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
+              >
+                {mutation.isPending
+                  ? isEditing
+                    ? "Salvando..."
+                    : "Cadastrando..."
+                  : isEditing
+                    ? "Salvar Alterações"
+                    : "Cadastrar"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      )}
+    </Dialog>
+  );
+}

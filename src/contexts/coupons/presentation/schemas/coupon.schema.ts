@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+const emailValidator = z
+  .string()
+  .min(1, "O e-mail é obrigatório")
+  .refine(
+    (val) => {
+      const emailRegex =
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+      return emailRegex.test(val);
+    },
+    { message: "Informe um e-mail válido" }
+  );
+
+const optionalEmailValidator = emailValidator
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => (v && v.trim() ? v : undefined));
+
 export const createCouponSchema = z
   .object({
     code: z
@@ -26,7 +43,11 @@ export const createCouponSchema = z
       .optional()
       .or(z.nan())
       .transform((v) => (v && !isNaN(v) ? v : undefined)),
-    expiresAt: z.date().optional(),
+    expiresAt: z
+      .string()
+      .optional()
+      .or(z.literal(""))
+      .transform((v) => (v && v.trim() ? new Date(v) : undefined)),
     usageLimit: z
       .number()
       .int("Deve ser um número inteiro")
@@ -34,22 +55,32 @@ export const createCouponSchema = z
       .optional()
       .or(z.nan())
       .transform((v) => (v && !isNaN(v) ? v : undefined)),
-    customerId: z.string().optional().or(z.literal("")),
-    productId: z.string().optional().or(z.literal("")),
+    customerEmail: optionalEmailValidator,
+    productId: z
+      .string()
+      .optional()
+      .or(z.literal(""))
+      .transform((v) => (v && v.trim() ? v : undefined)),
+    affiliateId: z
+      .string()
+      .optional()
+      .or(z.literal(""))
+      .transform((v) => (v && v.trim() ? v : undefined)),
   })
   .refine(
     (data) => {
-      if (data.type === "BY_CUSTOMER" && !data.customerId) return false;
+      if (data.type === "BY_CUSTOMER" && !data.customerEmail) return false;
       return true;
     },
-    { message: "Informe o ID do cliente", path: ["customerId"] },
+    { message: "Informe o e-mail do cliente", path: ["customerEmail"] },
   )
   .refine(
     (data) => {
       if (data.type === "BY_PRODUCT" && !data.productId) return false;
       return true;
     },
-    { message: "Informe o ID do produto", path: ["productId"] },
+    { message: "Selecione um produto", path: ["productId"] },
   );
 
 export type CreateCouponFormValues = z.infer<typeof createCouponSchema>;
+export type CreateCouponFormInput = z.input<typeof createCouponSchema>;

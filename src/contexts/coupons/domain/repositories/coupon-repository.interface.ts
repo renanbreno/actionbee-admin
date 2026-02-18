@@ -8,13 +8,15 @@ export interface CreateCouponParams {
   minCartValue?: number;
   expiresAt?: string;
   usageLimit?: number;
-  customerId?: string;
+  customerEmail?: string;
   productId?: string;
+  affiliateId?: string;
 }
 
 export interface CouponRepository {
-  getAll(page: number, limit: number): Promise<PaginatedCoupons>;
+  getAll(page: number, limit: number, search?: string, status?: string): Promise<PaginatedCoupons>;
   create(params: CreateCouponParams): Promise<Coupon>;
   activate(code: string): Promise<void>;
   deactivate(code: string): Promise<void>;
+  delete(code: string): Promise<void>;
 }

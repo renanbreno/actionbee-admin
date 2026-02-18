@@ -3,9 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { getCouponsUseCase } from "../../di";
 
-export function useCoupons(page: number = 1, limit: number = 10) {
+export function useCoupons(page: number = 1, limit: number = 10, search?: string, status?: string) {
   return useQuery({
-    queryKey: ["coupons", page, limit],
-    queryFn: () => getCouponsUseCase.execute(page, limit),
+    queryKey: ["coupons", page, limit, search, status],
+    queryFn: () => getCouponsUseCase.execute(page, limit, search, status),
   });
 }

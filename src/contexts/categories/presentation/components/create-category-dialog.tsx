@@ -96,7 +96,7 @@ export function CreateCategoryDialog({
           {/* Nome */}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-medium">
-              Nome
+              Nome <span className="text-destructive">*</span>
             </Label>
             <Input
               id="name"
@@ -112,7 +112,9 @@ export function CreateCategoryDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="description" className="text-sm font-medium">
-                Descrição <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+                Descrição
+                {" "}
+                <span className="text-muted-foreground/60 font-normal">(opcional)</span>
               </Label>
               <span className="text-xs text-muted-foreground tabular-nums">
                 {descriptionLength}/500
@@ -133,7 +135,9 @@ export function CreateCategoryDialog({
           {/* Categoria pai */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Categoria pai <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+              Categoria pai
+              {" "}
+              <span className="text-muted-foreground/60 font-normal">(opcional)</span>
             </Label>
             <Controller
               name="parentId"

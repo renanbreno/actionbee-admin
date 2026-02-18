@@ -14,9 +14,9 @@ export default function DashboardLayout({
   return (
     <ProtectedRoute>
       <SidebarProvider>
-        <div className="flex min-h-screen w-full bg-muted/30">
+        <div className="flex min-h-screen w-full overflow-hidden bg-muted/30">
           <AdminSidebar />
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col min-w-0">
             <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-6">
               <SidebarTrigger className="-ml-2" />
               <Separator orientation="vertical" className="mx-2 h-5" />

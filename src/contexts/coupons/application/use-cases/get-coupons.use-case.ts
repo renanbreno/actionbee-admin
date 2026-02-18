@@ -4,7 +4,7 @@ import { CouponRepository } from "../../domain/repositories/coupon-repository.in
 export class GetCouponsUseCase {
   constructor(private readonly repository: CouponRepository) {}
 
-  async execute(page: number, limit: number): Promise<PaginatedCoupons> {
-    return this.repository.getAll(page, limit);
+  async execute(page: number, limit: number, search?: string, status?: string): Promise<PaginatedCoupons> {
+    return this.repository.getAll(page, limit, search, status);
   }
 }

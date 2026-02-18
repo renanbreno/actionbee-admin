@@ -6,8 +6,8 @@ import {
 import { couponsApiClient } from "../api/coupons-api.client";
 
 export class CouponRepositoryImpl implements CouponRepository {
-  async getAll(page: number, limit: number): Promise<PaginatedCoupons> {
-    return couponsApiClient.getAll(page, limit);
+  async getAll(page: number, limit: number, search?: string, status?: string): Promise<PaginatedCoupons> {
+    return couponsApiClient.getAll(page, limit, search, status);
   }
 
   async create(params: CreateCouponParams): Promise<Coupon> {
@@ -20,5 +20,9 @@ export class CouponRepositoryImpl implements CouponRepository {
 
   async deactivate(code: string): Promise<void> {
     return couponsApiClient.deactivate(code);
+  }
+
+  async delete(code: string): Promise<void> {
+    return couponsApiClient.delete(code);
   }
 }

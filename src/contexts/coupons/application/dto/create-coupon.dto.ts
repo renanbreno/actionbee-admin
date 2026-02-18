@@ -6,6 +6,7 @@ export interface CreateCouponDto {
   minCartValue?: number;
   expiresAt?: string;
   usageLimit?: number;
-  customerId?: string;
+  customerEmail?: string;
   productId?: string;
+  affiliateId?: string;
 }
