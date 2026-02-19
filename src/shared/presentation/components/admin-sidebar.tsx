@@ -110,6 +110,11 @@ const menuItems: MenuItem[] = [
     href: "/dashboard/gift-tiers",
     icon: Gift,
   },
+  {
+    title: "Clientes",
+    href: "/dashboard/customers",
+    icon: Users,
+  },
 ];
 
 function getInitials(name: string): string {
