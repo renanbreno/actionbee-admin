@@ -26,6 +26,7 @@ export interface RelatedProduct {
   productId: string;
   name: string;
   order?: number;
+  isAutomatic?: boolean;
 }
 
 export interface Product {

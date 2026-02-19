@@ -84,14 +84,15 @@ export const productsApiClient = {
     return multipartFetch<Product>(`/admin/products/${id}`, "PUT", formData);
   },
 
-  async getRelatedProducts(id: string): Promise<{ productId: string; name: string; order?: number }[]> {
+  async getRelatedProducts(id: string): Promise<{ productId: string; name: string; order?: number; isAutomatic?: boolean }[]> {
     // O backend retorna um array de ProductResponseDTO com campo `id`.
     // Mapeamos para a nomenclatura do domínio (productId).
-    const data = await apiFetch<{ id: string; name: string }[]>(`/admin/products/${id}/related`);
+    const data = await apiFetch<{ id: string; name: string; isAutomatic?: boolean }[]>(`/admin/products/${id}/related`);
     return data.map((item, index) => ({
       productId: item.id,
       name: item.name,
       order: index + 1,
+      isAutomatic: item.isAutomatic,
     }));
   },
 

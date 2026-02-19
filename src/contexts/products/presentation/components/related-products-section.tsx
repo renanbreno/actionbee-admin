@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, X, Plus, GripVertical } from "lucide-react";
+import { Search, X, Plus, GripVertical, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useProducts } from "../hooks/use-products";
@@ -115,6 +115,12 @@ export function RelatedProductsSection({
                   {i + 1}
                 </span>
                 <span className="text-sm flex-1 truncate">{related.name}</span>
+                {related.isAutomatic && (
+                  <span className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/30">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    Auto
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => handleRemove(related.productId)}
