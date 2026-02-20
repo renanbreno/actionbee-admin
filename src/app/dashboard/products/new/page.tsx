@@ -51,7 +51,7 @@ export default function NewProductPage() {
       {
         data,
         images: values.imageFiles,
-        nutritionalTableImage: isFoodProduct ? (values.nutritionalTableImageFile ?? undefined) : null,
+        nutritionalTableImage: isFoodProduct ? (values.nutritionalTableImageFile ?? undefined) : undefined,
       },
       {
         onSuccess: () => {
