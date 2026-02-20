@@ -16,6 +16,35 @@ const customerAddressSchema = z.object({
   country: z.string().min(1, "País é obrigatório"),
 });
 
+// Validador de CPF/CNPJ único
+const documentRefinement = (value: string | undefined, ctx: z.RefinementCtx) => {
+  if (!value) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Informe CPF ou CNPJ",
+    });
+    return false;
+  }
+
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length === 11) {
+    return true; // CPF válido
+  }
+
+  if (digits.length === 14) {
+    return true; // CNPJ válido
+  }
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: digits.length < 12
+      ? "CPF incompleto"
+      : "CNPJ incompleto",
+  });
+  return false;
+};
+
 // Schema sem senha - para admin criar cliente (senha será configurada pelo próprio cliente via link de ativação)
 export const createCustomerSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres").max(100, "O nome deve ter no máximo 100 caracteres"),
@@ -24,10 +53,10 @@ export const createCustomerSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || val.replace(/\D/g, "").length >= 10, "Telefone inválido"),
-  cpf: z
-    .string()
-    .optional()
-    .refine((val) => !val || val.replace(/\D/g, "").length === 11, "CPF inválido"),
+  document: z.string().optional().refine(documentRefinement, {
+    message: "Informe CPF ou CNPJ completo",
+  }),
+  isFinalConsumer: z.boolean().optional(),
   address: customerAddressSchema.optional(),
 });
 
@@ -39,10 +68,10 @@ export const updateCustomerSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || val.replace(/\D/g, "").length >= 10, "Telefone inválido"),
-  cpf: z
-    .string()
-    .optional()
-    .refine((val) => !val || val.replace(/\D/g, "").length === 11, "CPF inválido"),
+  document: z.string().optional().refine(documentRefinement, {
+    message: "Informe CPF ou CNPJ completo",
+  }),
+  isFinalConsumer: z.boolean().optional(),
   address: customerAddressSchema.partial().optional(),
 });
 

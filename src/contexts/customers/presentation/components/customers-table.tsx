@@ -31,11 +31,12 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import { Customer, PaginatedCustomers } from "../../domain/entities/customer";
 import { useCustomers } from "../hooks/use-customers";
 import { CustomerFormDialog } from "./customer-form-dialog";
-import { formatPhone } from "@/shared/utils/masks";
+import { formatPhone, formatDocument } from "@/shared/utils/masks";
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("pt-BR", {
@@ -77,12 +78,14 @@ function CustomerCard({
   customer: Customer;
   onEdit: () => void;
 }) {
+  const documentNumber = customer.cnpj ? formatDocument(customer.cnpj) : customer.cpf ? formatDocument(customer.cpf) : null;
+
   return (
     <Card className="shadow-sm">
       <CardContent className="space-y-4 p-4">
         {/* Header */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100 text-blue-600 shrink-0">
+          <div className={`flex h-11 w-11 items-center justify-center rounded-full shrink-0 ${customer.isFinalConsumer === false ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"}`}>
             <User className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -94,6 +97,12 @@ function CustomerCard({
 
         {/* Info */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+          {documentNumber && (
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="text-xs">{documentNumber}</span>
+            </div>
+          )}
           {customer.phone && (
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4" />
@@ -109,6 +118,15 @@ function CustomerCard({
             <span>{customer.ordersCount ?? 0} pedido{(customer.ordersCount ?? 0) !== 1 ? "s" : ""}</span>
           </div>
         </div>
+
+        {/* Tipo de cliente */}
+        {customer.isFinalConsumer !== undefined && customer.isFinalConsumer !== null && (
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${customer.isFinalConsumer ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+              {customer.isFinalConsumer ? "Consumidor Final" : "Revendedor"}
+            </span>
+          </div>
+        )}
 
         {/* Address */}
         {customer.address && (
@@ -133,17 +151,31 @@ function CustomerRow({
   customer: Customer;
   onEdit: () => void;
 }) {
+  const documentNumber = customer.cnpj ? formatDocument(customer.cnpj) : customer.cpf ? formatDocument(customer.cpf) : null;
+
   return (
     <TableRow className="group">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <div className={`flex h-9 w-9 items-center justify-center rounded-full ${customer.isFinalConsumer === false ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"}`}>
             <User className="h-4.5 w-4.5" />
           </div>
           <div>
             <p className="font-medium">{customer.name}</p>
             <p className="text-muted-foreground text-xs">{customer.email}</p>
           </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2 text-sm">
+          {documentNumber ? (
+            <>
+              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs">{documentNumber}</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground text-sm">—</span>
+          )}
         </div>
       </TableCell>
       <TableCell>
@@ -157,6 +189,15 @@ function CustomerRow({
             <span className="text-muted-foreground text-sm">—</span>
           )}
         </div>
+      </TableCell>
+      <TableCell>
+        {customer.isFinalConsumer !== undefined && customer.isFinalConsumer !== null ? (
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${customer.isFinalConsumer ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+            {customer.isFinalConsumer ? "Consumidor Final" : "Revendedor"}
+          </span>
+        ) : (
+          <span className="text-muted-foreground text-sm">—</span>
+        )}
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -201,9 +242,11 @@ function TableSkeleton() {
       {Array.from({ length: 5 }).map((_, i) => (
         <TableRow key={i}>
           <TableCell><Skeleton className="h-9 w-48" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-28" /></TableCell>
           <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
           <TableCell><Skeleton className="h-8 w-8 rounded" /></TableCell>
         </TableRow>
       ))}
@@ -345,10 +388,12 @@ export function CustomersTable() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[280px]">Cliente</TableHead>
-              <TableHead className="w-[150px]">Telefone</TableHead>
-              <TableHead className="w-[80px]">Pedidos</TableHead>
-              <TableHead className="w-[110px]">Cadastro</TableHead>
+              <TableHead className="w-[250px]">Cliente</TableHead>
+              <TableHead className="w-[140px]">CPF/CNPJ</TableHead>
+              <TableHead className="w-[130px]">Telefone</TableHead>
+              <TableHead className="w-[110px]">Tipo</TableHead>
+              <TableHead className="w-[60px]">Pedidos</TableHead>
+              <TableHead className="w-[90px]">Cadastro</TableHead>
               <TableHead className="w-[50px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -356,14 +401,14 @@ export function CustomersTable() {
             {isLoading && <TableSkeleton />}
             {isError && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   <ErrorState />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && !isError && customers.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   <EmptyState />
                 </TableCell>
               </TableRow>

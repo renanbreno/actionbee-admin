@@ -12,6 +12,8 @@ export interface CreateCustomerDTO {
   email: string;
   phone?: string;
   cpf?: string;
+  cnpj?: string;
+  isFinalConsumer?: boolean;
   address?: {
     street: string;
     neighborhood: string;
@@ -30,6 +32,8 @@ export interface UpdateCustomerDTO {
   password?: string;
   phone?: string;
   cpf?: string;
+  cnpj?: string;
+  isFinalConsumer?: boolean;
   address?: {
     street?: string;
     neighborhood?: string;

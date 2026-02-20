@@ -15,6 +15,8 @@ export interface Customer {
   email: string;
   phone?: string | null;
   cpf?: string | null;
+  cnpj?: string | null;
+  isFinalConsumer?: boolean | null;
   emailVerified: boolean;
   ordersCount?: number;
   address?: CustomerAddress | null;

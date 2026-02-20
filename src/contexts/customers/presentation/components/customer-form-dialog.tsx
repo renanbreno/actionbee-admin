@@ -28,7 +28,7 @@ import {
 import { useCreateCustomer } from "../hooks/use-create-customer";
 import { useUpdateCustomer } from "../hooks/use-update-customer";
 import { useCustomerDetails } from "../hooks/use-customer-details";
-import { maskPhone, unmaskPhone, formatPhone, maskCPF, formatCPF, unmaskCPF } from "@/shared/utils/masks";
+import { maskPhone, unmaskPhone, formatPhone, maskDocument, formatDocument, unmaskDocument, getDocumentType } from "@/shared/utils/masks";
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
 
 type FormValues = CreateCustomerFormValues | UpdateCustomerFormValues;
@@ -84,9 +84,16 @@ export function CustomerFormDialog({
     return fullCustomer?.phone ? formatPhone(fullCustomer.phone) : "";
   }, [fullCustomer]);
 
-  // Deriva o valor inicial do cpf formatado
-  const initialCpf = useMemo(() => {
-    return fullCustomer?.cpf ? formatCPF(fullCustomer.cpf) : "";
+  // Deriva o valor inicial do documento (CPF ou CNPJ) formatado
+  const initialDocument = useMemo(() => {
+    if (fullCustomer?.cnpj) return formatDocument(fullCustomer.cnpj);
+    if (fullCustomer?.cpf) return formatDocument(fullCustomer.cpf);
+    return "";
+  }, [fullCustomer]);
+
+  // Deriva o valor inicial do isFinalConsumer
+  const initialIsFinalConsumer = useMemo(() => {
+    return fullCustomer?.isFinalConsumer ?? true;
   }, [fullCustomer]);
 
   const {
@@ -102,10 +109,15 @@ export function CustomerFormDialog({
         name: "",
         email: "",
         phone: "",
-        cpf: "",
+        document: "",
+        isFinalConsumer: true,
         address: undefined,
       },
     });
+
+  // Observa o documento para detectar se é CPF ou CNPJ
+  const documentValue = watch("document") || "";
+  const documentType = getDocumentType(documentValue);
 
   // Atualiza o formulário quando os detalhes são carregados
   React.useEffect(() => {
@@ -114,7 +126,8 @@ export function CustomerFormDialog({
         name: fullCustomer.name ?? "",
         email: fullCustomer.email ?? "",
         phone: initialPhone,
-        cpf: initialCpf,
+        document: initialDocument,
+        isFinalConsumer: initialIsFinalConsumer,
         address: fullCustomer.address ?? undefined,
       });
     } else {
@@ -122,11 +135,12 @@ export function CustomerFormDialog({
         name: "",
         email: "",
         phone: "",
-        cpf: "",
+        document: "",
+        isFinalConsumer: true,
         address: undefined,
       });
     }
-  }, [fullCustomer, initialPhone, initialCpf, reset]);
+  }, [fullCustomer, initialPhone, initialDocument, initialIsFinalConsumer, reset]);
 
   const showAddress = watch("address") !== undefined;
 
@@ -159,11 +173,17 @@ export function CustomerFormDialog({
   };
 
   const onSubmit = (data: FormValues) => {
+    // Determina se é CPF ou CNPJ baseado na quantidade de dígitos
+    const documentDigits = unmaskDocument(data.document ?? "");
+    const docType = getDocumentType(data.document ?? "");
+
     const payload = {
       name: data.name,
       email: data.email,
       phone: unmaskPhone(data.phone ?? "") || undefined,
-      cpf: unmaskCPF(data.cpf ?? "") || undefined,
+      cpf: docType === "cpf" ? documentDigits : undefined,
+      cnpj: docType === "cnpj" ? documentDigits : undefined,
+      isFinalConsumer: data.isFinalConsumer ?? true,
       ...(showAddress && data.address && { address: data.address }),
     };
 
@@ -261,8 +281,9 @@ export function CustomerFormDialog({
               </div>
             </div>
 
-            {/* Telefone e CPF */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Telefone, CPF/CNPJ e Tipo de cliente */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Telefone */}
               <div className="space-y-2">
                 <Label htmlFor="cust-phone" className="text-sm font-medium">
                   Telefone
@@ -286,26 +307,54 @@ export function CustomerFormDialog({
                 )}
               </div>
 
+              {/* CPF/CNPJ */}
               <div className="space-y-2">
-                <Label htmlFor="cust-cpf" className="text-sm font-medium">
-                  CPF
+                <Label htmlFor="cust-document" className="text-sm font-medium">
+                  {documentType === "cnpj" ? "CNPJ" : "CPF"} <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
-                    id="cust-cpf"
-                    placeholder="Ex: 123.456.789-00"
+                    id="cust-document"
+                    placeholder={documentType === "cnpj" ? "Ex: 12.345.678/0001-90" : "Ex: 123.456.789-00"}
                     className="pl-9"
-                    {...register("cpf")}
+                    {...register("document")}
                     onChange={(e) => {
-                      const masked = maskCPF(e.target.value);
-                      setValue("cpf", masked);
+                      const masked = maskDocument(e.target.value);
+                      setValue("document", masked);
                     }}
                   />
                 </div>
-                {errors.cpf && (
-                  <p className="text-destructive text-sm">{getErrorMessage(errors.cpf)}</p>
+                {errors.document && (
+                  <p className="text-destructive text-sm">{getErrorMessage(errors.document)}</p>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  {documentType === "cnpj"
+                    ? "Digite mais dígitos para CNPJ"
+                    : "Digite +11 dígitos para CNPJ"}
+                </p>
+              </div>
+
+              {/* Tipo de cliente - toggle compacto */}
+              <div className="space-y-2">
+                <Label htmlFor="cust-isFinalConsumer" className="text-sm font-medium">
+                  Tipo
+                </Label>
+                <div className="flex items-center gap-3 h-10 px-3 py-2 border rounded-md bg-background sm:h-[42px]">
+                  <Switch
+                    id="cust-isFinalConsumer"
+                    checked={watch("isFinalConsumer") ?? true}
+                    onCheckedChange={(checked) => setValue("isFinalConsumer", checked)}
+                  />
+                  <span className="text-sm">
+                    {watch("isFinalConsumer") ?? true ? "Consumidor final" : "Revendedor"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground hidden sm:block">
+                  {watch("isFinalConsumer") ?? true
+                    ? "Consumo próprio"
+                    : "Para revenda"}
+                </p>
               </div>
             </div>
 
