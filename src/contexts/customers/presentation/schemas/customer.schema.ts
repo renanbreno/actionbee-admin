@@ -16,13 +16,9 @@ const customerAddressSchema = z.object({
   country: z.string().min(1, "País é obrigatório"),
 });
 
-// Validador de CPF/CNPJ único
-const documentRefinement = (value: string | undefined, ctx: z.RefinementCtx) => {
+// Validador de CPF/CNPJ
+const documentRefinement = (value: string | undefined) => {
   if (!value) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Informe CPF ou CNPJ",
-    });
     return false;
   }
 
@@ -36,12 +32,6 @@ const documentRefinement = (value: string | undefined, ctx: z.RefinementCtx) => 
     return true; // CNPJ válido
   }
 
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    message: digits.length < 12
-      ? "CPF incompleto"
-      : "CNPJ incompleto",
-  });
   return false;
 };
 

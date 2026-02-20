@@ -52,7 +52,7 @@ export default function EditProductPage() {
       ingredients: values.ingredients ?? null,
       usageRecommendation: values.usageRecommendation ?? null,
       stockUnits: values.stockUnits ?? null,
-      brand: values.brand ?? null,
+      brandId: values.brandId ?? null,
       variationType: values.variationType ?? null,
       isActive: values.isActive,
       showOnEcommerce: values.showOnEcommerce,

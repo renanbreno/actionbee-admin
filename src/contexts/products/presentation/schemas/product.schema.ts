@@ -34,7 +34,7 @@ export const productFormSchema = z.object({
   ingredients: z.string().optional().nullable(),
   usageRecommendation: z.string().optional().nullable(),
   stockUnits: z.number().int().min(0, "Estoque não pode ser negativo").optional().nullable(),
-  brand: z.string().optional().nullable(),
+  brandId: z.string().optional().nullable(),
   variationType: z.string().optional().nullable(),
   isActive: z.boolean(),
   showOnEcommerce: z.boolean(),

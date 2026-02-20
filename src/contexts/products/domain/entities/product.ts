@@ -36,7 +36,8 @@ export interface Product {
   description?: string | null;
   ingredients?: string | null;
   usageRecommendation?: string | null;
-  brand?: string | null;
+  brandId?: string | null;
+  brandName?: string | null;
   variationType?: string | null;
   isActive: boolean;
   showOnEcommerce?: boolean;

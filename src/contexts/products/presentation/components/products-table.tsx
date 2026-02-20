@@ -38,6 +38,7 @@ import {
   Package,
   AlertTriangle,
   Image as ImageIcon,
+  Tag,
 } from "lucide-react";
 import { useProducts } from "../hooks/use-products";
 import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
@@ -52,16 +53,33 @@ function formatPrice(price: number): string {
 }
 
 function ProductStatusBadge({ isActive }: { isActive: boolean }) {
+  return isActive ? (
+    <div className="flex items-center gap-1.5">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      </span>
+      <span className="text-sm font-medium text-emerald-700">Ativo</span>
+    </div>
+  ) : (
+    <div className="flex items-center gap-1.5">
+      <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+      <span className="text-sm text-muted-foreground">Inativo</span>
+    </div>
+  );
+}
+
+function ProductBrandBadge({ brandName }: { brandName?: string | null }) {
+  if (!brandName) {
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
   return (
     <Badge
-      variant={isActive ? "default" : "secondary"}
-      className={
-        isActive
-          ? "bg-emerald-100 text-emerald-700 border-0"
-          : "bg-muted text-muted-foreground border-0"
-      }
+      variant="outline"
+      className="bg-bee-gold/20 text-amber-900 border-bee-gold/30 font-medium"
     >
-      {isActive ? "Ativo" : "Inativo"}
+      <Tag className="h-3 w-3 mr-1" />
+      {brandName}
     </Badge>
   );
 }
@@ -114,13 +132,13 @@ function ProductActions({
 /* ─── Mobile Card ─── */
 function ProductCard({ product }: { product: Product }) {
   const basePrice = product.variants[0]?.price;
-  const router = useRouter();
 
   return (
     <Card className="shadow-sm">
       <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+        {/* Header: Image + Name + Actions */}
+        <div className="flex gap-3">
+          <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
             {product.images[0] ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -129,21 +147,27 @@ function ProductCard({ product }: { product: Product }) {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+              <ImageIcon className="h-6 w-6 text-muted-foreground" />
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-sm truncate">{product.name}</p>
-            {product.categoryName && (
-              <p className="text-xs text-muted-foreground truncate">
-                {product.categoryName}
-              </p>
-            )}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-sm">{product.name}</p>
+                {product.brandName && (
+                  <ProductBrandBadge brandName={product.brandName} />
+                )}
+              </div>
+              <ProductActions productId={product.id} productName={product.name} />
+            </div>
           </div>
-          <ProductActions productId={product.id} productName={product.name} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        {/* Meta info row */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+          {product.categoryName && (
+            <span className="truncate">{product.categoryName}</span>
+          )}
           <span className="flex items-center gap-1">
             <Package className="h-3.5 w-3.5" />
             {product.variants.length} variante
@@ -154,8 +178,10 @@ function ProductCard({ product }: { product: Product }) {
               {formatPrice(basePrice)}
             </span>
           )}
-          <ProductStatusBadge isActive={product.isActive} />
         </div>
+
+        {/* Status */}
+        <ProductStatusBadge isActive={product.isActive} />
       </CardContent>
     </Card>
   );
@@ -185,13 +211,11 @@ function ProductRow({ product }: { product: Product }) {
               <ImageIcon className="h-4 w-4 text-muted-foreground" />
             )}
           </div>
-          <div>
-            <p className="font-medium text-sm">{product.name}</p>
-            {product.brand && (
-              <p className="text-xs text-muted-foreground">{product.brand}</p>
-            )}
-          </div>
+          <p className="font-medium text-sm">{product.name}</p>
         </div>
+      </TableCell>
+      <TableCell>
+        <ProductBrandBadge brandName={product.brandName} />
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {product.categoryName ?? "—"}
@@ -243,6 +267,9 @@ function TableSkeleton() {
         <TableRow key={i}>
           <TableCell>
             <Skeleton className="h-10 w-48" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-5 w-24 rounded-full" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-24" />
@@ -428,7 +455,8 @@ export function ProductsTable() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[300px]">Produto</TableHead>
+              <TableHead className="w-[280px]">Produto</TableHead>
+              <TableHead className="w-[150px]">Marca</TableHead>
               <TableHead className="w-[150px]">Categoria</TableHead>
               <TableHead className="w-[80px] text-center">Variantes</TableHead>
               <TableHead className="w-[80px] text-center">Estoque</TableHead>
@@ -441,14 +469,14 @@ export function ProductsTable() {
             {isLoading && <TableSkeleton />}
             {isError && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   <ErrorState />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && !isError && products.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   <EmptyState />
                 </TableCell>
               </TableRow>

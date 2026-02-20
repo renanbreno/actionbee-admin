@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Users,
   Gift,
+  Tag,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
@@ -66,6 +67,17 @@ const menuItems: MenuItem[] = [
     title: "Produtos",
     href: "/dashboard/products",
     icon: Package,
+    submenu: [
+      {
+        title: "Lista de Produtos",
+        href: "/dashboard/products",
+      },
+      {
+        title: "Marcas",
+        href: "/dashboard/products/brands",
+        icon: Tag,
+      },
+    ],
   },
   {
     title: "Categorias",
@@ -133,6 +145,20 @@ export function AdminSidebar() {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  // Auto-expand submenus when their routes are active
+  useEffect(() => {
+    menuItems.forEach((item) => {
+      if (item.submenu) {
+        const hasActiveRoute = item.submenu.some((sub) =>
+          pathname.startsWith(sub.href)
+        );
+        if (hasActiveRoute && !expandedItems.has(item.title)) {
+          setExpandedItems((prev) => new Set(prev).add(item.title));
+        }
+      }
+    });
+  }, [pathname]);
 
   const toggleSubmenu = (title: string) => {
     setExpandedItems((prev) => {
@@ -223,7 +249,7 @@ export function AdminSidebar() {
                             )}
                           />
                         </SidebarMenuButton>
-                        {(isExpanded || isActive) && item.submenu && (
+                        {isExpanded && item.submenu && (
                           <SidebarMenuSub className="mt-1">
                             {item.submenu.map((subitem) => {
                               const isSubActive = pathname.startsWith(subitem.href);

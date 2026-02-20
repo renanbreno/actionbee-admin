@@ -20,7 +20,7 @@ export default function NewProductPage() {
       ingredients: values.ingredients ?? undefined,
       usageRecommendation: values.usageRecommendation ?? undefined,
       stockUnits: values.stockUnits ?? undefined,
-      brand: values.brand ?? undefined,
+      brandId: values.brandId ?? undefined,
       variationType: values.variationType ?? undefined,
       isActive: values.isActive,
       showOnEcommerce: values.showOnEcommerce,

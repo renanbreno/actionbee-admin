@@ -17,7 +17,7 @@ export interface ProductVariantDTO {
 export interface CreateProductDTO {
   name: string;
   description?: string | null;
-  brand?: string | null;
+  brandId?: string | null;
   variationType?: string | null;
   isActive?: boolean;
   showOnEcommerce?: boolean;
@@ -28,7 +28,7 @@ export interface CreateProductDTO {
 export interface UpdateProductDTO {
   name?: string;
   description?: string | null;
-  brand?: string | null;
+  brandId?: string | null;
   variationType?: string | null;
   isActive?: boolean;
   showOnEcommerce?: boolean;

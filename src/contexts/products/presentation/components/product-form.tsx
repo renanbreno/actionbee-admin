@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
+import { useBrands } from "@/contexts/brands/presentation/hooks";
 import { Product } from "../../domain/entities/product";
 import {
   productFormSchema,
@@ -44,7 +45,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       ingredients: null,
       usageRecommendation: null,
       stockUnits: null,
-      brand: null,
+      brandId: null,
       variationType: null,
       isActive: true,
       showOnEcommerce: true,
@@ -77,7 +78,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
     ingredients: product.ingredients ?? null,
     usageRecommendation: product.usageRecommendation ?? null,
     stockUnits: product.stockUnits ?? null,
-    brand: product.brand ?? null,
+    brandId: product.brandId ?? null,
     variationType: product.variationType ?? null,
     isActive: product.isActive,
     showOnEcommerce: product.showOnEcommerce ?? true,
@@ -197,6 +198,7 @@ export function ProductWizard({
   mode,
 }: ProductWizardProps) {
   const { data: categories } = useCategories();
+  const { data: brands = [] } = useBrands();
   const [currentStep, setCurrentStep] = useState(0);
   const [completedUpTo, setCompletedUpTo] = useState(0);
 
@@ -315,11 +317,30 @@ export function ProductWizard({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="brand">Marca</Label>
-                <Input
-                  id="brand"
-                  placeholder="Ex: ActionBee"
-                  {...register("brand")}
+                <Label htmlFor="brandId">Marca</Label>
+                <Controller
+                  name="brandId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? "none"}
+                      onValueChange={(v) =>
+                        field.onChange(v === "none" ? null : v)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione uma marca" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem marca</SelectItem>
+                        {brands.map((brand) => (
+                          <SelectItem key={brand.id} value={brand.id}>
+                            {brand.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
               </div>
               <div className="space-y-2">
