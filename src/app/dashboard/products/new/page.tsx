@@ -23,6 +23,7 @@ export default function NewProductPage() {
       brand: values.brand ?? undefined,
       variationType: values.variationType ?? undefined,
       isActive: values.isActive,
+      showOnEcommerce: values.showOnEcommerce,
       categoryId: values.categoryId ?? undefined,
       variants: values.variants.map((v) => ({
         name: v.name,

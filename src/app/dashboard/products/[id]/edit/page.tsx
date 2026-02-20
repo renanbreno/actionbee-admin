@@ -55,6 +55,7 @@ export default function EditProductPage() {
       brand: values.brand ?? null,
       variationType: values.variationType ?? null,
       isActive: values.isActive,
+      showOnEcommerce: values.showOnEcommerce,
       categoryId: values.categoryId ?? null,
       variants: values.variants.map((v) => ({
         name: v.name,

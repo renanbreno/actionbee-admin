@@ -47,6 +47,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       brand: null,
       variationType: null,
       isActive: true,
+      showOnEcommerce: true,
       categoryId: null,
       variants: [
         {
@@ -79,6 +80,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
     brand: product.brand ?? null,
     variationType: product.variationType ?? null,
     isActive: product.isActive,
+    showOnEcommerce: product.showOnEcommerce ?? true,
     categoryId: product.categoryId ?? null,
     variants: product.variants.map((v) => ({
       name: v.name,
@@ -111,7 +113,7 @@ const STEP_FIELDS: Record<number, (keyof ProductFormValues)[]> = {
   0: ["name"],
   1: [],
   2: ["variants"],
-  3: ["variationType", "isActive"],
+  3: ["variationType", "isActive", "showOnEcommerce"],
 };
 
 function StepIndicator({
@@ -217,7 +219,7 @@ export function ProductWizard({
     if (defaultValues) {
       methods.reset(buildDefaultValues(defaultValues));
     }
-  }, [defaultValues?.id]);
+  }, [defaultValues, methods]);
 
   const imageFiles = watch("imageFiles");
   const nutritionalFile = watch("nutritionalTableImageFile");
@@ -424,6 +426,25 @@ export function ProductWizard({
               </div>
               <Controller
                 name="isActive"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Exibir no e-commerce</Label>
+                <p className="text-xs text-muted-foreground">
+                  Produto disponível para compra na loja virtual
+                </p>
+              </div>
+              <Controller
+                name="showOnEcommerce"
                 control={control}
                 render={({ field }) => (
                   <Switch

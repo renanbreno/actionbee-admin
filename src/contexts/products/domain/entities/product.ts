@@ -39,6 +39,7 @@ export interface Product {
   brand?: string | null;
   variationType?: string | null;
   isActive: boolean;
+  showOnEcommerce?: boolean;
   categoryId?: string | null;
   categoryName?: string | null;
   parentCategoryId?: string | null;

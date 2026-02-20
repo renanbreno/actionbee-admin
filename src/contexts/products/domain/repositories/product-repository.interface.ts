@@ -20,6 +20,7 @@ export interface CreateProductDTO {
   brand?: string | null;
   variationType?: string | null;
   isActive?: boolean;
+  showOnEcommerce?: boolean;
   categoryId?: string | null;
   variants: ProductVariantDTO[];
 }
@@ -30,6 +31,7 @@ export interface UpdateProductDTO {
   brand?: string | null;
   variationType?: string | null;
   isActive?: boolean;
+  showOnEcommerce?: boolean;
   categoryId?: string | null;
   variants?: ProductVariantDTO[];
   images?: { url: string; order?: number }[];

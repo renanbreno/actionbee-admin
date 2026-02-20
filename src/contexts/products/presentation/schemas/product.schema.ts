@@ -37,6 +37,7 @@ export const productFormSchema = z.object({
   brand: z.string().optional().nullable(),
   variationType: z.string().optional().nullable(),
   isActive: z.boolean(),
+  showOnEcommerce: z.boolean(),
   categoryId: z.string().optional().nullable(),
   variants: z
     .array(productVariantSchema)
