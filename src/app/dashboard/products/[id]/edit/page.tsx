@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProductWizard } from "@/contexts/products/presentation/components";
 import { useProduct } from "@/contexts/products/presentation/hooks/use-product";
 import { useUpdateProduct } from "@/contexts/products/presentation/hooks/use-update-product";
+import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
 import { ProductFormValues } from "@/contexts/products/presentation/schemas/product.schema";
 
 function EditProductSkeleton() {
@@ -35,8 +36,13 @@ export default function EditProductPage() {
 
   const { data: product, isLoading, isError } = useProduct(id);
   const updateMutation = useUpdateProduct(id);
+  const { data: categories } = useCategories();
 
   const handleSubmit = (values: ProductFormValues) => {
+    // Check if selected category is a food product
+    const selectedCategory = categories?.find((cat) => cat.id === values.categoryId);
+    const isFoodProduct = selectedCategory?.isFoodProduct ?? false;
+
     const keptImages = values.existingImages
       .filter((img) => values.keepImageIds.includes(img.id))
       .map((img, i) => ({ url: img.url, order: i }));
@@ -49,8 +55,9 @@ export default function EditProductPage() {
     const data = {
       name: values.name,
       description: values.description ?? null,
-      ingredients: values.ingredients ?? null,
-      usageRecommendation: values.usageRecommendation ?? null,
+      // Only send food-related fields if the category is a food product, otherwise send empty string to clear backend data
+      ingredients: isFoodProduct ? (values.ingredients ?? null) : "",
+      usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : "",
       stockUnits: values.stockUnits ?? null,
       brandId: values.brandId ?? null,
       variationType: values.variationType ?? null,
@@ -77,7 +84,7 @@ export default function EditProductPage() {
       {
         data,
         images: values.imageFiles.length > 0 ? values.imageFiles : undefined,
-        nutritionalTableImage: values.nutritionalTableImageFile ?? undefined,
+        nutritionalTableImage: isFoodProduct ? (values.nutritionalTableImageFile ?? undefined) : null,
       },
       {
         onSuccess: () => {

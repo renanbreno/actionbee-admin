@@ -3,6 +3,7 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +56,7 @@ export function CreateCategoryDialog({
       name: "",
       description: "",
       featured: false,
+      isFoodProduct: false,
       parentId: "",
     },
   });
@@ -67,6 +69,7 @@ export function CreateCategoryDialog({
         name: data.name,
         description: data.description || undefined,
         featured: data.featured,
+        isFoodProduct: data.isFoodProduct,
         parentId: data.parentId || undefined,
       },
       {
@@ -173,6 +176,29 @@ export function CreateCategoryDialog({
             </div>
             <Controller
               name="featured"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </div>
+
+          {/* Produto Alimentício */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center gap-2">
+              <Utensils className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Produto Alimentício</Label>
+                <p className="text-xs text-muted-foreground">
+                  Marcar como categoria de alimento
+                </p>
+              </div>
+            </div>
+            <Controller
+              name="isFoodProduct"
               control={control}
               render={({ field }) => (
                 <Switch

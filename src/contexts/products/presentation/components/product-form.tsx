@@ -30,6 +30,19 @@ import {
 import { VariantFields } from "./variant-fields";
 import { ImageUploadField } from "./image-upload-field";
 
+// Animated section component for smooth transitions
+function AnimatedSection({ show, children }: { show: boolean; children: React.ReactNode }) {
+  return (
+    <div
+      className={`overflow-hidden transition-all duration-300 ease-in-out ${
+        show ? "max-h-96 opacity-100 mt-4" : "max-h-0 opacity-0"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 interface ProductWizardProps {
   defaultValues?: Product;
   onSubmit: (values: ProductFormValues) => void;
@@ -229,6 +242,11 @@ export function ProductWizard({
   const keepImageIds = watch("keepImageIds");
   const watchedName = watch("name");
   const watchedVariants = watch("variants");
+  const watchedCategoryId = watch("categoryId");
+
+  // Check if the selected category is a food product
+  const selectedCategory = categories?.find((cat) => cat.id === watchedCategoryId);
+  const isFoodProduct = selectedCategory?.isFoodProduct ?? false;
 
   const canSubmit =
     (watchedName?.trim().length ?? 0) >= 2 &&
@@ -293,28 +311,6 @@ export function ProductWizard({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ingredients">Ingredientes</Label>
-              <Textarea
-                id="ingredients"
-                placeholder="Liste os ingredientes do produto..."
-                rows={4}
-                className="resize-none"
-                {...register("ingredients")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="usageRecommendation">Modo de uso</Label>
-              <Textarea
-                id="usageRecommendation"
-                placeholder="Descreva como usar o produto..."
-                rows={3}
-                className="resize-none"
-                {...register("usageRecommendation")}
-              />
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="brandId">Marca</Label>
@@ -371,6 +367,32 @@ export function ProductWizard({
                 />
               </div>
             </div>
+
+            <AnimatedSection show={isFoodProduct}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ingredients">Ingredientes</Label>
+                  <Textarea
+                    id="ingredients"
+                    placeholder="Liste os ingredientes do produto..."
+                    rows={4}
+                    className="resize-none"
+                    {...register("ingredients")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="usageRecommendation">Modo de uso</Label>
+                  <Textarea
+                    id="usageRecommendation"
+                    placeholder="Descreva como usar o produto..."
+                    rows={3}
+                    className="resize-none"
+                    {...register("usageRecommendation")}
+                  />
+                </div>
+              </div>
+            </AnimatedSection>
           </section>
         )}
 
@@ -390,17 +412,19 @@ export function ProductWizard({
               }
             />
 
-            <ImageUploadField
-              label="Tabela nutricional (opcional)"
-              multiple={false}
-              files={nutritionalFile ? [nutritionalFile] : []}
-              onFilesChange={(files) =>
-                setValue(
-                  "nutritionalTableImageFile",
-                  files.length > 0 ? files[0] : null,
-                )
-              }
-            />
+            <AnimatedSection show={isFoodProduct}>
+              <ImageUploadField
+                label="Tabela nutricional (opcional)"
+                multiple={false}
+                files={nutritionalFile ? [nutritionalFile] : []}
+                onFilesChange={(files) =>
+                  setValue(
+                    "nutritionalTableImageFile",
+                    files.length > 0 ? files[0] : null,
+                  )
+                }
+              />
+            </AnimatedSection>
           </section>
         )}
 

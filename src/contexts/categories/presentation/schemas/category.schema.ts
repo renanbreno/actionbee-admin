@@ -11,6 +11,7 @@ export const createCategorySchema = z.object({
     .optional()
     .or(z.literal("")),
   featured: z.boolean().optional(),
+  isFoodProduct: z.boolean().optional(),
   parentId: z.string().optional().or(z.literal("")),
 });
 

@@ -4,6 +4,7 @@ export interface Category {
   description?: string;
   isActive: boolean;
   featured: boolean;
+  isFoodProduct: boolean;
   parentId?: string;
   parent?: Category;
   subcategories?: Category[];

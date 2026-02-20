@@ -52,6 +52,15 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
+function formatCategory(
+  parentCategoryName: string | null | undefined,
+  categoryName: string | null | undefined,
+): string | null {
+  if (!categoryName) return null;
+  if (!parentCategoryName) return categoryName;
+  return `${parentCategoryName} → ${categoryName}`;
+}
+
 function ProductStatusBadge({ isActive }: { isActive: boolean }) {
   return isActive ? (
     <div className="flex items-center gap-1.5">
@@ -165,8 +174,10 @@ function ProductCard({ product }: { product: Product }) {
 
         {/* Meta info row */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-          {product.categoryName && (
-            <span className="truncate">{product.categoryName}</span>
+          {formatCategory(product.parentCategoryName, product.categoryName) && (
+            <span className="truncate">
+              {formatCategory(product.parentCategoryName, product.categoryName)}
+            </span>
           )}
           <span className="flex items-center gap-1">
             <Package className="h-3.5 w-3.5" />
@@ -218,7 +229,7 @@ function ProductRow({ product }: { product: Product }) {
         <ProductBrandBadge brandName={product.brandName} />
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {product.categoryName ?? "—"}
+        {formatCategory(product.parentCategoryName, product.categoryName) ?? "—"}
       </TableCell>
       <TableCell className="text-sm text-center">
         {product.variants.length}

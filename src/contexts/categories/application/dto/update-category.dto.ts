@@ -3,5 +3,6 @@ export interface UpdateCategoryDto {
   description?: string;
   isActive?: boolean;
   featured?: boolean;
+  isFoodProduct?: boolean;
   parentId?: string;
 }

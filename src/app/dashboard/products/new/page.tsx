@@ -7,18 +7,25 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProductWizard } from "@/contexts/products/presentation/components";
 import { useCreateProduct } from "@/contexts/products/presentation/hooks/use-create-product";
+import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
 import { ProductFormValues } from "@/contexts/products/presentation/schemas/product.schema";
 
 export default function NewProductPage() {
   const router = useRouter();
   const createMutation = useCreateProduct();
+  const { data: categories } = useCategories();
 
   const handleSubmit = (values: ProductFormValues) => {
+    // Check if selected category is a food product
+    const selectedCategory = categories?.find((cat) => cat.id === values.categoryId);
+    const isFoodProduct = selectedCategory?.isFoodProduct ?? false;
+
     const data = {
       name: values.name,
       description: values.description ?? undefined,
-      ingredients: values.ingredients ?? undefined,
-      usageRecommendation: values.usageRecommendation ?? undefined,
+      // Only send food-related fields if the category is a food product, otherwise send empty string to clear
+      ingredients: isFoodProduct ? (values.ingredients ?? undefined) : "",
+      usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? undefined) : "",
       stockUnits: values.stockUnits ?? undefined,
       brandId: values.brandId ?? undefined,
       variationType: values.variationType ?? undefined,
@@ -44,7 +51,7 @@ export default function NewProductPage() {
       {
         data,
         images: values.imageFiles,
-        nutritionalTableImage: values.nutritionalTableImageFile ?? undefined,
+        nutritionalTableImage: isFoodProduct ? (values.nutritionalTableImageFile ?? undefined) : null,
       },
       {
         onSuccess: () => {
