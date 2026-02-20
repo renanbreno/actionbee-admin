@@ -32,7 +32,6 @@ import {
   ChevronDown,
   Users,
   Gift,
-  Tag,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
@@ -75,7 +74,6 @@ const menuItems: MenuItem[] = [
       {
         title: "Marcas",
         href: "/dashboard/products/brands",
-        icon: Tag,
       },
     ],
   },
@@ -223,28 +221,13 @@ export function AdminSidebar() {
                       <>
                         <SidebarMenuButton
                           onClick={() => toggleSubmenu(item.title)}
-                          className={cn(
-                            "group/item h-10 rounded-lg px-3 transition-all duration-150 cursor-pointer",
-                            isActive
-                              ? "bg-sidebar-accent text-bee-gold font-semibold"
-                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                          )}
+                          className="group/item h-10 rounded-lg px-3 transition-all duration-150 cursor-pointer text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         >
-                          <item.icon
-                            className={cn(
-                              "h-4 w-4 shrink-0",
-                              isActive
-                                ? "text-bee-gold"
-                                : "text-sidebar-foreground/50",
-                            )}
-                          />
+                          <item.icon className="h-4 w-4 shrink-0 text-sidebar-foreground/50" />
                           <span className="flex-1">{item.title}</span>
                           <ChevronDown
                             className={cn(
-                              "h-3.5 w-3.5 transition-transform duration-200",
-                              isActive && !isExpanded
-                                ? "text-bee-gold/60"
-                                : "text-sidebar-foreground/50",
+                              "h-3.5 w-3.5 transition-transform duration-200 text-sidebar-foreground/50",
                               isExpanded && "rotate-180",
                             )}
                           />
@@ -252,7 +235,14 @@ export function AdminSidebar() {
                         {isExpanded && item.submenu && (
                           <SidebarMenuSub className="mt-1">
                             {item.submenu.map((subitem) => {
-                              const isSubActive = pathname.startsWith(subitem.href);
+                              const isSubActive =
+                                pathname.startsWith(subitem.href) &&
+                                !item.submenu!.some(
+                                  (s) =>
+                                    s.href !== subitem.href &&
+                                    pathname.startsWith(s.href) &&
+                                    s.href.length > subitem.href.length,
+                                );
                               return (
                                 <SidebarMenuSubItem key={subitem.href}>
                                   <SidebarMenuSubButton
