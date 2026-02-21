@@ -6,6 +6,7 @@ export interface GetCommissionsParams {
   status?: "PENDING" | "PAID" | "CANCELLED";
   startDate?: string;
   endDate?: string;
+  affiliateCategoryId?: string;
   page: number;
   limit: number;
 }
@@ -18,6 +19,7 @@ export const commissionsApiClient = {
     if (params.status) searchParams.append("status", params.status);
     if (params.startDate) searchParams.append("startDate", params.startDate);
     if (params.endDate) searchParams.append("endDate", params.endDate);
+    if (params.affiliateCategoryId) searchParams.append("affiliateCategoryId", params.affiliateCategoryId);
     searchParams.append("page", params.page.toString());
     searchParams.append("limit", params.limit.toString());
 

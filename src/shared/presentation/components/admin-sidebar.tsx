@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Users,
   Gift,
+  Settings,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
@@ -124,6 +125,11 @@ const menuItems: MenuItem[] = [
     title: "Clientes",
     href: "/dashboard/customers",
     icon: Users,
+  },
+  {
+    title: "Configurações",
+    href: "/dashboard/store-settings",
+    icon: Settings,
   },
 ];
 

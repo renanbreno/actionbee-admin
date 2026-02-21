@@ -5,10 +5,18 @@ import { Ticket, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { CouponsTable } from "@/contexts/coupons/presentation/components/coupons-table";
 import { CreateCouponDialog } from "@/contexts/coupons/presentation/components/create-coupon-dialog";
 import { useCoupons } from "@/contexts/coupons/presentation/hooks/use-coupons";
+import { useAffiliateCategories } from "@/contexts/affiliate-categories/presentation/hooks/use-affiliate-categories";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 
 const STATUS_FILTERS = [
@@ -44,9 +52,11 @@ export default function CouponsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebounce(search, 400);
 
-  const { data } = useCoupons(page, 10, debouncedSearch || undefined, statusFilter);
+  const { data } = useCoupons(page, 10, debouncedSearch || undefined, statusFilter, categoryFilter);
+  const { data: affiliateCategories } = useAffiliateCategories();
   const total = data?.total ?? 0;
 
   const handleSearchChange = (value: string) => {
@@ -56,6 +66,11 @@ export default function CouponsPage() {
 
   const handleStatusChange = (value: string | undefined) => {
     setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value === "all" ? undefined : value);
     setPage(1);
   };
 
@@ -91,46 +106,64 @@ export default function CouponsPage() {
         </Button>
       </div>
 
-      {/* Search + Status Filter */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Buscar por código ou afiliado..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex justify-center sm:justify-start gap-1.5 overflow-x-auto pb-0.5">
-          {STATUS_FILTERS.map((filter) => {
-            const isActive = statusFilter === filter.value;
-            return (
-              <button
-                key={filter.label}
-                onClick={() => handleStatusChange(filter.value)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
-                  isActive
-                    ? filter.activeClass
-                    : "border-transparent bg-muted/60 text-muted-foreground hover:bg-muted"
-                )}
-              >
-                <span className="relative flex h-2 w-2">
-                  {isActive && "ping" in filter && filter.ping && (
-                    <span
-                      className={cn(
-                        "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-                        filter.dot,
-                      )}
-                    />
+      {/* Search + Status Filter + Category Filter */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Buscar por código ou afiliado..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex justify-center sm:justify-start gap-1.5 overflow-x-auto pb-0.5">
+            {STATUS_FILTERS.map((filter) => {
+              const isActive = statusFilter === filter.value;
+              return (
+                <button
+                  key={filter.label}
+                  onClick={() => handleStatusChange(filter.value)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
+                    isActive
+                      ? filter.activeClass
+                      : "border-transparent bg-muted/60 text-muted-foreground hover:bg-muted"
                   )}
-                  <span className={cn("relative inline-flex h-2 w-2 rounded-full", filter.dot)} />
-                </span>
-                {filter.label}
-              </button>
-            );
-          })}
+                >
+                  <span className="relative flex h-2 w-2">
+                    {isActive && "ping" in filter && filter.ping && (
+                      <span
+                        className={cn(
+                          "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
+                          filter.dot,
+                        )}
+                      />
+                    )}
+                    <span className={cn("relative inline-flex h-2 w-2 rounded-full", filter.dot)} />
+                  </span>
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Tipo de afiliado:</span>
+          <Select value={categoryFilter ?? "all"} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="h-8 w-52 text-xs">
+              <SelectValue placeholder="Todos os tipos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              {(affiliateCategories ?? []).map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -139,6 +172,7 @@ export default function CouponsPage() {
         onPageChange={setPage}
         search={debouncedSearch || undefined}
         status={statusFilter}
+        affiliateCategoryId={categoryFilter}
       />
 
       {/* Mobile FAB */}

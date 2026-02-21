@@ -14,7 +14,7 @@ export interface CreateCouponParams {
 }
 
 export interface CouponRepository {
-  getAll(page: number, limit: number, search?: string, status?: string): Promise<PaginatedCoupons>;
+  getAll(page: number, limit: number, search?: string, status?: string, affiliateCategoryId?: string): Promise<PaginatedCoupons>;
   create(params: CreateCouponParams): Promise<Coupon>;
   activate(code: string): Promise<void>;
   deactivate(code: string): Promise<void>;

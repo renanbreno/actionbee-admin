@@ -3,7 +3,7 @@ import { GiftTier } from "../entities/gift-tier";
 export interface CreateGiftTierParams {
   name: string;
   description?: string;
-  imageUrl?: string;
+  image?: File;
   minOrderValue: number;
   productId?: string;
 }
@@ -11,7 +11,7 @@ export interface CreateGiftTierParams {
 export interface UpdateGiftTierParams {
   name?: string;
   description?: string;
-  imageUrl?: string;
+  image?: File;
   minOrderValue?: number;
   productId?: string;
 }

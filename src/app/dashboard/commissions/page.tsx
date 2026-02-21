@@ -22,6 +22,7 @@ export default function CommissionsPage() {
     status: "all" as StatusFilter,
     startDate: "",
     endDate: "",
+    affiliateCategoryId: "",
   });
 
   // Debounce the coupon code search to avoid excessive API calls
@@ -42,6 +43,7 @@ export default function CommissionsPage() {
     status: filters.status === "all" ? undefined : filters.status,
     startDate: filters.startDate || undefined,
     endDate: filters.endDate || undefined,
+    affiliateCategoryId: filters.affiliateCategoryId || undefined,
     page,
     limit: 10,
   });
@@ -93,7 +95,7 @@ export default function CommissionsPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedCouponCode, filters.status, filters.startDate, filters.endDate]);
+  }, [debouncedCouponCode, filters.status, filters.startDate, filters.endDate, filters.affiliateCategoryId]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -123,6 +125,7 @@ export default function CommissionsPage() {
               status: "all",
               startDate: "",
               endDate: "",
+              affiliateCategoryId: "",
             });
             setPage(1);
           }}

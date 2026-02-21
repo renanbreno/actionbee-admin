@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, CheckCircle2, Medal, Tag, ChevronDown, ChevronUp } from "lucide-react";
-import { DashboardAffiliates, TopAffiliate, CouponUsage } from "../../domain/entities/dashboard";
+import { Clock, CheckCircle2, Medal, Tag, LayoutGrid, ChevronDown, ChevronUp } from "lucide-react";
+import { DashboardAffiliates, TopAffiliate, CouponUsage, TopAffiliateCategory } from "../../domain/entities/dashboard";
 import { DashboardMetricCard } from "./dashboard-metric-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -172,6 +172,85 @@ function CouponUsageList({
   );
 }
 
+function TopCategoriesList({
+  categories,
+  isLoading,
+}: {
+  categories: TopAffiliateCategory[];
+  isLoading: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <Skeleton className="h-4 w-48 mb-4" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between gap-3">
+              <Skeleton className="h-3 w-36" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const hasMore = categories.length > COLLAPSED_COUNT;
+  const visible = expanded ? categories : categories.slice(0, COLLAPSED_COUNT);
+
+  return (
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <LayoutGrid className="h-4 w-4 text-blue-600" />
+          <p className="text-sm font-semibold">Top Categorias de Afiliado</p>
+        </div>
+        {hasMore && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto py-0.5 px-2 text-xs text-muted-foreground gap-1"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? (
+              <><ChevronUp className="h-3 w-3" /> Ver menos</>
+            ) : (
+              <><ChevronDown className="h-3 w-3" /> Ver todos ({categories.length})</>
+            )}
+          </Button>
+        )}
+      </div>
+      {categories.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">
+          Nenhuma categoria de afiliado com pedidos no período.
+        </p>
+      ) : (
+        <div className="divide-y">
+          {visible.map((c, i) => (
+            <div
+              key={c.categoryId}
+              className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                <p className="text-sm font-medium truncate">{c.categoryName}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-sm font-semibold">{formatCurrency(c.revenue)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {c.orders} pedido{c.orders !== 1 ? "s" : ""} · comissão {formatCurrency(c.commissionEarned)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface DashboardAffiliatesSectionProps {
   data: DashboardAffiliates | undefined;
   isLoading: boolean;
@@ -216,6 +295,8 @@ export function DashboardAffiliatesSection({ data, isLoading }: DashboardAffilia
         <TopAffiliatesList affiliates={data?.topAffiliates ?? []} isLoading={isLoading} />
         <CouponUsageList coupons={data?.couponUsage ?? []} isLoading={isLoading} />
       </div>
+
+      <TopCategoriesList categories={data?.topCategories ?? []} isLoading={isLoading} />
     </section>
   );
 }

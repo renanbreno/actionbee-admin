@@ -41,6 +41,14 @@ export interface CouponUsage {
   totalDiscount: number;
 }
 
+export interface TopAffiliateCategory {
+  categoryId: string;
+  categoryName: string;
+  orders: number;
+  revenue: number;
+  commissionEarned: number;
+}
+
 export interface DashboardSales {
   totalOrders: number;
   grossRevenue: number;
@@ -79,6 +87,7 @@ export interface DashboardAffiliates {
   paidCommission: number;
   topAffiliates: TopAffiliate[];
   couponUsage: CouponUsage[];
+  topCategories: TopAffiliateCategory[];
 }
 
 export interface DashboardMetrics {

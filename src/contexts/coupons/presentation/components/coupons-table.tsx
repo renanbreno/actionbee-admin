@@ -503,10 +503,11 @@ interface CouponsTableProps {
   onPageChange: (page: number) => void;
   search?: string;
   status?: string;
+  affiliateCategoryId?: string;
 }
 
-export function CouponsTable({ page, onPageChange, search, status }: CouponsTableProps) {
-  const { data, isLoading, isError } = useCoupons(page, 10, search, status);
+export function CouponsTable({ page, onPageChange, search, status, affiliateCategoryId }: CouponsTableProps) {
+  const { data, isLoading, isError } = useCoupons(page, 10, search, status, affiliateCategoryId);
   const { data: affiliates } = useAffiliates();
 
   const totalPages = data?.totalPages ?? 1;

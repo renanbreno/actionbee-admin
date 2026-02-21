@@ -15,10 +15,11 @@ export interface CreateCouponApiRequest {
 }
 
 export const couponsApiClient = {
-  getAll(page: number, limit: number, search?: string, status?: string): Promise<PaginatedCoupons> {
+  getAll(page: number, limit: number, search?: string, status?: string, affiliateCategoryId?: string): Promise<PaginatedCoupons> {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (search) params.set("search", search);
     if (status) params.set("status", status);
+    if (affiliateCategoryId) params.set("affiliateCategoryId", affiliateCategoryId);
     return apiFetch<PaginatedCoupons>(`/admin/coupons?${params.toString()}`);
   },
 

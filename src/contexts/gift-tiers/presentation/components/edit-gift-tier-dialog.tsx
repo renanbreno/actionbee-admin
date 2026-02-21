@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, Upload, X } from "lucide-react";
 import {
   updateGiftTierSchema,
   UpdateGiftTierFormValues,
@@ -34,6 +34,8 @@ export function EditGiftTierDialog({
   onOpenChange,
 }: EditGiftTierDialogProps) {
   const updateMutation = useUpdateGiftTier();
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -49,18 +51,21 @@ export function EditGiftTierDialog({
       reset({
         name: giftTier.name,
         description: giftTier.description ?? undefined,
-        imageUrl: giftTier.imageUrl ?? undefined,
         minOrderValue: giftTier.minOrderValue,
         productId: giftTier.productId ?? undefined,
       });
+      setImageFile(null);
     }
-    if (!open) reset();
+    if (!open) {
+      reset();
+      setImageFile(null);
+    }
   }, [giftTier, open, reset]);
 
   const onSubmit = (values: UpdateGiftTierFormValues) => {
     if (!giftTier) return;
     updateMutation.mutate(
-      { id: giftTier.id, data: values },
+      { id: giftTier.id, data: { ...values, image: imageFile ?? undefined } },
       {
         onSuccess: () => {
           toast.success("Brinde atualizado com sucesso!");
@@ -72,6 +77,12 @@ export function EditGiftTierDialog({
       }
     );
   };
+
+  // Imagem atual (do servidor) ou preview do novo arquivo
+  const currentImageUrl = imageFile
+    ? URL.createObjectURL(imageFile)
+    : giftTier?.imageUrl ?? null;
+  const isNewFile = !!imageFile;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,19 +143,72 @@ export function EditGiftTierDialog({
             )}
           </div>
 
+          {/* Imagem */}
           <div className="space-y-2">
-            <Label htmlFor="edit-imageUrl">
-              URL da imagem{" "}
+            <Label>
+              Imagem{" "}
               <span className="text-muted-foreground font-normal">(opcional)</span>
             </Label>
-            <Input
-              id="edit-imageUrl"
-              type="url"
-              placeholder="https://exemplo.com/imagem.jpg"
-              {...register("imageUrl")}
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
             />
-            {errors.imageUrl && (
-              <p className="text-sm text-destructive">{errors.imageUrl.message}</p>
+            {currentImageUrl ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={currentImageUrl}
+                  alt="Preview"
+                  className="h-16 w-16 rounded-lg object-cover border"
+                />
+                <div className="flex-1 min-w-0">
+                  {isNewFile ? (
+                    <>
+                      <p className="text-sm font-medium truncate">{imageFile!.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(imageFile!.size / 1024).toFixed(0)} KB · nova imagem
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Imagem atual</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    Trocar
+                  </Button>
+                  {isNewFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={() => { setImageFile(null); if (inputRef.current) inputRef.current.value = ""; }}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-bee-gold hover:bg-bee-gold/5 transition-colors text-sm text-muted-foreground hover:text-foreground w-full justify-center"
+              >
+                <Upload className="h-4 w-4 shrink-0" />
+                Selecionar imagem
+              </button>
             )}
           </div>
 

@@ -6,8 +6,8 @@ import {
 import { couponsApiClient } from "../api/coupons-api.client";
 
 export class CouponRepositoryImpl implements CouponRepository {
-  async getAll(page: number, limit: number, search?: string, status?: string): Promise<PaginatedCoupons> {
-    return couponsApiClient.getAll(page, limit, search, status);
+  async getAll(page: number, limit: number, search?: string, status?: string, affiliateCategoryId?: string): Promise<PaginatedCoupons> {
+    return couponsApiClient.getAll(page, limit, search, status, affiliateCategoryId);
   }
 
   async create(params: CreateCouponParams): Promise<Coupon> {
