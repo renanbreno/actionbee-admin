@@ -17,6 +17,7 @@ export interface ProductVariant {
   weight?: number | null;
   ean?: string | null;
   unit?: string | null;
+  hasFreeShipping?: boolean;
   availableStock?: number;
   isActive?: boolean;
   order?: number;

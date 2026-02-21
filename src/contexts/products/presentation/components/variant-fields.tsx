@@ -1,11 +1,12 @@
 "use client";
 
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { useFieldArray, useFormContext, Controller } from "react-hook-form";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { ProductFormValues } from "../schemas/product.schema";
 
 function VariantRow({
@@ -20,6 +21,7 @@ function VariantRow({
   const [expanded, setExpanded] = useState(index === 0);
   const {
     register,
+    control,
     formState: { errors },
     watch,
   } = useFormContext<ProductFormValues>();
@@ -231,6 +233,27 @@ function VariantRow({
               />
             </div>
           </div>
+
+          {/* Row 5: Frete grátis */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-xs font-medium">Frete grátis</Label>
+              <p className="text-xs text-muted-foreground">
+                Esta variante possui frete gratuito
+              </p>
+            </div>
+            <Controller
+              name={`variants.${index}.hasFreeShipping`}
+              control={control}
+              defaultValue={false}
+              render={({ field }) => (
+                <Switch
+                  checked={field.value ?? false}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -259,6 +282,7 @@ export function VariantFields() {
       weight: null,
       ean: null,
       unit: null,
+      hasFreeShipping: false,
     });
   };
 

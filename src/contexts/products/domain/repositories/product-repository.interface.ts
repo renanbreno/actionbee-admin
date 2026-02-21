@@ -12,6 +12,7 @@ export interface ProductVariantDTO {
   weight?: number | null;
   ean?: string | null;
   unit?: string | null;
+  hasFreeShipping?: boolean;
 }
 
 export interface CreateProductDTO {

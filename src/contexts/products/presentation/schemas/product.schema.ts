@@ -21,6 +21,7 @@ export const productVariantSchema = z.object({
   weight: z.number().min(0).nullable().optional(),
   ean: z.string().optional().nullable(),
   unit: z.string().optional().nullable(),
+  hasFreeShipping: z.boolean().optional(),
 });
 
 export type ProductVariantFormValues = z.infer<typeof productVariantSchema>;

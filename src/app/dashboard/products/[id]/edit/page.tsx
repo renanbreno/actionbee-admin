@@ -76,6 +76,7 @@ export default function EditProductPage() {
         weight: v.weight,
         ean: v.ean,
         unit: v.unit,
+        hasFreeShipping: v.hasFreeShipping ?? false,
       })),
       ...(shouldSendImages && { images: keptImages }),
     };

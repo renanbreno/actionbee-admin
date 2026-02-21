@@ -44,6 +44,7 @@ export default function NewProductPage() {
         weight: v.weight,
         ean: v.ean,
         unit: v.unit,
+        hasFreeShipping: v.hasFreeShipping ?? false,
       })),
     };
 
