@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { X, Upload, RotateCcw } from "lucide-react";
+import { useRef, useState } from "react";
+import { X, Upload, RotateCcw, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ProductImage } from "../../domain/entities/product";
 
@@ -13,6 +13,7 @@ interface ImageUploadFieldProps {
   keepImageIds?: string[];
   onFilesChange: (files: File[]) => void;
   onToggleKeep?: (imageId: string) => void;
+  onDeleteImage?: (imageId: string) => Promise<void>;
   maxFiles?: number;
 }
 
@@ -24,9 +25,11 @@ export function ImageUploadField({
   keepImageIds = [],
   onFilesChange,
   onToggleKeep,
+  onDeleteImage,
   maxFiles = 10,
 }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [deletingImageIds, setDeletingImageIds] = useState<Set<string>>(new Set());
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
@@ -41,6 +44,32 @@ export function ImageUploadField({
 
   const removeNewFile = (index: number) => {
     onFilesChange(files.filter((_, i) => i !== index));
+  };
+
+  const handleToggleKeep = async (imageId: string) => {
+    const isCurrentlyKept = keepImageIds.includes(imageId);
+
+    if (isCurrentlyKept && onDeleteImage) {
+      // User is removing an image - call the delete API
+      setDeletingImageIds((prev) => new Set(prev).add(imageId));
+      try {
+        await onDeleteImage(imageId);
+        // Only update local state after successful deletion
+        onToggleKeep(imageId);
+      } catch {
+        // If deletion fails, don't update local state - image stays marked as kept
+        // You could add error handling here (toast, etc.)
+      } finally {
+        setDeletingImageIds((prev) => {
+          const next = new Set(prev);
+          next.delete(imageId);
+          return next;
+        });
+      }
+    } else {
+      // User is restoring an image (no API call needed)
+      onToggleKeep?.(imageId);
+    }
   };
 
   const keptCount = existingImages.filter((img) =>
@@ -60,6 +89,7 @@ export function ImageUploadField({
           {/* Existing images */}
           {existingImages.map((img) => {
             const isKept = keepImageIds.includes(img.id);
+            const isDeleting = deletingImageIds.has(img.id);
             return (
               <div key={img.id} className="relative shrink-0">
                 {/* Thumbnail */}
@@ -88,22 +118,35 @@ export function ImageUploadField({
                       </span>
                     </div>
                   )}
+
+                  {/* Loading overlay */}
+                  {isDeleting && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-background/80 rounded-xl">
+                      <Loader2 className="h-6 w-6 text-bee-gold animate-spin" strokeWidth={2.5} />
+                      <span className="text-[10px] font-semibold text-bee-gold uppercase tracking-wide">
+                        Excluindo...
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Action button */}
                 {onToggleKeep && (
                   <button
                     type="button"
-                    onClick={() => onToggleKeep(img.id)}
+                    onClick={() => handleToggleKeep(img.id)}
+                    disabled={isDeleting}
                     className={`absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center shadow-md border-2 border-background transition-colors ${
                       isKept
                         ? "bg-destructive text-white hover:bg-destructive/80"
                         : "bg-muted text-muted-foreground hover:bg-background hover:text-foreground"
-                    }`}
+                    } ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
                     aria-label={isKept ? "Remover imagem" : "Restaurar imagem"}
                     title={isKept ? "Remover imagem" : "Restaurar imagem"}
                   >
-                    {isKept ? (
+                    {isDeleting ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : isKept ? (
                       <X className="h-3 w-3" strokeWidth={2.5} />
                     ) : (
                       <RotateCcw className="h-3 w-3" strokeWidth={2.5} />

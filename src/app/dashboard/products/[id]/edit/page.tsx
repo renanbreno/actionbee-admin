@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProductWizard } from "@/contexts/products/presentation/components";
 import { useProduct } from "@/contexts/products/presentation/hooks/use-product";
 import { useUpdateProduct } from "@/contexts/products/presentation/hooks/use-update-product";
+import { useDeleteImage } from "@/contexts/products/presentation/hooks/use-delete-image";
 import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
 import { ProductFormValues } from "@/contexts/products/presentation/schemas/product.schema";
 
@@ -36,7 +37,18 @@ export default function EditProductPage() {
 
   const { data: product, isLoading, isError } = useProduct(id);
   const updateMutation = useUpdateProduct(id);
+  const deleteImageMutation = useDeleteImage(id);
   const { data: categories } = useCategories();
+
+  const handleDeleteImage = async (imageId: string) => {
+    try {
+      await deleteImageMutation.mutateAsync(imageId);
+      toast.success("Imagem removida com sucesso!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao remover imagem. Tente novamente.");
+      throw error;
+    }
+  };
 
   const handleSubmit = (values: ProductFormValues) => {
     // Check if selected category is a food product
@@ -49,8 +61,8 @@ export default function EditProductPage() {
 
     const hasRemovedImages = keptImages.length < values.existingImages.length;
     const hasNewFiles = values.imageFiles.length > 0;
-    const shouldSendImages =
-      (hasRemovedImages || hasNewFiles) && keptImages.length > 0;
+    // Always send images when there are changes - empty array tells backend to delete all
+    const shouldSendImages = hasRemovedImages || hasNewFiles;
 
     const data = {
       name: values.name,
@@ -151,6 +163,7 @@ export default function EditProductPage() {
             defaultValues={product}
             onSubmit={handleSubmit}
             isSubmitting={updateMutation.isPending}
+            onDeleteImage={handleDeleteImage}
           />
         </div>
       )}

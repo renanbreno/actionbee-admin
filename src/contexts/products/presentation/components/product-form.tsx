@@ -48,6 +48,7 @@ interface ProductWizardProps {
   onSubmit: (values: ProductFormValues) => void;
   isSubmitting: boolean;
   mode: "create" | "edit";
+  onDeleteImage?: (imageId: string) => Promise<void>;
 }
 
 function buildDefaultValues(product?: Product): ProductFormValues {
@@ -211,6 +212,7 @@ export function ProductWizard({
   onSubmit,
   isSubmitting,
   mode,
+  onDeleteImage,
 }: ProductWizardProps) {
   const { data: categories } = useCategories();
   const { data: brands = [] } = useBrands();
@@ -412,6 +414,7 @@ export function ProductWizard({
               onToggleKeep={
                 mode === "edit" ? handleToggleKeepImage : undefined
               }
+              onDeleteImage={onDeleteImage}
             />
 
             <AnimatedSection show={isFoodProduct}>

@@ -105,4 +105,10 @@ export const productsApiClient = {
       body: JSON.stringify({ relatedProducts }),
     });
   },
+
+  deleteImage(productId: string, imageId: string): Promise<void> {
+    return apiFetch<void>(`/admin/products/${productId}/images/${imageId}`, {
+      method: "DELETE",
+    });
+  },
 };
