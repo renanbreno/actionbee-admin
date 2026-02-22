@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboard, RefreshCw, AlertCircle } from "lucide-react";
+import { LayoutDashboard, RefreshCw, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useDashboard } from "@/contexts/dashboard/presentation/hooks/use-dashboard";
 import { DashboardSalesSection } from "@/contexts/dashboard/presentation/components/dashboard-sales-section";
@@ -10,25 +10,54 @@ import { DashboardProductsSection } from "@/contexts/dashboard/presentation/comp
 import { DashboardAffiliatesSection } from "@/contexts/dashboard/presentation/components/dashboard-affiliates-section";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 
-// Gera os últimos 13 meses (incluindo o atual)
-function generateMonthOptions() {
+type PeriodType = "week" | "month" | "custom";
+
+// Calcula o número da semana ISO (1-53)
+function getISOWeek(d: Date): number {
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dayOfWeek = date.getDay() || 7;
+  date.setDate(date.getDate() + 4 - dayOfWeek);
+  const yearStart = new Date(date.getFullYear(), 0, 1);
+  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
+// Formata o período atual para exibição
+function formatPeriodLabel(period: PeriodType, offset: number, from?: string, to?: string): string {
+  if (period === "custom" && from && to) {
+    const fmt = (dateStr: string) => {
+      const [year, month, day] = dateStr.split("-");
+      return `${day}/${month}/${year}`;
+    };
+    return `${fmt(from)} – ${fmt(to)}`;
+  }
+
   const now = new Date();
-  return Array.from({ length: 13 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = d.getMonth() + 1;
-    const year = d.getFullYear();
-    const value = `${year}-${String(month).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    return { value, month, year, label, isCurrent: i === 0 };
-  });
+
+  if (period === "month") {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  } else {
+    // Semana: de segunda a domingo
+    const weekDate = new Date(now);
+    weekDate.setDate(weekDate.getDate() - (offset * 7));
+
+    // Encontra a segunda-feira desta semana
+    const dayOfWeek = weekDate.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+    const from = new Date(weekDate);
+    from.setDate(from.getDate() + daysToMonday);
+
+    const to = offset === 0
+      ? weekDate  // Semana atual vai até hoje
+      : new Date(from);
+    if (offset > 0) to.setDate(to.getDate() + 6);
+
+    const fmt = (d: Date) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    return `${fmt(from)} – ${fmt(to)}`;
+  }
 }
 
 function formatDateTime(iso: string): string {
@@ -46,19 +75,49 @@ function formatDate(dateStr: string): string {
   return `${day}/${month}/${year}`;
 }
 
-const MONTH_OPTIONS = generateMonthOptions();
-const CURRENT_VALUE = MONTH_OPTIONS[0].value;
-
 export default function DashboardPage() {
   const { user } = useAuthContext();
-  const [selectedValue, setSelectedValue] = useState(CURRENT_VALUE);
+  const [period, setPeriod] = useState<PeriodType>("month");
+  const [offset, setOffset] = useState(0);
+  const [customFromDate, setCustomFromDate] = useState<string>("");
+  const [customToDate, setCustomToDate] = useState<string>("");
 
-  const selected = MONTH_OPTIONS.find((o) => o.value === selectedValue) ?? MONTH_OPTIONS[0];
-  const isCurrentMonth = selected.isCurrent;
+  // Obtém o mês/semana baseado no offset
+  const now = new Date();
 
-  const { data, isLoading, isError, refetch, forceRefresh } = useDashboard(
-    isCurrentMonth ? undefined : { month: selected.month, year: selected.year },
-  );
+  let apiParams: { period: PeriodType; week?: number; month?: number; year?: number; from?: string; to?: string };
+
+  if (period === "custom" && customFromDate && customToDate) {
+    apiParams = {
+      period: "custom",
+      from: customFromDate,
+      to: customToDate,
+    };
+  } else if (period === "month") {
+    const targetMonth = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    apiParams = {
+      period: "month",
+      month: targetMonth.getMonth() + 1,
+      year: targetMonth.getFullYear(),
+    };
+  } else {
+    const weekDate = new Date(now);
+    weekDate.setDate(weekDate.getDate() - (offset * 7));
+
+    // Encontra a segunda-feira desta semana
+    const dayOfWeek = weekDate.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const mondayDate = new Date(weekDate);
+    mondayDate.setDate(mondayDate.getDate() + daysToMonday);
+
+    apiParams = {
+      period: "week",
+      week: getISOWeek(mondayDate),
+      year: mondayDate.getFullYear(),
+    };
+  }
+
+  const { data, isLoading, isError, refetch, forceRefresh } = useDashboard(apiParams);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -68,6 +127,21 @@ export default function DashboardPage() {
       await forceRefresh();
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const isCurrent = period === "custom" ? false : offset === 0;
+  const periodLabel = formatPeriodLabel(period, offset, customFromDate, customToDate);
+
+  const handlePrevious = () => setOffset((prev) => prev + 1);
+  const handleNext = () => setOffset((prev) => Math.max(0, prev - 1));
+
+  const handlePeriodChange = (newPeriod: PeriodType) => {
+    setPeriod(newPeriod);
+    setOffset(0);
+    if (newPeriod !== "custom") {
+      setCustomFromDate("");
+      setCustomToDate("");
     }
   };
 
@@ -94,22 +168,81 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:shrink-0">
-          {/* Seletor de mês */}
-          <Select value={selectedValue} onValueChange={setSelectedValue}>
-            <SelectTrigger className="w-52">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTH_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.isCurrent ? `${opt.label} (atual)` : opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2 sm:shrink-0 flex-wrap">
+          {/* Toggle Semana/Mês/Custom */}
+          <div className="flex rounded-md border">
+            <Button
+              variant={period === "week" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handlePeriodChange("week")}
+              className="rounded-r-none"
+            >
+              Semana
+            </Button>
+            <Button
+              variant={period === "month" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handlePeriodChange("month")}
+              className="rounded-none border-x"
+            >
+              Mês
+            </Button>
+            <Button
+              variant={period === "custom" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handlePeriodChange("custom")}
+              className="rounded-l-none"
+            >
+              Customizado
+            </Button>
+          </div>
 
-          {isCurrentMonth && (
+          {period === "custom" ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Dois datepickers para período customizado */}
+              <div className="w-[140px]">
+                <DatePicker
+                  value={customFromDate}
+                  onChange={setCustomFromDate}
+                  placeholder="De"
+                />
+              </div>
+              <span className="text-muted-foreground">–</span>
+              <div className="w-[140px]">
+                <DatePicker
+                  value={customToDate}
+                  onChange={setCustomToDate}
+                  placeholder="Até"
+                />
+              </div>
+            </div>
+          ) : (
+            /* Navegação para semana/mês */
+            <div className="flex items-center border rounded-md">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handlePrevious}
+                className="rounded-r-none border-r"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="px-3 py-1.5 text-sm font-medium min-w-[140px] text-center">
+                {isCurrent ? `${periodLabel} (atual)` : periodLabel}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNext}
+                disabled={offset === 0}
+                className="rounded-l-none"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {isCurrent && period !== "custom" && (
             <Button
               variant="outline"
               size="sm"
@@ -158,9 +291,11 @@ export default function DashboardPage() {
       {/* Footer */}
       {data && (
         <p className="text-center text-xs text-muted-foreground pb-4">
-          {isCurrentMonth
-            ? `Cache gerado em ${formatDateTime(data.generatedAt)} · Atualizado automaticamente a cada 5 min`
-            : `Dados históricos de ${selected.label}`}
+          {period === "custom"
+            ? `Período customizado: ${periodLabel}`
+            : isCurrent
+            ? `Cache gerado em ${formatDateTime(data.generatedAt)} · Atualizado automaticamente`
+            : `Dados históricos de ${periodLabel}`}
         </p>
       )}
     </div>

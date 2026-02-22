@@ -5,7 +5,7 @@ import { dashboardApiClient, GetDashboardParams } from "../../infrastructure/api
 
 export function useDashboard(params?: GetDashboardParams) {
   const queryClient = useQueryClient();
-  const queryKey = ["dashboard", params?.month, params?.year];
+  const queryKey = ["dashboard", params?.period, params?.week, params?.month, params?.year, params?.from, params?.to];
 
   const query = useQuery({
     queryKey,
