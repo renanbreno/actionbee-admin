@@ -306,7 +306,12 @@ export function GiftTiersTable() {
         setDeletingGift(null);
       },
       onError: (e) => {
-        toast.error(e.message ?? "Erro ao excluir brinde");
+        // Se o brinde já foi usado em compras, exibe mensagem orientando a inativação
+        if (e.message?.includes("já foi utilizado") || e.message?.includes("inativá-lo")) {
+          toast.error("Este brinde já foi usado em compras. Inative-o em vez de excluí-lo.");
+        } else {
+          toast.error(e.message ?? "Erro ao excluir brinde");
+        }
       },
     });
   };
@@ -394,7 +399,10 @@ export function GiftTiersTable() {
             <AlertDialogDescription>
               Tem certeza que deseja excluir o brinde{" "}
               <strong>{deletingGift?.name}</strong>? Esta ação não pode ser
-              desfeita.
+              desfeita.{" "}
+              <span className="text-amber-600 dark:text-amber-400">
+                Se o brinde já foi usado em compras, a exclusão não será permitida. Nesse caso, recomendamos inativá-lo.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
