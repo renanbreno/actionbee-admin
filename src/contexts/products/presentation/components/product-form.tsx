@@ -71,6 +71,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
           unitsPerVariant: 1,
           price: 0,
           offerPrice: null,
+          retailerPrice: null,
           height: null,
           width: null,
           depth: null,
@@ -78,6 +79,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
           ean: null,
           unit: null,
           hasFreeShipping: false,
+          isRetailerVariant: false,
         },
       ],
       imageFiles: [],
@@ -104,6 +106,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       unitsPerVariant: v.unitsPerVariant,
       price: v.price,
       offerPrice: v.offerPrice ?? null,
+      retailerPrice: v.retailerPrice ?? null,
       height: v.height ?? null,
       width: v.width ?? null,
       depth: v.depth ?? null,
@@ -111,6 +114,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       ean: v.ean ?? null,
       unit: v.unit ?? null,
       hasFreeShipping: v.hasFreeShipping ?? false,
+      isRetailerVariant: v.isRetailerVariant ?? v.retailerPrice != null,
     })),
     imageFiles: [],
     nutritionalTableImageFile: null,
@@ -130,7 +134,7 @@ const STEP_FIELDS: Record<number, (keyof ProductFormValues)[]> = {
   0: ["name"],
   1: [],
   2: ["variants"],
-  3: ["variationType", "isActive", "showOnEcommerce"],
+  3: ["variationType", "showOnEcommerce"],
 };
 
 function StepIndicator({
@@ -464,25 +468,6 @@ export function ProductWizard({
                 id="variationType"
                 placeholder="Ex: peso, tamanho"
                 {...register("variationType")}
-              />
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-medium">Produto ativo</Label>
-                <p className="text-xs text-muted-foreground">
-                  Produto visível para os clientes
-                </p>
-              </div>
-              <Controller
-                name="isActive"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
               />
             </div>
 

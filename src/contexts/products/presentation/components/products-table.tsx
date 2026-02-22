@@ -39,8 +39,11 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   Tag,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { useProducts } from "../hooks/use-products";
+import { useUpdateProduct } from "../hooks/use-update-product";
 import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
 import { Product } from "../../domain/entities/product";
 import { RelatedProductsDialog } from "./related-products-dialog";
@@ -96,12 +99,26 @@ function ProductBrandBadge({ brandName }: { brandName?: string | null }) {
 function ProductActions({
   productId,
   productName,
+  isActive,
 }: {
   productId: string;
   productName: string;
+  isActive: boolean;
 }) {
   const router = useRouter();
   const [relatedOpen, setRelatedOpen] = useState(false);
+  const updateMutation = useUpdateProduct(productId);
+
+  const handleToggle = () => {
+    updateMutation.mutate(
+      { data: { isActive: !isActive } },
+      {
+        onError: (e: Error) => {
+          console.error("Erro ao alterar status do produto:", e.message);
+        },
+      },
+    );
+  };
 
   return (
     <>
@@ -114,12 +131,26 @@ function ProductActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem
-            onClick={() =>
-              router.push(`/dashboard/products/${productId}/edit`)
-            }
+            onClick={() => router.push(`/dashboard/products/${productId}/edit`)}
           >
             <Edit className="mr-2 h-3.5 w-3.5" />
             Editar
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={handleToggle}
+            disabled={updateMutation.isPending}
+          >
+            {isActive ? (
+              <>
+                <XCircle className="mr-2 h-3.5 w-3.5" />
+                Desativar
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-3.5 w-3.5" />
+                Ativar
+              </>
+            )}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRelatedOpen(true)}>
             <Link2 className="mr-2 h-3.5 w-3.5" />
@@ -167,7 +198,11 @@ function ProductCard({ product }: { product: Product }) {
                   <ProductBrandBadge brandName={product.brandName} />
                 )}
               </div>
-              <ProductActions productId={product.id} productName={product.name} />
+              <ProductActions
+                productId={product.id}
+                productName={product.name}
+                isActive={product.isActive}
+              />
             </div>
           </div>
         </div>
@@ -229,14 +264,13 @@ function ProductRow({ product }: { product: Product }) {
         <ProductBrandBadge brandName={product.brandName} />
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {formatCategory(product.parentCategoryName, product.categoryName) ?? "—"}
+        {formatCategory(product.parentCategoryName, product.categoryName) ??
+          "—"}
       </TableCell>
       <TableCell className="text-sm text-center">
         {product.variants.length}
       </TableCell>
-      <TableCell className="text-sm text-center">
-        {totalStock}
-      </TableCell>
+      <TableCell className="text-sm text-center">{totalStock}</TableCell>
       <TableCell>
         <ProductStatusBadge isActive={product.isActive} />
       </TableCell>
@@ -244,7 +278,11 @@ function ProductRow({ product }: { product: Product }) {
         {basePrice != null ? formatPrice(basePrice) : "—"}
       </TableCell>
       <TableCell className="text-right">
-        <ProductActions productId={product.id} productName={product.name} />
+        <ProductActions
+          productId={product.id}
+          productName={product.name}
+          isActive={product.isActive}
+        />
       </TableCell>
     </TableRow>
   );

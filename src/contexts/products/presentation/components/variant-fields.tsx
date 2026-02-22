@@ -2,7 +2,7 @@
 
 import { useFieldArray, useFormContext, Controller } from "react-hook-form";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,12 +22,22 @@ function VariantRow({
   const {
     register,
     control,
+    setValue,
     formState: { errors },
     watch,
   } = useFormContext<ProductFormValues>();
 
   const variantErrors = errors.variants?.[index];
   const name = watch(`variants.${index}.name`);
+  const isRetailerVariant = watch(`variants.${index}.isRetailerVariant`);
+
+  useEffect(() => {
+    if (isRetailerVariant) {
+      setValue(`variants.${index}.price`, 0);
+      setValue(`variants.${index}.offerPrice`, null);
+      setValue(`variants.${index}.hasFreeShipping`, false);
+    }
+  }, [isRetailerVariant]);
 
   return (
     <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
@@ -101,60 +111,145 @@ function VariantRow({
             </div>
           </div>
 
-          {/* Row 2: Price + Offer price + Units */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Preço (R$) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                {...register(`variants.${index}.price`, {
-                  valueAsNumber: true,
-                })}
-              />
-              {variantErrors?.price && (
-                <p className="text-destructive text-xs">
-                  {variantErrors.price.message}
-                </p>
+          {/* Toggle: Variante de lojista */}
+          <div className="flex items-center justify-between rounded-lg border p-3 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+            <div className="space-y-0.5">
+              <Label className="text-xs font-medium">Variante de lojista</Label>
+              <p className="text-xs text-muted-foreground">
+                Oculta no e-commerce. Usa o preço de lojista em pedidos manuais.
+              </p>
+            </div>
+            <Controller
+              name={`variants.${index}.isRetailerVariant`}
+              control={control}
+              defaultValue={false}
+              render={({ field }) => (
+                <Switch
+                  checked={field.value ?? false}
+                  onCheckedChange={field.onChange}
+                />
               )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Preço Oferta (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                {...register(`variants.${index}.offerPrice`, {
-                  valueAsNumber: true,
-                  setValueAs: (v) =>
-                    v === "" || isNaN(v) ? null : Number(v),
-                })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Unidades/variante <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                type="number"
-                min="1"
-                placeholder="1"
-                {...register(`variants.${index}.unitsPerVariant`, {
-                  valueAsNumber: true,
-                })}
-              />
-              {variantErrors?.unitsPerVariant && (
-                <p className="text-destructive text-xs">
-                  {variantErrors.unitsPerVariant.message}
-                </p>
-              )}
-            </div>
+            />
           </div>
+
+          {/* Toggle: Frete grátis (apenas para variantes normais) */}
+          {!isRetailerVariant && (
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label className="text-xs font-medium">Frete grátis</Label>
+                <p className="text-xs text-muted-foreground">
+                  Esta variante possui frete gratuito
+                </p>
+              </div>
+              <Controller
+                name={`variants.${index}.hasFreeShipping`}
+                control={control}
+                defaultValue={false}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value ?? false}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+          )}
+
+          {/* Row 2: Preços */}
+          {isRetailerVariant ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  Preço Lojista (R$) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0,00"
+                  {...register(`variants.${index}.retailerPrice`, {
+                    valueAsNumber: true,
+                    setValueAs: (v) =>
+                      v === "" || isNaN(v) ? null : Number(v),
+                  })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  Unidades/variante <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  {...register(`variants.${index}.unitsPerVariant`, {
+                    valueAsNumber: true,
+                  })}
+                />
+                {variantErrors?.unitsPerVariant && (
+                  <p className="text-destructive text-xs">
+                    {variantErrors.unitsPerVariant.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    Preço (R$) <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,00"
+                    {...register(`variants.${index}.price`, {
+                      valueAsNumber: true,
+                    })}
+                  />
+                  {variantErrors?.price && (
+                    <p className="text-destructive text-xs">
+                      {variantErrors.price.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Preço Oferta (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,00"
+                    {...register(`variants.${index}.offerPrice`, {
+                      valueAsNumber: true,
+                      setValueAs: (v) =>
+                        v === "" || isNaN(v) ? null : Number(v),
+                    })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    Unidades/variante <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="1"
+                    {...register(`variants.${index}.unitsPerVariant`, {
+                      valueAsNumber: true,
+                    })}
+                  />
+                  {variantErrors?.unitsPerVariant && (
+                    <p className="text-destructive text-xs">
+                      {variantErrors.unitsPerVariant.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Row 3: Dimensions */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -234,26 +329,6 @@ function VariantRow({
             </div>
           </div>
 
-          {/* Row 5: Frete grátis */}
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <Label className="text-xs font-medium">Frete grátis</Label>
-              <p className="text-xs text-muted-foreground">
-                Esta variante possui frete gratuito
-              </p>
-            </div>
-            <Controller
-              name={`variants.${index}.hasFreeShipping`}
-              control={control}
-              defaultValue={false}
-              render={({ field }) => (
-                <Switch
-                  checked={field.value ?? false}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-          </div>
         </div>
       )}
     </div>
@@ -276,6 +351,7 @@ export function VariantFields() {
       unitsPerVariant: 1,
       price: 0,
       offerPrice: null,
+      retailerPrice: null,
       height: null,
       width: null,
       depth: null,
@@ -283,6 +359,7 @@ export function VariantFields() {
       ean: null,
       unit: null,
       hasFreeShipping: false,
+      isRetailerVariant: false,
     });
   };
 

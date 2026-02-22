@@ -25,7 +25,6 @@ import {
   LayoutDashboard,
   Megaphone,
   Package,
-  FolderTree,
   ShoppingCart,
   LogOut,
   Percent,
@@ -73,15 +72,14 @@ const menuItems: MenuItem[] = [
         href: "/dashboard/products",
       },
       {
+        title: "Categorias",
+        href: "/dashboard/products/categories",
+      },
+      {
         title: "Marcas",
         href: "/dashboard/products/brands",
       },
     ],
-  },
-  {
-    title: "Categorias",
-    href: "/dashboard/categories",
-    icon: FolderTree,
   },
   {
     title: "Pedidos",

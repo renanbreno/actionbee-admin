@@ -11,6 +11,7 @@ export interface ProductVariant {
   unitsPerVariant: number;
   price: number;
   offerPrice?: number | null;
+  retailerPrice?: number | null;
   height?: number | null;
   width?: number | null;
   depth?: number | null;
@@ -18,6 +19,7 @@ export interface ProductVariant {
   ean?: string | null;
   unit?: string | null;
   hasFreeShipping?: boolean;
+  isRetailerVariant?: boolean;
   availableStock?: number;
   isActive?: boolean;
   order?: number;

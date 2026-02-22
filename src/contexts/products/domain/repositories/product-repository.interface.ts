@@ -6,6 +6,7 @@ export interface ProductVariantDTO {
   unitsPerVariant: number;
   price: number;
   offerPrice?: number | null;
+  retailerPrice?: number | null;
   height?: number | null;
   width?: number | null;
   depth?: number | null;
@@ -13,6 +14,7 @@ export interface ProductVariantDTO {
   ean?: string | null;
   unit?: string | null;
   hasFreeShipping?: boolean;
+  isRetailerVariant?: boolean;
 }
 
 export interface CreateProductDTO {

@@ -15,6 +15,11 @@ export const productVariantSchema = z.object({
     .min(0)
     .nullable()
     .optional(),
+  retailerPrice: z
+    .number()
+    .min(0)
+    .nullable()
+    .optional(),
   height: z.number().min(0).nullable().optional(),
   width: z.number().min(0).nullable().optional(),
   depth: z.number().min(0).nullable().optional(),
@@ -22,6 +27,7 @@ export const productVariantSchema = z.object({
   ean: z.string().optional().nullable(),
   unit: z.string().optional().nullable(),
   hasFreeShipping: z.boolean().optional(),
+  isRetailerVariant: z.boolean().optional(),
 });
 
 export type ProductVariantFormValues = z.infer<typeof productVariantSchema>;

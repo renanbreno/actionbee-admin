@@ -125,6 +125,10 @@ interface ProductVariant {
   name: string;
   price: number;
   offerPrice?: number;
+  retailerPrice?: number;
+  isRetailerVariant?: boolean;
+  hasFreeShipping?: boolean;
+  unitsPerVariant?: number;
 }
 
 interface ProductResult {
@@ -342,13 +346,16 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
 
   function handleAdd() {
     if (!selectedProduct || !selectedVariant) return;
+    const isRetailer = selectedVariant.isRetailerVariant && selectedVariant.retailerPrice != null;
     onAddItem({
       productId: selectedProduct.id,
       productName: selectedProduct.name,
       variantId: selectedVariant.id,
       variantName: selectedVariant.name,
-      unitPrice: selectedVariant.offerPrice ?? selectedVariant.price,
-      originalPrice: selectedVariant.offerPrice
+      unitPrice: isRetailer
+        ? selectedVariant.retailerPrice!
+        : (selectedVariant.offerPrice ?? selectedVariant.price),
+      originalPrice: !isRetailer && selectedVariant.offerPrice
         ? selectedVariant.price
         : undefined,
       quantity: qty,
@@ -381,34 +388,81 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs">Variante</Label>
-          <div className="flex flex-wrap gap-2">
-            {selectedProduct.variants.map((v) => {
+          <Label className="text-xs">Escolha uma opção</Label>
+          <div className="space-y-2">
+            {[...selectedProduct.variants]
+              .sort((a, b) => (b.unitsPerVariant ?? 0) - (a.unitsPerVariant ?? 0))
+              .map((v) => {
               const isSelected = selectedVariant?.id === v.id;
-              const effectivePrice = v.offerPrice ?? v.price;
+              const isRetailer = v.isRetailerVariant && v.retailerPrice != null;
+              const effectivePrice = isRetailer
+                ? v.retailerPrice!
+                : (v.offerPrice ?? v.price);
+              const hasDiscount = !isRetailer && v.offerPrice != null;
+              const savingsAmount = hasDiscount ? v.price - v.offerPrice! : 0;
+              const savingsPct = hasDiscount ? Math.round((savingsAmount / v.price) * 100) : 0;
               return (
                 <button
                   key={v.id}
                   type="button"
                   onClick={() => setSelectedVariant(v)}
                   className={[
-                    "flex flex-col items-start rounded-lg border px-3 py-2 text-left transition-all",
+                    "w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all",
                     isSelected
-                      ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold"
-                      : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
+                      ? "border-bee-gold bg-bee-gold/5 ring-1 ring-bee-gold"
+                      : "border-border hover:border-muted-foreground/40 hover:bg-muted/30",
                   ].join(" ")}
                 >
-                  <span className="text-xs font-medium leading-tight">
-                    {v.name}
-                  </span>
-                  <span className="text-sm font-bold text-bee-gold leading-tight">
-                    {formatCurrency(effectivePrice)}
-                  </span>
-                  {v.offerPrice && (
-                    <span className="text-[10px] leading-tight line-through text-muted-foreground">
-                      {formatCurrency(v.price)}
-                    </span>
-                  )}
+                  {/* Radio */}
+                  <div className={[
+                    "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                    isSelected ? "border-bee-gold" : "border-muted-foreground/40",
+                  ].join(" ")}>
+                    {isSelected && <div className="h-2.5 w-2.5 rounded-full bg-bee-gold" />}
+                  </div>
+
+                  {/* Nome + badges + economia */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-sm">{v.name}</span>
+                      {v.hasFreeShipping && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 dark:bg-green-950/40 dark:border-green-900 dark:text-green-400">
+                          <Truck className="h-3 w-3" />
+                          Frete grátis
+                        </span>
+                      )}
+                      {isRetailer && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 dark:bg-amber-950/40 dark:border-amber-900">
+                          Lojista
+                        </span>
+                      )}
+                    </div>
+                    {hasDiscount && (
+                      <p className="text-xs text-green-600 mt-0.5">
+                        ↓ Economize {formatCurrency(savingsAmount)} ({savingsPct}%)
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Preços */}
+                  <div className="text-right shrink-0">
+                    {hasDiscount && (
+                      <p className="text-xs text-muted-foreground line-through leading-tight">
+                        {formatCurrency(v.price)}
+                      </p>
+                    )}
+                    <p className={[
+                      "font-bold text-base leading-tight",
+                      hasDiscount ? "text-green-600" : "",
+                    ].join(" ")}>
+                      {formatCurrency(effectivePrice)}
+                    </p>
+                    {v.unitsPerVariant && v.unitsPerVariant > 1 && (
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                        {v.unitsPerVariant} unidades
+                      </p>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -848,7 +902,9 @@ export default function NewOrderPage() {
               )}
 
               {step === 2 && (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                  {/* Coluna esquerda: busca + carrinho */}
+                  <div className="space-y-4">
                   <ProductSearch onAddItem={handleAddItem} />
 
                   {cartItems.length > 0 && (
@@ -945,17 +1001,18 @@ export default function NewOrderPage() {
                       Nenhum item adicionado. Busque um produto acima.
                     </div>
                   )}
+                  </div>
 
+                  {/* Coluna direita: brindes */}
                   {activeGiftTiers.length > 0 && (
-                    <div className="space-y-2 pt-2">
-                      <Separator />
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-1">
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Brindes{" "}
                         <span className="font-normal normal-case">
                           (opcional)
                         </span>
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="space-y-2">
                         {activeGiftTiers.map((gift) => {
                           const isSelected = selectedGiftIds.includes(gift.id);
                           return (

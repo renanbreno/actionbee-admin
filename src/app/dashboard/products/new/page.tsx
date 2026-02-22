@@ -38,6 +38,7 @@ export default function NewProductPage() {
         unitsPerVariant: v.unitsPerVariant,
         price: v.price,
         offerPrice: v.offerPrice,
+        retailerPrice: v.retailerPrice,
         height: v.height,
         width: v.width,
         depth: v.depth,
@@ -45,6 +46,7 @@ export default function NewProductPage() {
         ean: v.ean,
         unit: v.unit,
         hasFreeShipping: v.hasFreeShipping ?? false,
+        isRetailerVariant: v.isRetailerVariant ?? false,
       })),
     };
 
