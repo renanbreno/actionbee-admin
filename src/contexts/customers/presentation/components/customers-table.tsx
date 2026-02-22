@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -299,14 +299,15 @@ export function CustomersTable() {
     setIsEditDialogOpen(true);
   };
 
-  const handleSearch = () => {
-    setSearch(searchInput);
-    setPage(1);
-  };
+  /* Debounce search: aguarda 500ms após o último keystroke antes de buscar */
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 500);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSearch();
-  };
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
 
   /* Mobile: card list */
   const mobileView = (
@@ -318,7 +319,6 @@ export function CustomersTable() {
           placeholder="Buscar por nome ou e-mail..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          onKeyDown={handleKeyDown}
           className="pl-9"
         />
       </div>
@@ -375,7 +375,6 @@ export function CustomersTable() {
             placeholder="Buscar por nome ou e-mail..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={handleKeyDown}
             className="pl-9"
           />
         </div>
