@@ -55,7 +55,7 @@ export function ImageUploadField({
       try {
         await onDeleteImage(imageId);
         // Only update local state after successful deletion
-        onToggleKeep(imageId);
+        onToggleKeep?.(imageId);
       } catch {
         // If deletion fails, don't update local state - image stays marked as kept
         // You could add error handling here (toast, etc.)

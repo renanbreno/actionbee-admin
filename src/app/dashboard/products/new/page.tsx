@@ -69,7 +69,7 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-3xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto px-4">
       {/* Header */}
       <div className="space-y-1">
         <Button
@@ -98,13 +98,11 @@ export default function NewProductPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card p-4 sm:p-6 shadow-sm">
-        <ProductWizard
-          mode="create"
-          onSubmit={handleSubmit}
-          isSubmitting={createMutation.isPending}
-        />
-      </div>
+      <ProductWizard
+        mode="create"
+        onSubmit={handleSubmit}
+        isSubmitting={createMutation.isPending}
+      />
     </div>
   );
 }
