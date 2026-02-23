@@ -7,7 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ProductFormValues } from "../schemas/product.schema";
+import { useActiveUnits } from "@/contexts/units/presentation/hooks";
 
 function VariantRow({
   index,
@@ -320,17 +328,46 @@ function VariantRow({
                 {...register(`variants.${index}.ean`)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Unidade</Label>
-              <Input
-                placeholder="Ex: kg, un, ml"
-                {...register(`variants.${index}.unit`)}
-              />
-            </div>
+            <UnitSelectField index={index} />
           </div>
 
         </div>
       )}
+    </div>
+  );
+}
+
+function UnitSelectField({ index }: { index: number }) {
+  const { data: units = [], isLoading: isLoadingUnits } = useActiveUnits({
+    enabled: true,
+  });
+  const { control } = useFormContext<ProductFormValues>();
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">Unidade</Label>
+      <Controller
+        name={`variants.${index}.unitId`}
+        control={control}
+        render={({ field }) => (
+          <Select
+            value={field.value ?? "none"}
+            onValueChange={(v) => field.onChange(v === "none" ? null : v)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={isLoadingUnits ? "Carregando..." : "Selecione"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem unidade</SelectItem>
+              {units.map((unit) => (
+                <SelectItem key={unit.id} value={unit.id}>
+                  {unit.acronym} - {unit.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
     </div>
   );
 }
@@ -357,7 +394,7 @@ export function VariantFields() {
       depth: null,
       weight: null,
       ean: null,
-      unit: null,
+      unitId: null,
       hasFreeShipping: false,
       isRetailerVariant: false,
     });

@@ -79,6 +79,10 @@ const menuItems: MenuItem[] = [
         title: "Marcas",
         href: "/dashboard/products/brands",
       },
+      {
+        title: "Unidades de Medida",
+        href: "/dashboard/units",
+      },
     ],
   },
   {

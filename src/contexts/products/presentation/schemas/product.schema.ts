@@ -25,7 +25,7 @@ export const productVariantSchema = z.object({
   depth: z.number().min(0).nullable().optional(),
   weight: z.number().min(0).nullable().optional(),
   ean: z.string().optional().nullable(),
-  unit: z.string().optional().nullable(),
+  unitId: z.string().optional().nullable(),
   hasFreeShipping: z.boolean().optional(),
   isRetailerVariant: z.boolean().optional(),
 });
