@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ import {
 } from "../schemas/product.schema";
 import { VariantFields } from "./variant-fields";
 import { ImageUploadField } from "./image-upload-field";
+import { normalizeRichText } from "@/shared/utils/masks";
 
 // Animated section component for smooth transitions
 function AnimatedSection({ show, children }: { show: boolean; children: React.ReactNode }) {
@@ -117,7 +119,8 @@ function buildDefaultValues(product?: Product): ProductFormValues {
 
   return {
     name: product.name,
-    description: product.description ?? null,
+    // Normalize description to ensure it's valid JSON or null
+    description: normalizeRichText(product.description),
     ingredients: product.ingredients ?? null,
     usageRecommendation: product.usageRecommendation ?? null,
     stockUnits: product.stockUnits ?? null,
@@ -254,14 +257,19 @@ export function ProductForm({
                 </div>
 
                 {/* Descrição (full width) */}
-                <div className="sm:col-span-2 space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Descreva o produto..."
-                    rows={4}
-                    className="resize-none"
-                    {...register("description")}
+                <div className="sm:col-span-2">
+                  <Controller
+                    name="description"
+                    control={control}
+                    render={({ field }) => (
+                      <RichTextEditor
+                        label="Descrição"
+                        placeholder="Descreva o produto com formatação rica..."
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        error={errors.description?.message}
+                      />
+                    )}
                   />
                 </div>
 

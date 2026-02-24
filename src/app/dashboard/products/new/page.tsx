@@ -9,6 +9,7 @@ import { ProductWizard } from "@/contexts/products/presentation/components";
 import { useCreateProduct } from "@/contexts/products/presentation/hooks/use-create-product";
 import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
 import { ProductFormValues } from "@/contexts/products/presentation/schemas/product.schema";
+import { normalizeRichText } from "@/shared/utils/masks";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function NewProductPage() {
 
     const data = {
       name: values.name,
-      description: values.description ?? undefined,
+      description: normalizeRichText(values.description) ?? undefined,
       // Only send food-related fields if the category is a food product, otherwise send empty string to clear
       ingredients: isFoodProduct ? (values.ingredients ?? undefined) : "",
       usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? undefined) : "",

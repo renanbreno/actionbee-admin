@@ -37,6 +37,7 @@ export const productFormSchema = z.object({
     .string()
     .min(2, "O nome deve ter pelo menos 2 caracteres")
     .max(200, "O nome deve ter no máximo 200 caracteres"),
+  // Rich text stored as JSON string
   description: z.string().optional().nullable(),
   ingredients: z.string().optional().nullable(),
   usageRecommendation: z.string().optional().nullable(),

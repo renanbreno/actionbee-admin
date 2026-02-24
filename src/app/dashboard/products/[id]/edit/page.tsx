@@ -12,6 +12,7 @@ import { useUpdateProduct } from "@/contexts/products/presentation/hooks/use-upd
 import { useDeleteImage } from "@/contexts/products/presentation/hooks/use-delete-image";
 import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
 import { ProductFormValues } from "@/contexts/products/presentation/schemas/product.schema";
+import { normalizeRichText } from "@/shared/utils/masks";
 
 function EditProductSkeleton() {
   return (
@@ -66,7 +67,7 @@ export default function EditProductPage() {
 
     const data = {
       name: values.name,
-      description: values.description ?? null,
+      description: normalizeRichText(values.description),
       // Only send food-related fields if the category is a food product, otherwise send empty string to clear backend data
       ingredients: isFoodProduct ? (values.ingredients ?? null) : "",
       usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : "",

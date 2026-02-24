@@ -136,3 +136,137 @@ export function getDocumentType(value: string): "cpf" | "cnpj" | null {
   if (digits.length <= 11) return "cpf";
   return "cnpj";
 }
+
+/**
+ * Rich text utilities for Tiptap JSON serialization
+ */
+
+export interface RichTextContent {
+  type: string;
+  content?: Array<RichTextContent | { text: string; type?: "text" }>;
+  attrs?: Record<string, unknown>;
+  text?: string;
+}
+
+/**
+ * Validates if a string is valid JSON
+ */
+export function isValidJson(value: string): boolean {
+  if (!value || value.trim() === "") return false;
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Normalizes rich text content for storage
+ * - Ensures valid JSON structure
+ * - Handles edge cases like empty content
+ * - Returns null for truly empty content
+ */
+export function normalizeRichText(value: string | null | undefined): string | null {
+  if (!value || value.trim() === "") return null;
+
+  // If it's already valid JSON, keep it
+  if (isValidJson(value)) {
+    const parsed = JSON.parse(value);
+    // Check if it has actual content
+    if (isEmptyRichText(parsed)) {
+      return null;
+    }
+    return value;
+  }
+
+  // If it's plain text, convert to Tiptap JSON format
+  if (value.trim()) {
+    const json: RichTextContent = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: value,
+            },
+          ],
+        },
+      ],
+    };
+    return JSON.stringify(json);
+  }
+
+  return null;
+}
+
+/**
+ * Checks if rich text JSON has actual content
+ */
+export function isEmptyRichText(content: RichTextContent | unknown): boolean {
+  if (!content || typeof content !== "object") return true;
+
+  const json = content as RichTextContent;
+
+  // Empty doc
+  if (json.type === "doc" && (!json.content || json.content.length === 0)) {
+    return true;
+  }
+
+  // Check for empty paragraphs
+  if (json.content) {
+    let hasText = false;
+    for (const node of json.content) {
+      if (typeof node === "object") {
+        if ("text" in node && node.text && node.text.trim() !== "") {
+          hasText = true;
+          break;
+        }
+        if ("content" in node && node.content && node.content.length > 0) {
+          for (const child of node.content) {
+            if (typeof child === "object" && "text" in child && child.text && child.text.trim() !== "") {
+              hasText = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+    return !hasText;
+  }
+
+  return true;
+}
+
+/**
+ * Converts rich text JSON to plain text for previews
+ */
+export function richTextToPlainText(jsonString: string | null | undefined): string {
+  if (!jsonString) return "";
+
+  try {
+    const parsed = JSON.parse(jsonString) as RichTextContent;
+    return extractTextFromNode(parsed);
+  } catch {
+    // If not valid JSON, return as-is
+    return jsonString;
+  }
+}
+
+function extractTextFromNode(node: RichTextContent | unknown): string {
+  if (!node || typeof node !== "object") return "";
+
+  const n = node as RichTextContent;
+
+  if (n.text) {
+    return n.text;
+  }
+
+  if (n.content && Array.isArray(n.content)) {
+    return n.content.map((child) => extractTextFromNode(child)).join("");
+  }
+
+  return "";
+}
