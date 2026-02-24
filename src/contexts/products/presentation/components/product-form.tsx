@@ -452,7 +452,11 @@ export function ProductForm({
 
         {/* Footer Actions */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 border-t pt-6">
-          <Button variant="outline" asChild>
+          <Button
+            variant="outline"
+            asChild
+            className="min-h-[44px] min-w-[160px]"
+          >
             <Link href="/dashboard/products">Cancelar</Link>
           </Button>
           <Button
