@@ -41,6 +41,7 @@ export const productFormSchema = z.object({
   description: z.string().optional().nullable(),
   ingredients: z.string().optional().nullable(),
   usageRecommendation: z.string().optional().nullable(),
+  costPrice: z.number().min(0, "Preço de custo não pode ser negativo"),
   stockUnits: z.number().int().min(0, "Estoque não pode ser negativo").optional().nullable(),
   brandId: z.string().optional().nullable(),
   variationType: z.string().optional().nullable(),

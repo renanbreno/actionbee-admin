@@ -53,6 +53,7 @@ export interface Product {
   categoryName?: string | null;
   parentCategoryId?: string | null;
   parentCategoryName?: string | null;
+  costPrice?: number;
   stockUnits?: number;
   variants: ProductVariant[];
   images: ProductImage[];

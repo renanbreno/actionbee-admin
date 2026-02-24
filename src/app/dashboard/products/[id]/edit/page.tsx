@@ -68,6 +68,7 @@ export default function EditProductPage() {
     const data = {
       name: values.name,
       description: normalizeRichText(values.description),
+      costPrice: values.costPrice,
       // Only send food-related fields if the category is a food product, otherwise send empty string to clear backend data
       ingredients: isFoodProduct ? (values.ingredients ?? null) : "",
       usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : "",

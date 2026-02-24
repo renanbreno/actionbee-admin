@@ -12,6 +12,7 @@ interface DashboardMetricCardProps {
   trend?: number;
   subtitle?: string;
   isLoading?: boolean;
+  fullWidth?: boolean;
 }
 
 export function DashboardMetricCard({
@@ -23,10 +24,11 @@ export function DashboardMetricCard({
   trend,
   subtitle,
   isLoading,
+  fullWidth = false,
 }: DashboardMetricCardProps) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <div className={`rounded-xl border bg-card p-5 shadow-sm ${fullWidth ? "col-span-2" : ""}`}>
         <div className="flex items-start justify-between gap-3">
           <Skeleton className="h-10 w-10 rounded-lg" />
         </div>
@@ -50,7 +52,7 @@ export function DashboardMetricCard({
           : "text-muted-foreground";
 
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow h-full">
+    <div className={`rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow h-full ${fullWidth ? "col-span-2" : ""}`}>
       <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBgColor}`}>
         <Icon className={`h-5 w-5 ${iconColor}`} />
       </div>

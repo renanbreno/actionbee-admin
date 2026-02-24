@@ -224,6 +224,11 @@ function ProductCard({ product }: { product: Product }) {
               {formatPrice(basePrice)}
             </span>
           )}
+          {product.costPrice != null && (
+            <span className="text-muted-foreground">
+              custo: {formatPrice(product.costPrice)}
+            </span>
+          )}
         </div>
 
         {/* Status */}
@@ -236,10 +241,7 @@ function ProductCard({ product }: { product: Product }) {
 /* ─── Desktop Row ─── */
 function ProductRow({ product }: { product: Product }) {
   const basePrice = product.variants[0]?.price;
-  const totalStock = product.variants.reduce(
-    (acc, v) => acc + (v.availableStock ?? 0),
-    0,
-  );
+  const totalStock = product.stockUnits ?? 0;
 
   return (
     <TableRow className="group">
@@ -276,6 +278,9 @@ function ProductRow({ product }: { product: Product }) {
       </TableCell>
       <TableCell className="text-sm font-medium">
         {basePrice != null ? formatPrice(basePrice) : "—"}
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {product.costPrice != null ? formatPrice(product.costPrice) : "—"}
       </TableCell>
       <TableCell className="text-right">
         <ProductActions
@@ -331,6 +336,9 @@ function TableSkeleton() {
           </TableCell>
           <TableCell>
             <Skeleton className="h-5 w-16 rounded-full" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-20" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-20" />
@@ -511,6 +519,7 @@ export function ProductsTable() {
               <TableHead className="w-[80px] text-center">Estoque</TableHead>
               <TableHead className="w-[90px]">Status</TableHead>
               <TableHead className="w-[100px]">Preço base</TableHead>
+              <TableHead className="w-[110px]">Preço de custo</TableHead>
               <TableHead className="w-[50px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -518,14 +527,14 @@ export function ProductsTable() {
             {isLoading && <TableSkeleton />}
             {isError && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   <ErrorState />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && !isError && products.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   <EmptyState />
                 </TableCell>
               </TableRow>

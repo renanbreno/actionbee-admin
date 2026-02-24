@@ -24,6 +24,7 @@ export default function NewProductPage() {
     const data = {
       name: values.name,
       description: normalizeRichText(values.description) ?? undefined,
+      costPrice: values.costPrice,
       // Only send food-related fields if the category is a food product, otherwise send empty string to clear
       ingredients: isFoodProduct ? (values.ingredients ?? undefined) : "",
       usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? undefined) : "",

@@ -116,6 +116,10 @@ const menuItems: MenuItem[] = [
         title: "Categorias de Afiliados",
         href: "/dashboard/affiliates/categories",
       },
+      {
+        title: "Bonificações",
+        href: "/dashboard/affiliates/bonificacoes",
+      },
     ],
   },
   {

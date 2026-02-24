@@ -86,6 +86,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       description: null,
       ingredients: null,
       usageRecommendation: null,
+      costPrice: 0,
       stockUnits: null,
       brandId: null,
       variationType: null,
@@ -123,6 +124,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
     description: normalizeRichText(product.description),
     ingredients: product.ingredients ?? null,
     usageRecommendation: product.usageRecommendation ?? null,
+    costPrice: product.costPrice ?? 0,
     stockUnits: product.stockUnits ?? null,
     brandId: product.brandId ?? null,
     variationType: product.variationType ?? null,
@@ -189,6 +191,7 @@ export function ProductForm({
   const watchedName = watch("name");
   const watchedVariants = watch("variants");
   const watchedCategoryId = watch("categoryId");
+  const watchedCostPrice = watch("costPrice");
 
   // Check if the selected category is a food product
   const selectedCategory = categories?.find((cat) => cat.id === watchedCategoryId);
@@ -354,6 +357,31 @@ export function ProductForm({
                   {errors.stockUnits && (
                     <p className="text-destructive text-sm">
                       {errors.stockUnits.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Preço de custo */}
+                <div className="space-y-2">
+                  <Label htmlFor="costPrice">
+                    Preço de custo (R$) <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="costPrice"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="Ex: 15.00"
+                    {...register("costPrice", { valueAsNumber: true })}
+                  />
+                  {errors.costPrice && (
+                    <p className="text-destructive text-sm">
+                      {errors.costPrice.message}
+                    </p>
+                  )}
+                  {mode === "edit" && watchedCostPrice === 0 && (
+                    <p className="text-amber-600 text-xs">
+                      Este produto foi salvo com preço de custo R$ 0,00. Atualize para o valor real.
                     </p>
                   )}
                 </div>

@@ -33,6 +33,11 @@ export interface TopAffiliate {
   name: string;
   orders: number;
   commissionEarned: number;
+  totalGrossRevenue: number;
+  totalNetRevenue: number;
+  pendingCommission: number;
+  paidCommission: number;
+  avgCommissionRate: number;
 }
 
 export interface CouponUsage {
@@ -45,8 +50,12 @@ export interface TopAffiliateCategory {
   categoryId: string;
   categoryName: string;
   orders: number;
-  revenue: number;
-  commissionEarned: number;
+  totalGrossRevenue: number;
+  totalNetRevenue: number;
+  totalCommission: number;
+  pendingCommission: number;
+  paidCommission: number;
+  avgCommissionRate: number;
 }
 
 export interface DashboardSales {
@@ -83,11 +92,44 @@ export interface DashboardProducts {
 }
 
 export interface DashboardAffiliates {
+  totalAffiliates: number;
+  totalActiveCoupons: number;
+  totalOrdersWithCommission: number;
+  totalGrossRevenue: number;
+  totalNetRevenue: number;
+  totalRevenueGenerated: number;
+  totalCommissionGenerated: number;
+  totalCommissionPaid: number;
+  totalCommissionPending: number;
+  totalCommissionCancelled: number;
+  avgCommissionRate: number;
   pendingCommission: number;
   paidCommission: number;
+  commissionByStatus: Array<{
+    status: 'PENDING' | 'PAID' | 'CANCELLED';
+    count: number;
+    amount: number;
+    percentage: number;
+  }>;
   topAffiliates: TopAffiliate[];
   couponUsage: CouponUsage[];
   topCategories: TopAffiliateCategory[];
+  shipmentMetrics?: Array<{
+    affiliateId: string;
+    affiliateName: string;
+    totalShipments: number;
+    totalItemsSent: number;
+    totalCost: number;
+    lastShipmentDate?: string;
+    lastShipmentStatus?: string;
+  }>;
+  paymentTrend?: Array<{
+    month: string;
+    paidAmount: number;
+    pendingAmount: number;
+    cancelledAmount: number;
+    totalOrders: number;
+  }>;
 }
 
 export interface DashboardMetrics {
