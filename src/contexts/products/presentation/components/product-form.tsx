@@ -138,7 +138,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       depth: v.depth ?? null,
       weight: v.weight ?? null,
       ean: v.ean ?? null,
-      unitId: v.unitId ?? v.unit ?? null,
+        unitId: typeof v.unitId === "string" ? v.unitId : v.unit?.id ?? null,
       hasFreeShipping: v.hasFreeShipping ?? false,
       isRetailerVariant: v.isRetailerVariant ?? v.retailerPrice != null,
     })),

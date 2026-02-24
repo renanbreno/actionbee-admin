@@ -18,7 +18,11 @@ export interface ProductVariant {
   weight?: number | null;
   ean?: string | null;
   unitId?: string | null;
-  unit?: string | null; // @deprecated use unitId instead
+  unit?: {
+    id: string;
+    acronym: string;
+    name: string;
+  };
   hasFreeShipping?: boolean;
   isRetailerVariant?: boolean;
   availableStock?: number;

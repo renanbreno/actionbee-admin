@@ -44,7 +44,7 @@ export default function NewProductPage() {
         depth: v.depth,
         weight: v.weight,
         ean: v.ean,
-        unitId: v.unitId,
+        unitId: v.unitId ?? undefined,
         hasFreeShipping: v.hasFreeShipping ?? false,
         isRetailerVariant: v.isRetailerVariant ?? false,
       })),

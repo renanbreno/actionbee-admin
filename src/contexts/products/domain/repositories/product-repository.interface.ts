@@ -12,7 +12,7 @@ export interface ProductVariantDTO {
   depth?: number | null;
   weight?: number | null;
   ean?: string | null;
-  unit?: string | null;
+  unitId?: string | null;
   hasFreeShipping?: boolean;
   isRetailerVariant?: boolean;
 }
