@@ -11,7 +11,6 @@ export interface CreateCouponApiRequest {
   usageLimit?: number;
   customerEmail?: string;
   productId?: string;
-  affiliateId?: string;
 }
 
 export const couponsApiClient = {

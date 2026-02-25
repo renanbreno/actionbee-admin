@@ -13,6 +13,7 @@ export interface CreateOrderParams {
   customerId: string;
   items: { productId: string; variantId: string; quantity: number; price: number; originalPrice?: number }[];
   paymentMethod: string;
+  source: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE";
   couponCode?: string;
   shippingAddress?: {
     street: string;
@@ -26,11 +27,13 @@ export interface CreateOrderParams {
   shippingInfo?: {
     carrier: string;
     service: string;
+    serviceCode?: number;
     price: number;
     deliveryTime: number;
   };
   giftTierIds?: string[];
   notes?: string;
+  boletoDueDays?: 30 | 60;
 }
 
 export interface UpdateOrderStatusParams {

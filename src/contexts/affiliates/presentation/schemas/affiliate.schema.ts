@@ -52,11 +52,24 @@ const baseAffiliateSchema = z.object({
   categoryId: categoryIdSchema,
 });
 
-// Create schema - all required fields present
-export const createAffiliateSchema = baseAffiliateSchema;
+// Create schema - all required fields present, with optional couponId
+export const createAffiliateSchema = baseAffiliateSchema.extend({
+  couponId: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim() ? v : undefined)),
+});
 
-// Update schema - all fields optional
-export const updateAffiliateSchema = baseAffiliateSchema.partial();
+// Update schema - all fields optional, with optional couponId
+export const updateAffiliateSchema = baseAffiliateSchema.extend({
+  couponId: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim() ? v : undefined)),
+}).partial();
 
 export type CreateAffiliateFormValues = z.infer<typeof createAffiliateSchema>;
+export type CreateAffiliateFormInput = z.input<typeof createAffiliateSchema>;
 export type UpdateAffiliateFormValues = z.infer<typeof updateAffiliateSchema>;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidJson } from "@/shared/utils/masks";
 
 export const productVariantSchema = z.object({
   name: z.string().min(1, "Nome da variante é obrigatório"),
@@ -38,7 +39,13 @@ export const productFormSchema = z.object({
     .min(2, "O nome deve ter pelo menos 2 caracteres")
     .max(200, "O nome deve ter no máximo 200 caracteres"),
   // Rich text stored as JSON string
-  description: z.string().optional().nullable(),
+  description: z
+    .string()
+    .optional()
+    .nullable()
+    .refine((val) => !val || isValidJson(val), {
+      message: "Descrição com formato inválido",
+    }),
   ingredients: z.string().optional().nullable(),
   usageRecommendation: z.string().optional().nullable(),
   costPrice: z.number().min(0, "Preço de custo não pode ser negativo"),
@@ -47,7 +54,7 @@ export const productFormSchema = z.object({
   variationType: z.string().optional().nullable(),
   isActive: z.boolean(),
   showOnEcommerce: z.boolean(),
-  categoryId: z.string().optional().nullable(),
+  categoryId: z.string({ required_error: "Selecione uma categoria" }).min(1, "Selecione uma categoria"),
   variants: z
     .array(productVariantSchema)
     .min(1, "Adicione pelo menos uma variante"),

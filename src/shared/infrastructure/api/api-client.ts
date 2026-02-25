@@ -12,11 +12,14 @@ export async function apiFetch<T>(
 ): Promise<T> {
   let accessToken = Cookies.get("ab_access_token");
 
+  // Don't set Content-Type for FormData — the browser sets it automatically with the boundary
+  const isFormData = options.body instanceof FormData;
+
   const executeRequest = async (token?: string) => {
     return await fetch(`${env.API_BASE_URL}${path}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(!isFormData ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },

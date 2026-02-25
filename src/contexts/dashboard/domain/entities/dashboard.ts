@@ -50,12 +50,19 @@ export interface TopAffiliateCategory {
   categoryId: string;
   categoryName: string;
   orders: number;
-  totalGrossRevenue: number;
-  totalNetRevenue: number;
-  totalCommission: number;
-  pendingCommission: number;
-  paidCommission: number;
-  avgCommissionRate: number;
+  revenue: number;
+  netRevenue: number;
+  commissionEarned: number;
+  grossRevenuePercent: number;
+  netRevenuePercent: number;
+}
+
+export interface SalesBySource {
+  source: 'WHATSAPP' | 'IN_STORE' | 'INSTAGRAM' | 'ECOMMERCE';
+  orders: number;
+  grossRevenue: number;
+  netRevenue: number;
+  percentage: number;
 }
 
 export interface DashboardSales {
@@ -75,6 +82,7 @@ export interface DashboardSales {
     };
   };
   ordersByStatus: OrdersByStatus[];
+  salesBySource?: SalesBySource[];
 }
 
 export interface DashboardCustomers {

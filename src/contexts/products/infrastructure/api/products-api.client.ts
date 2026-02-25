@@ -1,35 +1,9 @@
-import Cookies from "js-cookie";
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
-import { env } from "@/shared/config/env";
 import { PaginatedProducts, Product } from "../../domain/entities/product";
 import {
   CreateProductDTO,
   UpdateProductDTO,
 } from "../../domain/repositories/product-repository.interface";
-
-async function multipartFetch<T>(
-  path: string,
-  method: string,
-  formData: FormData,
-): Promise<T> {
-  const accessToken = Cookies.get("ab_access_token");
-
-  const res = await fetch(`${env.API_BASE_URL}${path}`, {
-    method,
-    body: formData,
-    headers: {
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    },
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `Request failed: ${res.status}`);
-  }
-
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
 
 export const productsApiClient = {
   getAllPaginated(
@@ -64,7 +38,7 @@ export const productsApiClient = {
     if (nutritionalTableImage) {
       formData.append("nutritionalTableImage", nutritionalTableImage);
     }
-    return multipartFetch<Product>("/admin/products", "POST", formData);
+    return apiFetch<Product>("/admin/products", { method: "POST", body: formData });
   },
 
   update(
@@ -81,7 +55,7 @@ export const productsApiClient = {
     if (nutritionalTableImage) {
       formData.append("nutritionalTableImage", nutritionalTableImage);
     }
-    return multipartFetch<Product>(`/admin/products/${id}`, "PUT", formData);
+    return apiFetch<Product>(`/admin/products/${id}`, { method: "PUT", body: formData });
   },
 
   async getRelatedProducts(id: string): Promise<{ productId: string; name: string; order?: number; isAutomatic?: boolean }[]> {

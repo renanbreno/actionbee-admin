@@ -23,11 +23,11 @@ export default function NewProductPage() {
 
     const data = {
       name: values.name,
-      description: normalizeRichText(values.description) ?? undefined,
+      description: normalizeRichText(values.description),
       costPrice: values.costPrice,
-      // Only send food-related fields if the category is a food product, otherwise send empty string to clear
-      ingredients: isFoodProduct ? (values.ingredients ?? undefined) : "",
-      usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? undefined) : "",
+      // Only send food-related fields if the category is a food product, otherwise send null to clear
+      ingredients: isFoodProduct ? (values.ingredients ?? null) : null,
+      usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : null,
       stockUnits: values.stockUnits ?? undefined,
       brandId: values.brandId ?? undefined,
       variationType: values.variationType ?? undefined,

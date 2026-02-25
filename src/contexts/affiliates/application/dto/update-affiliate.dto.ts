@@ -6,4 +6,5 @@ export interface UpdateAffiliateDto {
   socialMedia?: string[];
   commissionRate?: number;
   categoryId?: string;
+  couponId?: string;
 }

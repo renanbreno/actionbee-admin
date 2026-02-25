@@ -12,13 +12,17 @@ import {
   ChevronDown,
   CreditCard,
   Gift,
+  Instagram,
   Loader2,
   MapPin,
+  MessageSquare,
   Minus,
   Package,
   Plus,
   QrCode,
   Search,
+  ShoppingCart,
+  Store,
   Trash2,
   Truck,
   User,
@@ -153,6 +157,12 @@ const DELIVERY_TYPES = [
   { value: "PICKUP" as const, label: "Retirada", icon: MapPin },
   { value: "DELIVERY" as const, label: "Entrega", icon: Truck },
   { value: "NONE" as const, label: "Sem frete", icon: Ban },
+];
+
+const ORDER_SOURCES = [
+  { value: "WHATSAPP" as const, label: "WhatsApp", icon: MessageSquare },
+  { value: "IN_STORE" as const, label: "Loja Física", icon: Store },
+  { value: "INSTAGRAM" as const, label: "Instagram", icon: Instagram },
 ];
 
 const PAYMENT_METHODS = [
@@ -560,6 +570,9 @@ export default function NewOrderPage() {
     useState<CustomerResult | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [orderSource, setOrderSource] = useState<
+    "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | ""
+  >("");
   const [boletoDueDays, setBoletoDueDays] = useState<30 | 60>(30);
   const [couponCode, setCouponCode] = useState("");
   const [notes, setNotes] = useState("");
@@ -769,7 +782,7 @@ export default function NewOrderPage() {
       case 2:
         return cartItems.length > 0;
       case 3:
-        if (!paymentMethod || !effectiveDeliveryType) return false;
+        if (!paymentMethod || !effectiveDeliveryType || !orderSource) return false;
         if (effectiveDeliveryType !== "DELIVERY") return true;
         return (
           !!effectiveAddress.street &&
@@ -796,7 +809,7 @@ export default function NewOrderPage() {
   }
 
   function handleSubmit() {
-    if (!selectedCustomer || !paymentMethod) return;
+    if (!selectedCustomer || !paymentMethod || !orderSource) return;
     createOrderMutation.mutate(
       {
         customerId: selectedCustomer.id,
@@ -808,6 +821,7 @@ export default function NewOrderPage() {
           originalPrice: i.originalPrice,
         })),
         paymentMethod,
+        source: orderSource,
         boletoDueDays: paymentMethod === "BOLETO" ? boletoDueDays : undefined,
         couponCode: couponCode || undefined,
         shippingAddress:
@@ -1260,6 +1274,33 @@ export default function NewOrderPage() {
                           >
                             <Icon className="h-6 w-6" />
                             {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Order source */}
+                  <div className="space-y-1.5">
+                    <Label>Origem do Pedido *</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {ORDER_SOURCES.map((source) => {
+                        const Icon = source.icon;
+                        const isSelected = orderSource === source.value;
+                        return (
+                          <button
+                            key={source.value}
+                            type="button"
+                            onClick={() => setOrderSource(source.value)}
+                            className={[
+                              "flex flex-col items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all cursor-pointer",
+                              isSelected
+                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
+                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40 text-foreground",
+                            ].join(" ")}
+                          >
+                            <Icon className="h-5 w-5" />
+                            {source.label}
                           </button>
                         );
                       })}

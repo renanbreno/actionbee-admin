@@ -9,6 +9,7 @@ export interface CreateAffiliateApiRequest {
   socialMedia?: string[];
   commissionRate: number;
   categoryId?: string;
+  couponId?: string;
 }
 
 export interface UpdateAffiliateApiRequest {
@@ -19,6 +20,7 @@ export interface UpdateAffiliateApiRequest {
   socialMedia?: string[];
   commissionRate?: number;
   categoryId?: string;
+  couponId?: string;
 }
 
 export const affiliatesApiClient = {

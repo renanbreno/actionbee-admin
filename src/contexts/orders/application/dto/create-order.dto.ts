@@ -28,6 +28,7 @@ export interface CreateOrderDTO {
   customerId: string;
   items: CreateOrderItemDTO[];
   paymentMethod: string;
+  source: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE";
   couponCode?: string;
   shippingAddress?: CreateOrderShippingAddressDTO;
   shippingInfo?: CreateOrderShippingInfoDTO;

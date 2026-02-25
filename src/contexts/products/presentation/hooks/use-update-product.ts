@@ -20,8 +20,11 @@ export function useUpdateProduct(id: string) {
       nutritionalTableImage?: File;
     }) => updateProductUseCase.execute(id, data, images, nutritionalTableImage),
     onSuccess: () => {
+      // Remove the specific product from cache so the edit page always fetches
+      // fresh data on next open, preventing stale values from being shown in the form.
+      queryClient.removeQueries({ queryKey: ["products", id], exact: true });
+      // Invalidate the list so it refetches in the background.
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["products", id] });
     },
   });
 }

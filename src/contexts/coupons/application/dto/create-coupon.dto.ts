@@ -8,5 +8,4 @@ export interface CreateCouponDto {
   usageLimit?: number;
   customerEmail?: string;
   productId?: string;
-  affiliateId?: string;
 }

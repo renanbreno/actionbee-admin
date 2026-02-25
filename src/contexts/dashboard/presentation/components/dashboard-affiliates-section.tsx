@@ -22,6 +22,13 @@ import {
   BarChart3,
 } from "lucide-react";
 import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
   DashboardAffiliates,
   TopAffiliate,
   CouponUsage,
@@ -259,6 +266,59 @@ function CouponUsageList({
   );
 }
 
+const CATEGORY_COLORS = [
+  "#6366f1",
+  "#ec4899",
+  "#22c55e",
+  "#FBBD23",
+  "#f97316",
+  "#06b6d4",
+  "#8b5cf6",
+  "#14b8a6",
+  "#ef4444",
+  "#84cc16",
+];
+
+function CategoryTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: TopAffiliateCategory & { color: string } }[];
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="rounded-lg border bg-popover p-3 shadow-md text-xs space-y-0.5">
+      <p className="font-semibold mb-1.5" style={{ color: d.color }}>
+        {d.categoryName}
+      </p>
+      <p className="text-muted-foreground">
+        {d.orders} pedido{d.orders !== 1 ? "s" : ""} ·{" "}
+        <span className="font-medium text-foreground">
+          {(d.grossRevenuePercent ?? 0).toFixed(1)}%
+        </span>
+      </p>
+      <p>
+        Bruto:{" "}
+        <span className="font-medium">{formatCurrency(d.revenue ?? 0)}</span>
+      </p>
+      <p>
+        Líquido:{" "}
+        <span className="font-medium text-emerald-600">
+          {formatCurrency(d.netRevenue ?? 0)}
+        </span>
+      </p>
+      <p>
+        Comissão:{" "}
+        <span className="font-medium text-purple-600">
+          {formatCurrency(d.commissionEarned ?? 0)}
+        </span>
+      </p>
+    </div>
+  );
+}
+
 function TopCategoriesList({
   categories,
   isLoading,
@@ -266,34 +326,49 @@ function TopCategoriesList({
   categories: TopAffiliateCategory[];
   isLoading: boolean;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  const COLLAPSED_COUNT = 5;
 
   if (isLoading) {
     return (
       <div className="rounded-xl border bg-card p-5 shadow-sm">
-        <Skeleton className="h-4 w-48 mb-4" />
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between gap-3">
-              <Skeleton className="h-3 w-36" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-          ))}
+        <Skeleton className="h-4 w-48 mb-5" />
+        <div className="flex flex-col sm:flex-row gap-6">
+          <Skeleton className="h-40 w-full sm:w-44 rounded-full mx-auto" />
+          <div className="flex-1 space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="flex justify-between">
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <Skeleton className="h-1.5 w-full rounded-full" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  const COLLAPSED_COUNT = 5;
+  if (categories.length === 0) return null;
+
+  const chartData = categories.map((c, i) => ({
+    ...c,
+    color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+  }));
+
   const hasMore = categories.length > COLLAPSED_COUNT;
-  const visible = expanded ? categories : categories.slice(0, COLLAPSED_COUNT);
+  const visible = expanded ? chartData : chartData.slice(0, COLLAPSED_COUNT);
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <LayoutGrid className="h-4 w-4 text-blue-600" />
-          <p className="text-sm font-semibold">Top Categorias de Afiliado</p>
+          <p className="text-sm font-semibold">Receita por Categoria de Afiliado</p>
         </div>
         {hasMore && (
           <Button
@@ -303,80 +378,87 @@ function TopCategoriesList({
             onClick={() => setExpanded((v) => !v)}
           >
             {expanded ? (
-              <>
-                <ChevronUp className="h-3 w-3" /> Ver menos
-              </>
+              <><ChevronUp className="h-3 w-3" /> Ver menos</>
             ) : (
-              <>
-                <ChevronDown className="h-3 w-3" /> Ver todos (
-                {categories.length})
-              </>
+              <><ChevronDown className="h-3 w-3" /> Ver todos ({categories.length})</>
             )}
           </Button>
         )}
       </div>
-      {categories.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">
-          Nenhuma categoria de afiliado com pedidos no período.
-        </p>
-      ) : (
-        <div className="divide-y">
-          {visible.map((c, i) => (
-            <div
-              key={c.categoryId}
-              className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">
-                  {i + 1}
-                </span>
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {c.categoryName}
-                  </p>
+
+      <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+        {/* Donut chart */}
+        <div className="w-44 shrink-0">
+          <ResponsiveContainer width="100%" height={160}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="grossRevenuePercent"
+                nameKey="categoryName"
+                innerRadius={48}
+                outerRadius={72}
+                strokeWidth={2}
+                stroke="hsl(var(--card))"
+              >
+                {chartData.map((entry, i) => (
+                  <Cell key={entry.categoryId} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<CategoryTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Category list */}
+        <div className="flex-1 w-full space-y-4">
+          {visible.map((c) => (
+            <div key={c.categoryId}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: c.color }}
+                  />
+                  <span className="text-xs font-medium truncate">{c.categoryName}</span>
                   <CountPill count={c.orders} />
                 </div>
+                <div className="flex items-center gap-2.5 text-xs shrink-0">
+                  <span className="text-muted-foreground">Comissão:</span>
+                  <span className="text-purple-600 font-medium">
+                    {formatCurrency(c.commissionEarned ?? 0)}
+                  </span>
+                  <span className="font-semibold w-10 text-right">
+                    {(c.grossRevenuePercent ?? 0).toFixed(1)}%
+                  </span>
+                </div>
               </div>
-              <div className="text-right shrink-0">
-                {c.totalGrossRevenue > 0 || c.totalNetRevenue > 0 ? (
-                  <div className="flex items-center justify-end gap-2">
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/80 font-medium leading-none pb-1">
-                        Venda Bruta
-                      </p>
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-none">
-                        {formatCurrency(c.totalGrossRevenue)}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-wide text-emerald-600/80 font-medium leading-none pb-1">
-                        Venda Líquida
-                      </p>
-                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-500 leading-none">
-                        {formatCurrency(c.totalNetRevenue)}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm font-semibold text-emerald-600">
-                    {formatCurrency(c.totalGrossRevenue)}
-                  </p>
-                )}
-                {c.avgCommissionRate > 0 && (
-                  <p className="text-[10px] text-muted-foreground mt-1 flex items-center justify-end gap-1">
-                    <Tag className="h-2.5 w-2.5" />
-                    <span>
-                      Comissão {formatCurrency(c.totalCommission)} (
-                      {formatPercent(c.avgCommissionRate)})
-                    </span>
-                  </p>
-                )}
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-1.5">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${c.grossRevenuePercent ?? 0}%`,
+                    backgroundColor: c.color,
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground pl-3.5">
+                <span>
+                  Bruto:{" "}
+                  <span className="font-medium text-foreground">
+                    {formatCurrency(c.revenue ?? 0)}
+                  </span>
+                </span>
+                <span>
+                  Líquido:{" "}
+                  <span className="font-medium text-emerald-600">
+                    {formatCurrency(c.netRevenue ?? 0)}
+                  </span>
+                </span>
               </div>
             </div>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -521,46 +603,55 @@ export function DashboardAffiliatesSection({
         </div>
       </div>
 
-      {/* Shipments summary */}
-      {data?.shipmentMetrics && data.shipmentMetrics.length > 0 && (
-        <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Gift className="h-4 w-4 text-bee-gold" />
-              <p className="text-sm font-semibold">Resumo de Remessas</p>
-            </div>
-            <Button variant="ghost" size="sm" className="text-xs" asChild>
-              <Link href="/dashboard/affiliates/bonificacoes">Ver todas</Link>
-            </Button>
-          </div>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {data.shipmentMetrics.slice(0, 5).map((shipment) => (
-              <div
-                key={shipment.affiliateId}
-                className="flex items-center justify-between gap-3 py-2 border-b last:border-0"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {shipment.affiliateName}
-                  </p>
-                  <span className="text-xs text-muted-foreground">
-                    {shipment.totalShipments} remessa
-                    {shipment.totalShipments !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm text-muted-foreground">
-                    {shipment.totalItemsSent} itens
-                  </span>
-                  <span className="text-sm font-medium">
-                    {formatAffiliateCurrency(shipment.totalCost)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+        <div className="flex-1 min-w-0">
+          <TopCategoriesList
+            categories={data?.topCategories ?? []}
+            isLoading={isLoading}
+          />
         </div>
-      )}
+
+        {/* Shipments summary */}
+        {data?.shipmentMetrics && data.shipmentMetrics.length > 0 && (
+          <div className="flex-1 min-w-0 rounded-xl border bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Gift className="h-4 w-4 text-bee-gold" />
+                <p className="text-sm font-semibold">Resumo de Remessas</p>
+              </div>
+              <Button variant="ghost" size="sm" className="text-xs" asChild>
+                <Link href="/dashboard/affiliates/bonificacoes">Ver todas</Link>
+              </Button>
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {data.shipmentMetrics.slice(0, 5).map((shipment) => (
+                <div
+                  key={shipment.affiliateId}
+                  className="flex items-center justify-between gap-3 py-2 border-b last:border-0"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {shipment.affiliateName}
+                    </p>
+                    <span className="text-xs text-muted-foreground">
+                      {shipment.totalShipments} remessa
+                      {shipment.totalShipments !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-sm text-muted-foreground">
+                      {shipment.totalItemsSent} itens
+                    </span>
+                    <span className="text-sm font-medium">
+                      {formatAffiliateCurrency(shipment.totalCost)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
         <TopAffiliatesList
@@ -572,11 +663,6 @@ export function DashboardAffiliatesSection({
           isLoading={isLoading}
         />
       </div>
-
-      <TopCategoriesList
-        categories={data?.topCategories ?? []}
-        isLoading={isLoading}
-      />
     </section>
   );
 }

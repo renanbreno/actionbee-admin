@@ -92,7 +92,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       variationType: null,
       isActive: true,
       showOnEcommerce: true,
-      categoryId: null,
+      categoryId: "",
       variants: [
         {
           name: "",
@@ -130,7 +130,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
     variationType: product.variationType ?? null,
     isActive: product.isActive,
     showOnEcommerce: product.showOnEcommerce ?? true,
-    categoryId: product.categoryId ?? null,
+    categoryId: product.categoryId ?? "",
     variants: product.variants.map((v) => ({
       name: v.name,
       sku: v.sku,
@@ -307,22 +307,21 @@ export function ProductForm({
 
                 {/* Categoria */}
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label>
+                    Categoria <span className="text-destructive">*</span>
+                  </Label>
                   <Controller
                     name="categoryId"
                     control={control}
                     render={({ field }) => (
                       <Select
-                        value={field.value ?? "none"}
-                        onValueChange={(v) =>
-                          field.onChange(v === "none" ? null : v)
-                        }
+                        value={field.value ?? ""}
+                        onValueChange={field.onChange}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className={`w-full ${errors.categoryId ? "border-destructive" : ""}`}>
                           <SelectValue placeholder="Selecione uma categoria" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Sem categoria</SelectItem>
                           {(categories ?? []).map((cat) => (
                             <SelectItem key={cat.id} value={cat.id}>
                               {cat.parentId ? `  ↳ ${cat.name}` : cat.name}
@@ -332,6 +331,9 @@ export function ProductForm({
                       </Select>
                     )}
                   />
+                  {errors.categoryId && (
+                    <p className="text-destructive text-sm">{errors.categoryId.message}</p>
+                  )}
                 </div>
 
                 {/* Tipo de variação */}

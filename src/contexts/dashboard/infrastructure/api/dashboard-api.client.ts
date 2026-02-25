@@ -57,13 +57,12 @@ function mapTopAffiliateCategory(backend: any): TopAffiliateCategory {
   return {
     categoryId: backend.categoryId ?? "",
     categoryName: backend.categoryName ?? "",
-    orders: backend.totalOrders ?? backend.orders ?? 0,
-    totalGrossRevenue: backend.totalGrossRevenue ?? 0,
-    totalNetRevenue: backend.totalNetRevenue ?? 0,
-    totalCommission: backend.totalCommission ?? backend.commissionEarned ?? 0,
-    pendingCommission: backend.pendingCommission ?? 0,
-    paidCommission: backend.paidCommission ?? 0,
-    avgCommissionRate: backend.avgCommissionRate ?? 0,
+    orders: backend.orders ?? backend.totalOrders ?? 0,
+    revenue: backend.revenue ?? backend.totalGrossRevenue ?? 0,
+    netRevenue: backend.netRevenue ?? backend.totalNetRevenue ?? 0,
+    commissionEarned: backend.commissionEarned ?? backend.totalCommission ?? 0,
+    grossRevenuePercent: backend.grossRevenuePercent ?? 0,
+    netRevenuePercent: backend.netRevenuePercent ?? 0,
   };
 }
 
@@ -94,13 +93,12 @@ export const dashboardApiClient = {
 
     const [mainData, affiliateData] = await Promise.all([mainDashboard, affiliateDashboard]);
 
-    // Mapear topAffiliates e topCategories do backend para o frontend
+    // topAffiliates vem do endpoint de afiliados (tem dados mais ricos)
     const mappedTopAffiliates = affiliateData.topAffiliates?.map(mapTopAffiliate) ?? [];
-    const mappedTopCategories = affiliateData.topCategories?.map(mapTopAffiliateCategory) ?? [];
-
-    // Fallback para dados do dashboard principal se não tiver dados do endpoint de afiliados
     const fallbackTopAffiliates = mainData.affiliates?.topAffiliates?.map(mapTopAffiliate) ?? [];
-    const fallbackTopCategories = mainData.affiliates?.topCategories?.map(mapTopAffiliateCategory) ?? [];
+
+    // topCategories sempre vem do dashboard principal — único que calcula percentuais de receita
+    const topCategories = mainData.affiliates?.topCategories?.map(mapTopAffiliateCategory) ?? [];
 
     // Mapear topCoupons (couponUsage) do backend para o frontend
     const mappedCouponUsage = affiliateData.topCoupons?.map((c: any) => ({
@@ -127,7 +125,7 @@ export const dashboardApiClient = {
         avgCommissionRate: affiliateData.summary?.avgCommissionRate ?? 0,
         commissionByStatus: affiliateData.commissionByStatus ?? [],
         topAffiliates: mappedTopAffiliates.length > 0 ? mappedTopAffiliates : fallbackTopAffiliates,
-        topCategories: mappedTopCategories.length > 0 ? mappedTopCategories : fallbackTopCategories,
+        topCategories,
         couponUsage: mappedCouponUsage,
         shipmentMetrics: affiliateData.shipmentMetrics ?? [],
         paymentTrend: affiliateData.paymentTrend ?? [],

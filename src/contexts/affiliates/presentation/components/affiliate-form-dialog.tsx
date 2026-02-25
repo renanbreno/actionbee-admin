@@ -21,17 +21,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Link as LinkIcon, FolderTree, Loader2 } from "lucide-react";
+import { Plus, Trash2, Link as LinkIcon, FolderTree, Loader2, Mail, Tag } from "lucide-react";
 import { Affiliate } from "../../domain/entities/affiliate";
 import {
   createAffiliateSchema,
   updateAffiliateSchema,
   CreateAffiliateFormValues,
+  CreateAffiliateFormInput,
   UpdateAffiliateFormValues,
 } from "../schemas/affiliate.schema";
 import { useCreateAffiliate } from "../hooks/use-create-affiliate";
 import { useUpdateAffiliate } from "../hooks/use-update-affiliate";
 import { useAffiliateCategories } from "@/contexts/affiliate-categories/presentation/hooks/use-affiliate-categories";
+import { useCoupons } from "@/contexts/coupons/presentation/hooks/use-coupons";
 import {
   maskPhone,
   maskCPF,
@@ -42,6 +44,7 @@ import {
 } from "@/shared/utils/masks";
 
 type FormValues = CreateAffiliateFormValues | UpdateAffiliateFormValues;
+type FormInput = CreateAffiliateFormInput | UpdateAffiliateFormValues;
 
 interface AffiliateFormDialogProps {
   open: boolean;
@@ -66,6 +69,7 @@ export function AffiliateFormDialog({
   const mutation = isEditing ? updateMutation : createMutation;
 
   const { data: categories, isLoading: isLoadingCategories } = useAffiliateCategories(true);
+  const { data: couponsData, isLoading: isLoadingCoupons } = useCoupons(1, 1000);
 
   const [phoneDisplay, setPhoneDisplay] = useState("");
   const [cpfDisplay, setCpfDisplay] = useState("");
@@ -75,8 +79,9 @@ export function AffiliateFormDialog({
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
-  } = useForm<FormValues>({
+  } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(isEditing ? updateAffiliateSchema : createAffiliateSchema),
     defaultValues: {
       name: "",
@@ -86,11 +91,18 @@ export function AffiliateFormDialog({
       socialMedia: [],
       commissionRate: isEditing ? undefined : 0,
       categoryId: "",
+      couponId: "",
     },
   });
 
   // @ts-ignore - react-hook-form useFieldArray has known TypeScript limitation with Zod inferred types
   const { fields, append, remove } = useFieldArray({ control, name: "socialMedia" });
+
+  const selectedCouponId = watch("couponId" as keyof FormInput) as string | undefined;
+  const selectedCoupon = couponsData?.coupons.find((c) => c.id === selectedCouponId);
+  const originalCoupon = isEditing && affiliate
+    ? couponsData?.coupons.find((c) => c.affiliateId === affiliate.id)
+    : undefined;
 
   useEffect(() => {
     if (affiliate) {
@@ -98,6 +110,7 @@ export function AffiliateFormDialog({
       const cpfFormatted = affiliate.cpf ? formatCPF(affiliate.cpf) : "";
       setPhoneDisplay(phoneFormatted);
       setCpfDisplay(cpfFormatted);
+      const currentCoupon = couponsData?.coupons.find((c) => c.affiliateId === affiliate.id);
       reset({
         name: affiliate.name,
         email: affiliate.email,
@@ -106,6 +119,7 @@ export function AffiliateFormDialog({
         socialMedia: affiliate.socialMedia || [],
         commissionRate: affiliate.commissionRate,
         categoryId: affiliate.categoryId || "",
+        couponId: currentCoupon?.id || "",
       });
     } else {
       setPhoneDisplay("");
@@ -118,11 +132,13 @@ export function AffiliateFormDialog({
         socialMedia: [],
         commissionRate: 0,
         categoryId: "",
+        couponId: "",
       });
     }
-  }, [affiliate, reset]);
+  }, [affiliate, reset, couponsData]);
 
   const onSubmit = (data: FormValues) => {
+    const couponId = (data as CreateAffiliateFormValues).couponId;
     const payload = {
       name: data.name,
       email: data.email,
@@ -134,6 +150,7 @@ export function AffiliateFormDialog({
           : undefined,
       commissionRate: data.commissionRate,
       categoryId: data.categoryId || undefined,
+      ...(couponId ? { couponId } : {}),
     };
 
     const onSuccess = () => {
@@ -174,6 +191,8 @@ export function AffiliateFormDialog({
     setCpfDisplay("");
     onOpenChange(false);
   };
+
+  const availableCoupons = couponsData?.coupons ?? [];
 
   const activeCategories = categories?.filter((c) => c.isActive) ?? [];
 
@@ -419,6 +438,72 @@ export function AffiliateFormDialog({
                     ? errors.socialMedia.message
                     : "Verifique os campos de redes sociais"}
                 </p>
+              )}
+            </div>
+
+            {/* Cupom */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="af-couponId" className="text-sm font-medium">
+                  Cupom{" "}
+                  <span className="text-muted-foreground/60 font-normal">(opcional)</span>
+                </Label>
+              </div>
+              <Controller
+                name={"couponId" as keyof FormInput}
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={(field.value as string) || "none"}
+                    onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                  >
+                    <SelectTrigger id="af-couponId" className="w-full">
+                      {isLoadingCoupons ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Carregando cupons...</span>
+                        </div>
+                      ) : (
+                        <SelectValue placeholder="Selecione um cupom (opcional)" />
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem cupom</SelectItem>
+                      {availableCoupons.map((coupon) => (
+                        <SelectItem key={coupon.id} value={coupon.id}>
+                          <div className="flex items-center gap-2">
+                            <Tag className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-mono font-medium">{coupon.code}</span>
+                            <span className="text-muted-foreground text-xs">
+                              ({coupon.discountPercentage}% off)
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {availableCoupons.length === 0 && !isLoadingCoupons && (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          Nenhum cupom disponível
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {selectedCoupon && !isEditing && (
+                <div className="rounded-lg border border-amber-300/40 bg-amber-50 p-2.5 text-sm text-amber-800 flex items-start gap-2">
+                  <Mail className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    O cupom <strong className="font-mono">{selectedCoupon.code}</strong> será vinculado ao afiliado e um <strong>email de boas-vindas</strong> com o código será enviado automaticamente.
+                  </span>
+                </div>
+              )}
+              {selectedCoupon && isEditing && selectedCoupon.id !== originalCoupon?.id && (
+                <div className="rounded-lg border border-amber-300/40 bg-amber-50 p-2.5 text-sm text-amber-800 flex items-start gap-2">
+                  <Mail className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    O cupom atual será substituído por <strong className="font-mono">{selectedCoupon.code}</strong>.
+                  </span>
+                </div>
               )}
             </div>
 

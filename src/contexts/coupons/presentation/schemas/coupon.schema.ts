@@ -61,11 +61,6 @@ export const createCouponSchema = z
       .optional()
       .or(z.literal(""))
       .transform((v) => (v && v.trim() ? v : undefined)),
-    affiliateId: z
-      .string()
-      .optional()
-      .or(z.literal(""))
-      .transform((v) => (v && v.trim() ? v : undefined)),
   })
   .refine(
     (data) => {

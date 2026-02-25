@@ -52,9 +52,12 @@ export default function EditProductPage() {
   };
 
   const handleSubmit = (values: ProductFormValues) => {
-    // Check if selected category is a food product
+    // Check if selected category is a food product.
+    // If categories haven't loaded yet, fall back to whether the product already has food data.
     const selectedCategory = categories?.find((cat) => cat.id === values.categoryId);
-    const isFoodProduct = selectedCategory?.isFoodProduct ?? false;
+    const isFoodProduct = categories !== undefined
+      ? (selectedCategory?.isFoodProduct ?? false)
+      : Boolean(values.ingredients || values.usageRecommendation);
 
     const keptImages = values.existingImages
       .filter((img) => values.keepImageIds.includes(img.id))
@@ -69,9 +72,9 @@ export default function EditProductPage() {
       name: values.name,
       description: normalizeRichText(values.description),
       costPrice: values.costPrice,
-      // Only send food-related fields if the category is a food product, otherwise send empty string to clear backend data
-      ingredients: isFoodProduct ? (values.ingredients ?? null) : "",
-      usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : "",
+      // Only send food-related fields if the category is a food product, otherwise send null to clear backend data
+      ingredients: isFoodProduct ? (values.ingredients ?? null) : null,
+      usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : null,
       stockUnits: values.stockUnits ?? null,
       brandId: values.brandId ?? null,
       variationType: values.variationType ?? null,

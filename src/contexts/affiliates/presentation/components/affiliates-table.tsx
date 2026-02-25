@@ -33,14 +33,16 @@ import {
   ExternalLink,
   User,
   Phone,
-  Percent,
   Calendar,
   MoreHorizontal,
   FolderTree,
+  Tag,
 } from "lucide-react";
 import { Affiliate } from "../../domain/entities/affiliate";
+import { Coupon } from "@/contexts/coupons/domain/entities/coupon";
 import { useAffiliates } from "../hooks/use-affiliates";
 import { useDeleteAffiliate } from "../hooks/use-delete-affiliate";
+import { useCoupons } from "@/contexts/coupons/presentation/hooks/use-coupons";
 import { AffiliateFormDialog } from "./affiliate-form-dialog";
 import { useState } from "react";
 import { formatCPF, formatPhone } from "@/shared/utils/masks";
@@ -79,6 +81,17 @@ function SocialMediaLinksDesktop({ urls }: { urls: string[] }) {
         ))}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/* ─── Coupon Badge ─── */
+function CouponBadge({ coupon }: { coupon?: Coupon }) {
+  if (!coupon) return <span className="text-muted-foreground text-sm">—</span>;
+  return (
+    <div className="flex items-center gap-1.5">
+      <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <span className="font-mono text-sm font-medium">{coupon.code}</span>
+    </div>
   );
 }
 
@@ -141,17 +154,19 @@ function AffiliateActions({
 /* ─── Mobile Card ─── */
 function AffiliateCard({
   affiliate,
+  coupon,
   onEdit,
   onDelete,
 }: {
   affiliate: Affiliate;
+  coupon?: Coupon;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
     <Card className="shadow-sm">
       <CardContent className="space-y-4 p-4">
-        {/* Header: avatar + info + commission + actions */}
+        {/* Header: avatar + info + actions */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-bee-gold/20 text-bee-amber shrink-0">
             <User className="h-5 w-5" />
@@ -160,22 +175,27 @@ function AffiliateCard({
             <p className="font-semibold text-base truncate">{affiliate.name}</p>
             <p className="text-muted-foreground text-sm truncate">{affiliate.email}</p>
           </div>
-          <Badge className="bg-bee-gold/15 text-amber-800 border-bee-gold/30 font-bold text-base gap-1 shrink-0 px-2.5 py-1">
-            <Percent className="h-3.5 w-3.5" />
-            {affiliate.commissionRate}%
-          </Badge>
           <AffiliateActions onEdit={onEdit} onDelete={onDelete} />
         </div>
 
-        {/* Category Badge */}
-        {(affiliate.category || affiliate.categoryName) && (
-          <div className="flex items-center gap-2">
+        {/* Category + Commission + Coupon badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          {(affiliate.category || affiliate.categoryName) && (
             <Badge variant="outline" className="gap-1.5 text-xs font-medium bg-muted/50">
               <FolderTree className="h-3 w-3" />
               {affiliate.category?.name ?? affiliate.categoryName}
             </Badge>
-          </div>
-        )}
+          )}
+          <Badge className="bg-bee-gold/15 text-amber-800 border-bee-gold/30 font-semibold text-xs">
+            {affiliate.commissionRate}%
+          </Badge>
+          {coupon && (
+            <Badge variant="outline" className="gap-1.5 text-xs font-medium bg-amber-50 border-amber-200 text-amber-800">
+              <Tag className="h-3 w-3" />
+              <span className="font-mono">{coupon.code}</span>
+            </Badge>
+          )}
+        </div>
 
         {/* Contact info */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
@@ -228,10 +248,12 @@ function AffiliateCard({
 /* ─── Desktop Row ─── */
 function AffiliateRow({
   affiliate,
+  coupon,
   onEdit,
   onDelete,
 }: {
   affiliate: Affiliate;
+  coupon?: Coupon;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -268,10 +290,12 @@ function AffiliateRow({
         </div>
       </TableCell>
       <TableCell>
-        <Badge className="bg-bee-gold/15 text-amber-800 border-bee-gold/30 font-semibold gap-1.5">
-          <Percent className="h-3.5 w-3.5" />
+        <Badge className="bg-bee-gold/15 text-amber-800 border-bee-gold/30 font-semibold">
           {affiliate.commissionRate}%
         </Badge>
+      </TableCell>
+      <TableCell>
+        <CouponBadge coupon={coupon} />
       </TableCell>
       <TableCell>
         {affiliate.socialMedia && affiliate.socialMedia.length > 0 ? (
@@ -330,6 +354,9 @@ function TableSkeleton() {
             <Skeleton className="h-6 w-16 rounded-full" />
           </TableCell>
           <TableCell>
+            <Skeleton className="h-4 w-20" />
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-24" />
           </TableCell>
           <TableCell>
@@ -371,11 +398,18 @@ function ErrorState() {
 /* ─── Main Component ─── */
 export function AffiliatesTable() {
   const { data, isLoading, isError } = useAffiliates();
+  const { data: couponsData } = useCoupons(1, 1000);
   const deleteMutation = useDeleteAffiliate();
   const [editingAffiliate, setEditingAffiliate] = useState<Affiliate | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const affiliates = data ?? [];
+
+  const couponByAffiliate = new Map<string, Coupon>(
+    (couponsData?.coupons ?? [])
+      .filter((c) => c.affiliateId)
+      .map((c) => [c.affiliateId!, c])
+  );
 
   const handleEdit = (affiliate: Affiliate) => {
     setEditingAffiliate(affiliate);
@@ -402,6 +436,7 @@ export function AffiliatesTable() {
         <AffiliateCard
           key={a.id}
           affiliate={a}
+          coupon={couponByAffiliate.get(a.id)}
           onEdit={() => handleEdit(a)}
           onDelete={() => handleDelete(a.id, a.name)}
         />
@@ -419,6 +454,7 @@ export function AffiliatesTable() {
             <TableHead className="w-[150px]">Categoria</TableHead>
             <TableHead className="w-[180px]">Contato</TableHead>
             <TableHead className="w-[100px]">Comissão</TableHead>
+            <TableHead className="w-[120px]">Cupom</TableHead>
             <TableHead className="w-[130px]">Redes Sociais</TableHead>
             <TableHead className="w-[110px]">Cadastro</TableHead>
             <TableHead className="w-[50px] text-right">Ações</TableHead>
@@ -428,14 +464,14 @@ export function AffiliatesTable() {
           {isLoading && <TableSkeleton />}
           {isError && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={8} className="text-center">
                 <ErrorState />
               </TableCell>
             </TableRow>
           )}
           {!isLoading && !isError && affiliates.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={8} className="text-center">
                 <EmptyState />
               </TableCell>
             </TableRow>
@@ -444,6 +480,7 @@ export function AffiliatesTable() {
             <AffiliateRow
               key={a.id}
               affiliate={a}
+              coupon={couponByAffiliate.get(a.id)}
               onEdit={() => handleEdit(a)}
               onDelete={() => handleDelete(a.id, a.name)}
             />

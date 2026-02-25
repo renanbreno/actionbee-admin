@@ -13,13 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   ShoppingCart,
@@ -27,8 +20,6 @@ import {
   Sparkles,
   Store,
   Info,
-  User,
-  Loader2,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -43,7 +34,6 @@ import {
   CreateCouponFormInput,
 } from "../schemas/coupon.schema";
 import { useCreateCoupon } from "../hooks/use-create-coupon";
-import { useAffiliates } from "@/contexts/affiliates/presentation/hooks/use-affiliates";
 
 const typeOptions = [
   {
@@ -86,7 +76,6 @@ export function CreateCouponDialog({
   onOpenChange,
 }: CreateCouponDialogProps) {
   const createMutation = useCreateCoupon();
-  const { data: affiliates, isLoading: isLoadingAffiliates } = useAffiliates();
 
   const {
     register,
@@ -107,14 +96,10 @@ export function CreateCouponDialog({
       usageLimit: undefined,
       customerEmail: "",
       productId: "",
-      affiliateId: "",
     },
   });
 
   const selectedType = watch("type");
-  const selectedAffiliateId = watch("affiliateId");
-
-  const selectedAffiliate = affiliates?.find((a) => a.id === selectedAffiliateId);
 
   const onSubmit = (data: CreateCouponFormValues) => {
     createMutation.mutate(
@@ -128,7 +113,6 @@ export function CreateCouponDialog({
         usageLimit: data.usageLimit,
         customerEmail: data.customerEmail || undefined,
         productId: data.productId || undefined,
-        affiliateId: data.affiliateId || undefined,
       },
       {
         onSuccess: () => {
@@ -336,74 +320,6 @@ export function CreateCouponDialog({
                 </p>
               )}
             </div>
-          </div>
-
-          {/* Afiliado */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <Label htmlFor="affiliateId" className="text-sm font-medium">
-                Afiliado <span className="text-muted-foreground/60 font-normal">(opcional)</span>
-              </Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">
-                      Associe este cupom a um afiliado. Quando o cupom for usado, o afiliado receberá a comissão conforme sua taxa cadastrada.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <Controller
-              name="affiliateId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value || "none"}
-                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
-                >
-                  <SelectTrigger>
-                    {isLoadingAffiliates ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Carregando afiliados...</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder="Selecione um afiliado (opcional)" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem afiliado</SelectItem>
-                    {affiliates?.map((affiliate) => (
-                      <SelectItem key={affiliate.id} value={affiliate.id}>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span>{affiliate.name}</span>
-                          <span className="text-muted-foreground text-xs">
-                            ({affiliate.commissionRate}%)
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {selectedAffiliate && (
-              <div className="rounded-lg border border-bee-gold/30 bg-bee-gold/5 p-2 text-sm text-amber-800 flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>
-                  <strong>{selectedAffiliate.name}</strong> receberá{" "}
-                  <strong>{selectedAffiliate.commissionRate}%</strong> de comissão sobre as vendas com este cupom.
-                </span>
-              </div>
-            )}
-            {errors.affiliateId && (
-              <p className="text-destructive text-sm">{errors.affiliateId.message}</p>
-            )}
           </div>
 
           {/* Campos condicionais: Cliente / Produto */}
