@@ -3,12 +3,11 @@
 import { useState } from "react";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -153,27 +152,26 @@ export function UpdateOrderStatusDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-3">
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={updateStatusMutation.isPending}
-            className="flex-1 sm:flex-auto"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              !newStatus ||
-              updateStatusMutation.isPending ||
-              (newStatus === "CANCELLED" && !cancellationReason)
+        <DialogActions
+          isLoading={updateStatusMutation.isPending}
+          loadingText="Salvando..."
+          submitLabel="Confirmar"
+          onCancel={handleClose}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (
+              newStatus &&
+              !updateStatusMutation.isPending &&
+              !(newStatus === "CANCELLED" && !cancellationReason)
+            ) {
+              handleSubmit();
             }
-            className="flex-1 sm:flex-auto"
-          >
-            {updateStatusMutation.isPending ? "Salvando..." : "Confirmar"}
-          </Button>
-        </DialogFooter>
+          }}
+          submitButtonType="button"
+          submitButtonProps={{
+            className: "flex-1 sm:flex-auto",
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

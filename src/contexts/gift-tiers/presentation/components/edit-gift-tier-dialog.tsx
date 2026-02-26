@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Pencil, Loader2, Upload, X } from "lucide-react";
+import { Pencil, Upload, X } from "lucide-react";
 import {
   updateGiftTierSchema,
   UpdateGiftTierFormValues,
@@ -243,27 +244,14 @@ export function EditGiftTierDialog({
             )}
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={updateMutation.isPending}
-              className="w-full sm:w-auto"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="w-full bg-bee-gold text-black hover:bg-bee-amber sm:w-auto"
-            >
-              {updateMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Salvar alterações
-            </Button>
-          </div>
+          <DialogActions
+            isLoading={updateMutation.isPending}
+            submitLabel="Salvar alterações"
+            onCancel={() => onOpenChange(false)}
+            submitButtonProps={{
+              className: "bg-bee-gold text-black hover:bg-bee-amber",
+            }}
+          />
         </form>
       </DialogContent>
     </Dialog>

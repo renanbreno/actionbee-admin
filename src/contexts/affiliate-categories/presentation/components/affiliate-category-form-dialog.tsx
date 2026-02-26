@@ -10,12 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
 import { AffiliateCategory } from "../../domain/entities/affiliate-category";
 import {
   createAffiliateCategoryFormSchema,
@@ -148,27 +148,15 @@ export function AffiliateCategoryFormDialog({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 border-t pt-4">
-            <Button type="button" variant="ghost" onClick={handleClose}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="min-w-[140px] shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
-            >
-              {createMutation.isPending || updateMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : isEditing ? (
-                "Salvar Alterações"
-              ) : (
-                "Criar Categoria"
-              )}
-            </Button>
-          </div>
+          <DialogActions
+            isLoading={createMutation.isPending || updateMutation.isPending}
+            loadingText="Salvando..."
+            submitLabel={isEditing ? "Salvar Alterações" : "Criar Categoria"}
+            onCancel={handleClose}
+            submitButtonProps={{
+              className: "min-w-[140px]",
+            }}
+          />
         </form>
       </DialogContent>
     </Dialog>

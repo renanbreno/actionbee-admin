@@ -12,17 +12,15 @@ import {
   ChevronDown,
   Gift,
   Package,
-  Loader2,
 } from "lucide-react";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -848,30 +846,15 @@ export function CreateShipmentDialog({
             <span className="text-base font-bold">{brl.format(totalCost)}</span>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleClose}
-              className="w-full sm:w-auto h-11"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={createShipment.isPending}
-              className="w-full sm:w-auto h-11 bg-bee-gold hover:bg-bee-amber text-black shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
-            >
-              {createShipment.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                "Salvar bonificação"
-              )}
-            </Button>
-          </DialogFooter>
+          <DialogActions
+            isLoading={createShipment.isPending}
+            loadingText="Salvando..."
+            submitLabel="Salvar bonificação"
+            onCancel={handleClose}
+            submitButtonProps={{
+              className: "w-full sm:w-auto h-11 bg-bee-gold hover:bg-bee-amber text-black shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]",
+            }}
+          />
         </form>
       </DialogContent>
     </Dialog>

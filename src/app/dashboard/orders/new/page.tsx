@@ -1743,7 +1743,7 @@ export default function NewOrderPage() {
           <div className="flex gap-3 lg:hidden">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 hover:bg-muted hover:text-foreground hover:border-muted-foreground/20"
               onClick={handleBack}
               disabled={createOrderMutation.isPending}
             >
@@ -1967,7 +1967,7 @@ export default function NewOrderPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 hover:bg-muted hover:text-foreground hover:border-muted-foreground/20"
                     onClick={handleBack}
                     disabled={createOrderMutation.isPending}
                   >

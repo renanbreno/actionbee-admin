@@ -5,11 +5,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
 import { useRelatedProducts } from "../hooks/use-related-products";
 import { useSetRelatedProducts } from "../hooks/use-set-related-products";
@@ -85,19 +85,20 @@ export function RelatedProductsDialog({
           onChange={setRelatedProducts}
         />
 
-        <div className="flex justify-end gap-2 border-t pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSave}
-            disabled={setRelatedMutation.isPending}
-            className="bg-bee-gold hover:bg-bee-amber text-black font-semibold"
-          >
-            {setRelatedMutation.isPending ? "Salvando..." : "Salvar Relacionados"}
-          </Button>
-        </div>
+        <DialogActions
+          isLoading={setRelatedMutation.isPending}
+          loadingText="Salvando..."
+          submitLabel="Salvar Relacionados"
+          onCancel={onClose}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSave();
+          }}
+          submitButtonType="button"
+          submitButtonProps={{
+            className: "bg-bee-gold hover:bg-bee-amber text-black font-semibold",
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

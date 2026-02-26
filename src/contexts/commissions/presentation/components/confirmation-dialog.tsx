@@ -2,13 +2,12 @@
 
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -98,23 +97,21 @@ export function ConfirmationDialog({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-3">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-            className="flex-1 sm:flex-auto"
-          >
-            Voltar
-          </Button>
-          <Button
-            onClick={onConfirm}
-            disabled={isPending}
-            className={cn("flex-1 sm:flex-auto", config.confirmClass)}
-          >
-            {isPending ? "Processando..." : config.confirmText}
-          </Button>
-        </DialogFooter>
+        <DialogActions
+          isLoading={isPending}
+          loadingText="Processando..."
+          submitLabel={config.confirmText}
+          cancelLabel="Voltar"
+          onCancel={() => onOpenChange(false)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            onConfirm();
+          }}
+          submitButtonType="button"
+          submitButtonProps={{
+            className: cn("flex-1 sm:flex-auto", config.confirmClass),
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

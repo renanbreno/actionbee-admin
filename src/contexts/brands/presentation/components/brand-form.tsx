@@ -109,7 +109,7 @@ export function BrandForm({ brandId }: BrandFormProps) {
             variant="outline"
             onClick={() => router.back()}
             disabled={isLoading}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto hover:bg-muted hover:text-foreground hover:border-muted-foreground/20"
           >
             Cancelar
           </Button>

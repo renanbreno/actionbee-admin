@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -209,22 +210,15 @@ export function EditCategoryDialog({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 border-t pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="min-w-[140px] shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
-            >
-              {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
-            </Button>
-          </div>
+          <DialogActions
+            isLoading={updateMutation.isPending}
+            loadingText="Salvando..."
+            submitLabel="Salvar Alterações"
+            onCancel={() => onOpenChange(false)}
+            submitButtonProps={{
+              className: "min-w-[140px]",
+            }}
+          />
         </form>
       </DialogContent>
     </Dialog>

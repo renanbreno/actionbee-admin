@@ -5,16 +5,15 @@ import { useForm, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Mail, User, Phone, MapPin, FileText } from "lucide-react";
@@ -474,27 +473,15 @@ export function CustomerFormDialog({
             )}
 
             {/* Actions */}
-            <DialogFooter className="gap-2 border-t pt-4">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={mutation.isPending}
-                className="min-w-35 shadow-md"
-              >
-                {mutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : isEditing ? (
-                  "Salvar Alterações"
-                ) : (
-                  "Cadastrar Cliente"
-                )}
-              </Button>
-            </DialogFooter>
+            <DialogActions
+              isLoading={mutation.isPending}
+              loadingText="Salvando..."
+              submitLabel={isEditing ? "Salvar Alterações" : "Cadastrar Cliente"}
+              onCancel={() => onOpenChange(false)}
+              submitButtonProps={{
+                className: "min-w-35 shadow-md",
+              }}
+            />
           </form>
         )}
       </DialogContent>

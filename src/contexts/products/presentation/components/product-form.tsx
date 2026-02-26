@@ -484,7 +484,7 @@ export function ProductForm({
           <Button
             variant="outline"
             asChild
-            className="min-h-[44px] min-w-[160px]"
+            className="min-h-[44px] min-w-[160px] hover:bg-muted hover:text-foreground hover:border-muted-foreground/20"
           >
             <Link href="/dashboard/products">Cancelar</Link>
           </Button>

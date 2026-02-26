@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -13,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Box, Loader2 } from "lucide-react";
+import { Box } from "lucide-react";
 import {
   createUnitSchema,
   CreateUnitFormValues,
@@ -108,27 +109,14 @@ export function CreateUnitDialog({
             )}
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={createMutation.isPending}
-              className="w-full sm:w-auto"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="w-full bg-bee-gold text-black hover:bg-bee-amber sm:w-auto"
-            >
-              {createMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Criar unidade
-            </Button>
-          </div>
+          <DialogActions
+            isLoading={createMutation.isPending}
+            submitLabel="Criar unidade"
+            onCancel={() => onOpenChange(false)}
+            submitButtonProps={{
+              className: "bg-bee-gold text-black hover:bg-bee-amber",
+            }}
+          />
         </form>
       </DialogContent>
     </Dialog>

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -508,24 +509,15 @@ export function AffiliateFormDialog({
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 border-t pt-4">
-              <Button type="button" variant="ghost" onClick={handleClose}>
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={mutation.isPending}
-                className="min-w-[140px] shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
-              >
-                {mutation.isPending
-                  ? isEditing
-                    ? "Salvando..."
-                    : "Cadastrando..."
-                  : isEditing
-                    ? "Salvar Alterações"
-                    : "Cadastrar"}
-              </Button>
-            </div>
+            <DialogActions
+              isLoading={mutation.isPending}
+              loadingText={isEditing ? "Salvando..." : "Cadastrando..."}
+              submitLabel={isEditing ? "Salvar Alterações" : "Cadastrar"}
+              onCancel={handleClose}
+              submitButtonProps={{
+                className: "min-w-[140px] shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]",
+              }}
+            />
           </form>
         </DialogContent>
       )}

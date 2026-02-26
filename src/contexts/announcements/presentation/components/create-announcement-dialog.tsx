@@ -3,12 +3,12 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Dialog,
+  DialogActions,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -226,22 +226,15 @@ export function CreateAnnouncementDialog({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 border-t pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="min-w-[140px] shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
-            >
-              {createMutation.isPending ? "Criando..." : "Criar Anúncio"}
-            </Button>
-          </div>
+          <DialogActions
+            isLoading={createMutation.isPending}
+            loadingText="Criando..."
+            submitLabel="Criar Anúncio"
+            onCancel={() => onOpenChange(false)}
+            submitButtonProps={{
+              className: "min-w-[140px] shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]",
+            }}
+          />
         </form>
       </DialogContent>
     </Dialog>
