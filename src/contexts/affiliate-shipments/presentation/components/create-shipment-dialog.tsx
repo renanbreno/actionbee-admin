@@ -4,13 +4,23 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Trash2, Search, Users, X, ChevronDown, Gift } from "lucide-react";
+import {
+  Trash2,
+  Search,
+  Users,
+  X,
+  ChevronDown,
+  Gift,
+  Package,
+  Loader2,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -275,31 +285,40 @@ export function CreateShipmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nova Bonificação</DialogTitle>
+      <DialogContent
+        className="w-full max-w-none sm:max-w-2xl max-h-[90dvh] overflow-y-auto"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
+        <DialogHeader className="text-left">
+          <DialogTitle className="text-base flex items-center gap-2">
+            <Gift className="h-4 w-4 text-bee-gold shrink-0" />
+            Nova Bonificação
+          </DialogTitle>
+          <DialogDescription className="pl-6">
+            Lance envios de produtos para afiliados
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {/* Afiliado + Mês */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
               <Label>
                 Afiliado <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
                 {selectedAffiliateId ? (
-                  <div className="flex items-center h-9 rounded-md border bg-card px-3 gap-2">
-                    <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <div className="flex items-center h-11 rounded-lg border bg-muted/30 px-3 gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-sm truncate flex-1">
                       {selectedAffiliateName}
                     </span>
                     <button
                       type="button"
                       onClick={handleClearAffiliate}
-                      className="p-0.5 rounded hover:bg-muted transition-colors shrink-0"
+                      className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0 touch-manipulation"
                     >
-                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ) : (
@@ -311,13 +330,12 @@ export function CreateShipmentDialog({
                         value={affiliateSearch}
                         onChange={(e) => {
                           setAffiliateSearch(e.target.value);
-                          setShowAffiliateDropdown(true);
                         }}
                         onFocus={() => setShowAffiliateDropdown(true)}
                         onBlur={() =>
                           setTimeout(() => setShowAffiliateDropdown(false), 200)
                         }
-                        className="pl-9"
+                        className="pl-9 h-11"
                       />
                     </div>
                     {showAffiliateDropdown && filteredAffiliates.length > 0 && (
@@ -327,7 +345,7 @@ export function CreateShipmentDialog({
                             key={a.id}
                             type="button"
                             onMouseDown={() => handleSelectAffiliate(a.id)}
-                            className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                            className="w-full flex items-center justify-between px-3 py-3 hover:bg-muted/50 transition-colors text-left touch-manipulation"
                           >
                             <span className="text-sm truncate">{a.name}</span>
                             {a.categoryName && (
@@ -342,7 +360,7 @@ export function CreateShipmentDialog({
                     {showAffiliateDropdown &&
                       debouncedAffiliateSearch &&
                       filteredAffiliates.length === 0 && (
-                        <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-sm px-3 py-2.5">
+                        <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-sm px-3 py-3">
                           <p className="text-xs text-muted-foreground">
                             Nenhum afiliado encontrado.
                           </p>
@@ -352,13 +370,13 @@ export function CreateShipmentDialog({
                 )}
               </div>
               {form.formState.errors.affiliateId && (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm">
                   {form.formState.errors.affiliateId.message}
                 </p>
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label>
                 Mês de referência <span className="text-destructive">*</span>
               </Label>
@@ -374,7 +392,7 @@ export function CreateShipmentDialog({
                 )}
               />
               {form.formState.errors.referenceMonth && (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm">
                   {form.formState.errors.referenceMonth.message}
                 </p>
               )}
@@ -382,13 +400,19 @@ export function CreateShipmentDialog({
           </div>
 
           {/* Observações */}
-          <div className="space-y-1.5">
-            <Label htmlFor="notes">Observações</Label>
+          <div className="space-y-2">
+            <Label>
+              Observações{" "}
+              <span className="text-muted-foreground/60 font-normal">
+                (opcional)
+              </span>
+            </Label>
             <Textarea
               id="notes"
               placeholder="Observações opcionais sobre o envio..."
               rows={2}
               {...form.register("notes")}
+              className="resize-none"
             />
           </div>
 
@@ -398,11 +422,16 @@ export function CreateShipmentDialog({
               <Label>
                 Itens <span className="text-destructive">*</span>
               </Label>
+              {fields.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {fields.length} {fields.length === 1 ? "item" : "itens"}
+                </Badge>
+              )}
             </div>
 
             {form.formState.errors.items &&
               !Array.isArray(form.formState.errors.items) && (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm">
                   {
                     (form.formState.errors.items as { message?: string })
                       .message
@@ -421,7 +450,7 @@ export function CreateShipmentDialog({
                     : "border-input bg-background hover:bg-muted/50 text-foreground"
                 }`}
               >
-                <Search className="h-3.5 w-3.5" />
+                <Package className="h-3.5 w-3.5" />
                 Produto com variante
               </button>
               <button
@@ -450,13 +479,12 @@ export function CreateShipmentDialog({
                       value={productSearch}
                       onChange={(e) => {
                         setProductSearch(e.target.value);
-                        setShowProductDropdown(true);
+                        setShowProductDropdown(e.target.value.length > 0);
                       }}
-                      onFocus={() => setShowProductDropdown(true)}
                       onBlur={() =>
                         setTimeout(() => setShowProductDropdown(false), 200)
                       }
-                      className="pl-9"
+                      className="pl-9 h-11"
                     />
                     {showProductDropdown &&
                       debouncedProductSearch &&
@@ -490,16 +518,16 @@ export function CreateShipmentDialog({
                 ) : (
                   /* Step 2: product selected, pick variant */
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center h-9 rounded-md border bg-card px-3 gap-2 flex-1 min-w-0">
+                    <div className="flex items-center h-11 rounded-lg border bg-muted/30 px-3 gap-2 flex-1 min-w-0">
                       <span className="text-sm truncate flex-1">
                         {selectedProductName}
                       </span>
                       <button
                         type="button"
                         onClick={resetProductSelection}
-                        className="p-0.5 rounded hover:bg-muted transition-colors shrink-0"
+                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0 touch-manipulation"
                       >
-                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                     <div className="relative shrink-0">
@@ -511,14 +539,14 @@ export function CreateShipmentDialog({
                         onBlur={() =>
                           setTimeout(() => setShowVariantDropdown(false), 200)
                         }
-                        className="flex items-center h-9 rounded-md border bg-card px-3 gap-1.5 text-sm hover:bg-muted/50 transition-colors whitespace-nowrap"
+                        className="flex items-center h-11 rounded-lg border bg-card px-3 gap-1.5 text-sm hover:bg-muted/50 transition-colors whitespace-nowrap"
                       >
                         Selecionar variante
-                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       </button>
                       {showVariantDropdown &&
                         (activeVariants.length > 0 ? (
-                          <div className="absolute z-50 right-0 mt-1 rounded-lg border bg-card shadow-lg divide-y max-h-48 overflow-y-auto min-w-[200px]">
+                          <div className="absolute z-50 right-0 mt-1 rounded-lg border bg-card shadow-lg divide-y max-h-48 overflow-y-auto min-w-60">
                             {activeVariants.map((v) => (
                               <button
                                 key={v.id}
@@ -526,15 +554,22 @@ export function CreateShipmentDialog({
                                 onMouseDown={() => handleAddVariant(v)}
                                 className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/50 transition-colors text-left"
                               >
-                                <span className="text-sm">{v.name}</span>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-sm">{v.name}</span>
+                                  {v.sku && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {v.sku}
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                                  {v.sku}
+                                  {v.unitCost ? brl.format(v.unitCost) : "-"}
                                 </span>
                               </button>
                             ))}
                           </div>
                         ) : (
-                          <div className="absolute z-50 right-0 mt-1 rounded-lg border bg-card shadow-sm px-3 py-2.5 min-w-[200px]">
+                          <div className="absolute z-50 right-0 mt-1 rounded-lg border bg-card shadow-sm px-3 py-2.5 min-w-60">
                             <p className="text-xs text-muted-foreground">
                               {selectedProductId
                                 ? "Nenhuma variante ativa."
@@ -558,13 +593,12 @@ export function CreateShipmentDialog({
                     value={giftSearch}
                     onChange={(e) => {
                       setGiftSearch(e.target.value);
-                      setShowGiftDropdown(true);
+                      setShowGiftDropdown(e.target.value.length > 0);
                     }}
-                    onFocus={() => setShowGiftDropdown(true)}
                     onBlur={() =>
                       setTimeout(() => setShowGiftDropdown(false), 200)
                     }
-                    className="pl-9"
+                    className="pl-9 h-11"
                   />
                 </div>
                 {showGiftDropdown && filteredGiftTiers.length > 0 && (
@@ -599,15 +633,16 @@ export function CreateShipmentDialog({
             {/* Items table */}
             {fields.length > 0 && (
               <div className="rounded-lg border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                {/* Desktop: Tabela */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full table-fixed text-sm">
                     <thead className="bg-muted/50">
                       <tr>
                         <th className="px-3 py-2 text-left font-medium text-muted-foreground">
                           Produto
                         </th>
                         <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">
-                          Qtd
+                          Quantidade
                         </th>
                         <th className="px-3 py-2 text-right font-medium text-muted-foreground w-24">
                           Custo unit.
@@ -624,7 +659,10 @@ export function CreateShipmentDialog({
                         const cost = form.watch(`items.${index}.unitCost`) || 0;
                         const isGift = !!field.giftTierId;
                         return (
-                          <tr key={field.id} className="hover:bg-muted/30">
+                          <tr
+                            key={field.id}
+                            className="hover:bg-muted/30 transition-colors group"
+                          >
                             <td className="px-3 py-2">
                               <div className="flex flex-col min-w-0">
                                 <div className="flex items-center gap-1.5 min-w-0">
@@ -643,12 +681,13 @@ export function CreateShipmentDialog({
                                 </div>
                                 {!isGift && (
                                   <span className="text-xs text-muted-foreground">
-                                    {field.unitsPerVariant} {field.unitAcronym ?? "un"}
+                                    {field.unitsPerVariant}{" "}
+                                    {field.unitAcronym ?? "un"}
                                   </span>
                                 )}
                               </div>
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2 w-20 min-w-0">
                               <Controller
                                 control={form.control}
                                 name={`items.${index}.quantity`}
@@ -656,31 +695,40 @@ export function CreateShipmentDialog({
                                   <Input
                                     type="number"
                                     min={1}
-                                    className="h-7 w-16 text-center text-sm mx-auto"
+                                    className="h-8 w-full text-center text-sm"
                                     value={f.value}
-                                    onChange={(e) =>
-                                      f.onChange(
-                                        Math.max(
-                                          1,
-                                          parseInt(e.target.value) || 1,
-                                        ),
-                                      )
-                                    }
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      // Permite valor vazio durante digitação
+                                      if (value === "") {
+                                        f.onChange("");
+                                      } else {
+                                        const parsed = parseInt(value);
+                                        if (!isNaN(parsed)) {
+                                          f.onChange(parsed);
+                                        }
+                                      }
+                                    }}
+                                    onBlur={(e) => {
+                                      // Valida mínimo de 1 ao perder o foco
+                                      const parsed = parseInt(e.target.value);
+                                      f.onChange(Math.max(1, parsed || 1));
+                                    }}
                                   />
                                 )}
                               />
                             </td>
-                            <td className="px-3 py-2 text-right text-muted-foreground">
+                            <td className="px-3 py-2 text-right text-muted-foreground w-24 min-w-0">
                               {isGift ? "—" : brl.format(cost)}
                             </td>
-                            <td className="px-3 py-2 text-right font-medium">
+                            <td className="px-3 py-2 text-right font-medium w-24 min-w-0">
                               {isGift ? "—" : brl.format(qty * cost)}
                             </td>
                             <td className="px-3 py-2">
                               <button
                                 type="button"
                                 onClick={() => remove(index)}
-                                className="p-1 rounded text-destructive hover:bg-destructive/10 transition-colors"
+                                className="p-1 rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -690,6 +738,101 @@ export function CreateShipmentDialog({
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile: Cards */}
+                <div className="sm:hidden divide-y">
+                  {fields.map((field, index) => {
+                    const qty = form.watch(`items.${index}.quantity`) || 0;
+                    const cost = form.watch(`items.${index}.unitCost`) || 0;
+                    const isGift = !!field.giftTierId;
+                    return (
+                      <div key={field.id} className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-sm font-medium line-clamp-2">
+                                {field.productName}
+                              </span>
+                              {isGift && (
+                                <Badge
+                                  variant="secondary"
+                                  className="h-5 gap-1 px-1.5 text-xs shrink-0"
+                                >
+                                  <Gift className="h-3 w-3" />
+                                  Brinde
+                                </Badge>
+                              )}
+                            </div>
+                            {!isGift && (
+                              <span className="text-xs text-muted-foreground mt-0.5">
+                                {field.unitsPerVariant} {field.unitAcronym ?? "un"}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => remove(index)}
+                            className="p-2 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors touch-manipulation shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 flex-1">
+                            <Label htmlFor={`qty-mobile-${index}`} className="text-sm">
+                              Quantidade
+                            </Label>
+                            <Controller
+                              control={form.control}
+                              name={`items.${index}.quantity`}
+                              render={({ field: f }) => (
+                                <Input
+                                  id={`qty-mobile-${index}`}
+                                  type="number"
+                                  min={1}
+                                  className="h-11 w-20 text-center"
+                                  value={f.value}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === "") {
+                                      f.onChange("");
+                                    } else {
+                                      const parsed = parseInt(value);
+                                      if (!isNaN(parsed)) {
+                                        f.onChange(parsed);
+                                      }
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const parsed = parseInt(e.target.value);
+                                    f.onChange(Math.max(1, parsed || 1));
+                                  }}
+                                />
+                              )}
+                            />
+                          </div>
+
+                          {!isGift && (
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="text-sm text-muted-foreground">Custo:</span>
+                              <span className="text-sm font-medium">
+                                {brl.format(cost)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {!isGift && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Total:</span>
+                            <span className="font-bold">{brl.format(qty * cost)}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -704,21 +847,33 @@ export function CreateShipmentDialog({
           </div>
 
           {/* Footer: total */}
-          <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg bg-muted/50 px-4 py-3 gap-2 sm:gap-0">
             <span className="text-sm font-medium">Custo total do envio</span>
             <span className="text-base font-bold">{brl.format(totalCost)}</span>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={handleClose}>
+          <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleClose}
+              className="w-full sm:w-auto h-11"
+            >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={createShipment.isPending}
-              className="bg-bee-gold hover:bg-bee-amber text-black font-semibold"
+              className="w-full sm:w-auto h-11 bg-bee-gold hover:bg-bee-amber text-black shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
             >
-              {createShipment.isPending ? "Salvando..." : "Salvar bonificação"}
+              {createShipment.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar bonificação"
+              )}
             </Button>
           </DialogFooter>
         </form>
