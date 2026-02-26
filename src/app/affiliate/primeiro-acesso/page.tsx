@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AffiliateSetupPasswordForm } from '@/contexts/affiliate-auth/presentation/components/affiliate-setup-password-form';
 import { useAffiliateAuthContext } from '@/contexts/affiliate-auth/presentation/providers/affiliate-auth-provider';
 import { useAffiliatePath } from '@/contexts/affiliate-auth/presentation/hooks/use-affiliate-path';
 
-export default function AffiliatePrimeiroAcessoPage() {
+function PrimeiroAcessoContent() {
   const { isAuthenticated, isLoading } = useAffiliateAuthContext();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,5 +58,13 @@ export default function AffiliatePrimeiroAcessoPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AffiliatePrimeiroAcessoPage() {
+  return (
+    <Suspense>
+      <PrimeiroAcessoContent />
+    </Suspense>
   );
 }
