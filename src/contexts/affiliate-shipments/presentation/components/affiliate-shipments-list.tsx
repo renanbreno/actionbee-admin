@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Trash2, Package, ChevronDown } from "lucide-react";
+import { Trash2, Package, ChevronDown, Gift } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,14 +147,28 @@ function ShipmentCard({
                 className="flex items-center justify-between text-sm"
               >
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  {item.giftTierId ? (
+                    <Gift className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  ) : (
+                    <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
                   <span className="truncate">{item.productName}</span>
+                  {item.giftTierId && (
+                    <Badge
+                      variant="secondary"
+                      className="h-5 px-1.5 text-xs shrink-0"
+                    >
+                      Brinde
+                    </Badge>
+                  )}
                   <span className="text-muted-foreground shrink-0">
                     × {item.quantity}
+                    {(item.unitsPerVariant ?? 1) > 1 &&
+                      ` (${item.quantity * (item.unitsPerVariant ?? 1)} un)`}
                   </span>
                 </div>
                 <span className="text-muted-foreground shrink-0 ml-2">
-                  {brl.format(item.totalCost)}
+                  {item.giftTierId ? "—" : brl.format(item.totalCost ?? 0)}
                 </span>
               </div>
             ))}
@@ -167,7 +182,7 @@ function ShipmentCard({
               )}
             </div>
             <div className="text-sm font-semibold">
-              {brl.format(shipment.totalCost)}
+              {brl.format(shipment.totalCost ?? 0)}
             </div>
           </div>
 

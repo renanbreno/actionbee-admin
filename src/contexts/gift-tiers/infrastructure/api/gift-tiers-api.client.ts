@@ -31,6 +31,7 @@ export interface CreateGiftTierApiRequest {
   name: string;
   description?: string;
   minOrderValue: number;
+  costPrice?: number;
   productId?: string;
   image?: File;
 }
@@ -39,6 +40,7 @@ export interface UpdateGiftTierApiRequest {
   name?: string;
   description?: string;
   minOrderValue?: number;
+  costPrice?: number;
   productId?: string;
   image?: File;
 }
@@ -52,6 +54,7 @@ export const giftTiersApiClient = {
     const formData = new FormData();
     formData.append("name", data.name);
     formData.append("minOrderValue", String(data.minOrderValue));
+    if (data.costPrice !== undefined) formData.append("costPrice", String(data.costPrice));
     if (data.description) formData.append("description", data.description);
     if (data.productId) formData.append("productId", data.productId);
     if (data.image) formData.append("image", data.image);
@@ -62,6 +65,7 @@ export const giftTiersApiClient = {
     const formData = new FormData();
     if (data.name !== undefined) formData.append("name", data.name);
     if (data.minOrderValue !== undefined) formData.append("minOrderValue", String(data.minOrderValue));
+    if (data.costPrice !== undefined) formData.append("costPrice", String(data.costPrice));
     if (data.description !== undefined) formData.append("description", data.description);
     if (data.productId !== undefined) formData.append("productId", data.productId);
     if (data.image) formData.append("image", data.image);

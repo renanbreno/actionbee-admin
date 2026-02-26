@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Trash2, Search, Users, X } from "lucide-react";
+import { Trash2, Search, Users, X, ChevronDown, Gift } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,14 +16,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { MonthPicker } from "@/components/ui/month-picker";
 import { useProducts } from "@/contexts/products/presentation/hooks/use-products";
+import { useGiftTiers } from "@/contexts/gift-tiers/presentation/hooks/use-gift-tiers";
 import { useAffiliates } from "@/contexts/affiliates/presentation/hooks/use-affiliates";
 import {
   createShipmentSchema,
   CreateShipmentFormValues,
 } from "../schemas/shipment.schema";
 import { useCreateShipment } from "../hooks/use-create-shipment";
+import type { ProductVariant } from "@/contexts/products/domain/entities/product";
+import type { GiftTier } from "@/contexts/gift-tiers/domain/entities/gift-tier";
 
 interface CreateShipmentDialogProps {
   open: boolean;
@@ -74,7 +78,7 @@ export function CreateShipmentDialog({
     0,
   );
 
-  // Affiliate search state
+  // ─── Affiliate search ───────────────────────────────────────────────────────
   const [affiliateSearch, setAffiliateSearch] = useState("");
   const [debouncedAffiliateSearch, setDebouncedAffiliateSearch] = useState("");
   const [showAffiliateDropdown, setShowAffiliateDropdown] = useState(false);
@@ -110,42 +114,120 @@ export function CreateShipmentDialog({
     setAffiliateSearch("");
   };
 
-  // Product search state
-  const [searchInput, setSearchInput] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
+  // ─── Item type toggle ───────────────────────────────────────────────────────
+  const [itemType, setItemType] = useState<"variant" | "gift">("variant");
+
+  // ─── Variant (product → variant) cascade ───────────────────────────────────
+  const [productSearch, setProductSearch] = useState("");
+  const [debouncedProductSearch, setDebouncedProductSearch] = useState("");
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [selectedProductName, setSelectedProductName] = useState("");
+  const [selectedProductVariants, setSelectedProductVariants] = useState<
+    ProductVariant[]
+  >([]);
+  const [showVariantDropdown, setShowVariantDropdown] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(
-      () => setDebouncedSearch(searchInput.trim()),
+      () => setDebouncedProductSearch(productSearch.trim()),
       400,
     );
     return () => clearTimeout(timer);
-  }, [searchInput]);
+  }, [productSearch]);
 
-  const { data: searchResults } = useProducts(1, 8, debouncedSearch);
+  const { data: productSearchResults } = useProducts(
+    1,
+    8,
+    debouncedProductSearch,
+  );
 
-  const handleAddProduct = (product: {
+  const activeVariants = useMemo(
+    () => selectedProductVariants.filter((v) => v.isActive !== false),
+    [selectedProductVariants],
+  );
+
+  const handleSelectProduct = (product: {
     id: string;
     name: string;
-    costPrice?: number;
+    variants: ProductVariant[];
   }) => {
-    const alreadyAdded = items.some((i) => i.productId === product.id);
+    setSelectedProductId(product.id);
+    setSelectedProductName(product.name);
+    setSelectedProductVariants(product.variants);
+    setProductSearch("");
+    setShowProductDropdown(false);
+  };
+
+  const handleAddVariant = (variant: ProductVariant) => {
+    const alreadyAdded = items.some((i) => i.variantId === variant.id);
     if (alreadyAdded) {
-      toast.error("Produto já adicionado");
+      toast.error("Variante já adicionada");
       return;
     }
     append({
-      productId: product.id,
-      productName: product.name,
+      variantId: variant.id,
+      productName: `${selectedProductName} - ${variant.name}`,
       quantity: 1,
-      unitCost: product.costPrice ?? 0,
+      unitCost: variant.unitCost ?? 0,
+      unitsPerVariant: variant.unitsPerVariant,
+      unitAcronym: variant.unit?.acronym ?? variant.unit?.name,
     });
-    setSearchInput("");
-    setDebouncedSearch("");
-    setShowDropdown(false);
+    resetProductSelection();
   };
 
+  const resetProductSelection = () => {
+    setSelectedProductId("");
+    setSelectedProductName("");
+    setSelectedProductVariants([]);
+    setProductSearch("");
+    setShowProductDropdown(false);
+    setShowVariantDropdown(false);
+  };
+
+  // ─── Gift tier search ───────────────────────────────────────────────────────
+  const [giftSearch, setGiftSearch] = useState("");
+  const [debouncedGiftSearch, setDebouncedGiftSearch] = useState("");
+  const [showGiftDropdown, setShowGiftDropdown] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setDebouncedGiftSearch(giftSearch.trim().toLowerCase()),
+      300,
+    );
+    return () => clearTimeout(timer);
+  }, [giftSearch]);
+
+  const { data: allGiftTiers = [] } = useGiftTiers();
+
+  const filteredGiftTiers = useMemo(() => {
+    if (!debouncedGiftSearch) return allGiftTiers;
+    return allGiftTiers.filter((g) =>
+      g.name.toLowerCase().includes(debouncedGiftSearch),
+    );
+  }, [allGiftTiers, debouncedGiftSearch]);
+
+  const handleAddGift = (giftTier: GiftTier) => {
+    const alreadyAdded = items.some((i) => i.giftTierId === giftTier.id);
+    if (alreadyAdded) {
+      toast.error("Brinde já adicionado");
+      return;
+    }
+    append({
+      giftTierId: giftTier.id,
+      productName: giftTier.name,
+      quantity: 1,
+      unitCost: 0,
+    });
+    resetGiftSelection();
+  };
+
+  const resetGiftSelection = () => {
+    setGiftSearch("");
+    setShowGiftDropdown(false);
+  };
+
+  // ─── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = form.handleSubmit((values) => {
     createShipment.mutate(
       {
@@ -153,10 +235,9 @@ export function CreateShipmentDialog({
         data: {
           referenceMonth: values.referenceMonth,
           notes: values.notes,
-          items: values.items.map(({ productId, quantity }) => ({
-            productId,
-            quantity,
-          })),
+          items: values.items.map(({ variantId, giftTierId, quantity }) =>
+            variantId ? { variantId, quantity } : { giftTierId, quantity },
+          ),
         },
       },
       {
@@ -177,6 +258,7 @@ export function CreateShipmentDialog({
     );
   });
 
+  // ─── Close / reset ──────────────────────────────────────────────────────────
   const handleClose = () => {
     form.reset({
       affiliateId: defaultAffiliateId ?? "",
@@ -185,8 +267,9 @@ export function CreateShipmentDialog({
       items: [],
     });
     setAffiliateSearch("");
-    setSearchInput("");
-    setDebouncedSearch("");
+    setItemType("variant");
+    resetProductSelection();
+    resetGiftSelection();
     onOpenChange(false);
   };
 
@@ -309,11 +392,11 @@ export function CreateShipmentDialog({
             />
           </div>
 
-          {/* Produtos */}
+          {/* Itens */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>
-                Produtos <span className="text-destructive">*</span>
+                Itens <span className="text-destructive">*</span>
               </Label>
             </div>
 
@@ -327,55 +410,191 @@ export function CreateShipmentDialog({
                 </p>
               )}
 
-            {/* Product search */}
-            <div className="relative">
+            {/* Item type toggle */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setItemType("variant")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                  itemType === "variant"
+                    ? "bg-bee-gold border-bee-gold text-black"
+                    : "border-input bg-background hover:bg-muted/50 text-foreground"
+                }`}
+              >
+                <Search className="h-3.5 w-3.5" />
+                Produto com variante
+              </button>
+              <button
+                type="button"
+                onClick={() => setItemType("gift")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                  itemType === "gift"
+                    ? "bg-bee-gold border-bee-gold text-black"
+                    : "border-input bg-background hover:bg-muted/50 text-foreground"
+                }`}
+              >
+                <Gift className="h-3.5 w-3.5" />
+                Brinde
+              </button>
+            </div>
+
+            {/* Variant item-add flow */}
+            {itemType === "variant" && (
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar produto para adicionar..."
-                  value={searchInput}
-                  onChange={(e) => {
-                    setSearchInput(e.target.value);
-                    setShowDropdown(true);
-                  }}
-                  onFocus={() => setShowDropdown(true)}
-                  onBlur={() =>
-                    setTimeout(() => setShowDropdown(false), 200)
-                  }
-                  className="pl-9"
-                />
-              </div>
-              {showDropdown &&
-                debouncedSearch &&
-                (searchResults?.data ?? []).length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-lg divide-y max-h-48 overflow-y-auto">
-                    {(searchResults?.data ?? []).map((p) => (
+                {!selectedProductId ? (
+                  /* Step 1: search product */
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar produto..."
+                      value={productSearch}
+                      onChange={(e) => {
+                        setProductSearch(e.target.value);
+                        setShowProductDropdown(true);
+                      }}
+                      onFocus={() => setShowProductDropdown(true)}
+                      onBlur={() =>
+                        setTimeout(() => setShowProductDropdown(false), 200)
+                      }
+                      className="pl-9"
+                    />
+                    {showProductDropdown &&
+                      debouncedProductSearch &&
+                      ((productSearchResults?.data ?? []).length > 0 ? (
+                        <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-lg divide-y max-h-48 overflow-y-auto">
+                          {(productSearchResults?.data ?? []).map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onMouseDown={() =>
+                                handleSelectProduct({
+                                  id: p.id,
+                                  name: p.name,
+                                  variants: p.variants,
+                                })
+                              }
+                              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                            >
+                              <span className="text-sm truncate">{p.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-sm px-3 py-2.5">
+                          <p className="text-xs text-muted-foreground">
+                            Nenhum produto encontrado.
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  /* Step 2: product selected, pick variant */
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center h-9 rounded-md border bg-card px-3 gap-2 flex-1 min-w-0">
+                      <span className="text-sm truncate flex-1">
+                        {selectedProductName}
+                      </span>
                       <button
-                        key={p.id}
                         type="button"
-                        onMouseDown={() => handleAddProduct(p)}
+                        onClick={resetProductSelection}
+                        className="p-0.5 rounded hover:bg-muted transition-colors shrink-0"
+                      >
+                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </div>
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowVariantDropdown(!showVariantDropdown)
+                        }
+                        onBlur={() =>
+                          setTimeout(() => setShowVariantDropdown(false), 200)
+                        }
+                        className="flex items-center h-9 rounded-md border bg-card px-3 gap-1.5 text-sm hover:bg-muted/50 transition-colors whitespace-nowrap"
+                      >
+                        Selecionar variante
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                      {showVariantDropdown &&
+                        (activeVariants.length > 0 ? (
+                          <div className="absolute z-50 right-0 mt-1 rounded-lg border bg-card shadow-lg divide-y max-h-48 overflow-y-auto min-w-[200px]">
+                            {activeVariants.map((v) => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onMouseDown={() => handleAddVariant(v)}
+                                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                              >
+                                <span className="text-sm">{v.name}</span>
+                                <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                                  {v.sku}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="absolute z-50 right-0 mt-1 rounded-lg border bg-card shadow-sm px-3 py-2.5 min-w-[200px]">
+                            <p className="text-xs text-muted-foreground">
+                              {selectedProductId
+                                ? "Nenhuma variante ativa."
+                                : "Carregando variantes..."}
+                            </p>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Gift item-add flow */}
+            {itemType === "gift" && (
+              <div className="relative">
+                <div className="relative">
+                  <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar brinde..."
+                    value={giftSearch}
+                    onChange={(e) => {
+                      setGiftSearch(e.target.value);
+                      setShowGiftDropdown(true);
+                    }}
+                    onFocus={() => setShowGiftDropdown(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowGiftDropdown(false), 200)
+                    }
+                    className="pl-9"
+                  />
+                </div>
+                {showGiftDropdown && filteredGiftTiers.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-lg divide-y max-h-48 overflow-y-auto">
+                    {filteredGiftTiers.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onMouseDown={() => handleAddGift(g)}
                         className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/50 transition-colors text-left"
                       >
-                        <span className="text-sm truncate">{p.name}</span>
+                        <span className="text-sm truncate">{g.name}</span>
                         <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                          {p.costPrice != null
-                            ? brl.format(p.costPrice)
-                            : "—"}
+                          Brinde
                         </span>
                       </button>
                     ))}
                   </div>
                 )}
-              {showDropdown &&
-                debouncedSearch &&
-                (searchResults?.data ?? []).length === 0 && (
-                  <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-sm px-3 py-2.5">
-                    <p className="text-xs text-muted-foreground">
-                      Nenhum produto encontrado.
-                    </p>
-                  </div>
-                )}
-            </div>
+                {showGiftDropdown &&
+                  debouncedGiftSearch &&
+                  filteredGiftTiers.length === 0 && (
+                    <div className="absolute z-50 w-full mt-1 rounded-lg border bg-card shadow-sm px-3 py-2.5">
+                      <p className="text-xs text-muted-foreground">
+                        Nenhum brinde encontrado.
+                      </p>
+                    </div>
+                  )}
+              </div>
+            )}
 
             {/* Items table */}
             {fields.length > 0 && (
@@ -401,16 +620,33 @@ export function CreateShipmentDialog({
                     </thead>
                     <tbody className="divide-y">
                       {fields.map((field, index) => {
-                        const qty =
-                          form.watch(`items.${index}.quantity`) || 0;
-                        const cost =
-                          form.watch(`items.${index}.unitCost`) || 0;
+                        const qty = form.watch(`items.${index}.quantity`) || 0;
+                        const cost = form.watch(`items.${index}.unitCost`) || 0;
+                        const isGift = !!field.giftTierId;
                         return (
                           <tr key={field.id} className="hover:bg-muted/30">
                             <td className="px-3 py-2">
-                              <span className="text-sm font-medium line-clamp-1">
-                                {field.productName}
-                              </span>
+                              <div className="flex flex-col min-w-0">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-sm font-medium line-clamp-1">
+                                    {field.productName}
+                                  </span>
+                                  {isGift && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="h-5 gap-1 px-1.5 text-xs shrink-0"
+                                    >
+                                      <Gift className="h-3 w-3" />
+                                      Brinde
+                                    </Badge>
+                                  )}
+                                </div>
+                                {!isGift && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {field.unitsPerVariant} {field.unitAcronym ?? "un"}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-3 py-2">
                               <Controller
@@ -435,10 +671,10 @@ export function CreateShipmentDialog({
                               />
                             </td>
                             <td className="px-3 py-2 text-right text-muted-foreground">
-                              {brl.format(cost)}
+                              {isGift ? "—" : brl.format(cost)}
                             </td>
                             <td className="px-3 py-2 text-right font-medium">
-                              {brl.format(qty * cost)}
+                              {isGift ? "—" : brl.format(qty * cost)}
                             </td>
                             <td className="px-3 py-2">
                               <button
@@ -461,7 +697,7 @@ export function CreateShipmentDialog({
             {fields.length === 0 && (
               <div className="rounded-lg border border-dashed p-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Nenhum produto adicionado. Use a busca acima.
+                  Nenhum item adicionado. Use a busca acima.
                 </p>
               </div>
             )}
@@ -470,9 +706,7 @@ export function CreateShipmentDialog({
           {/* Footer: total */}
           <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
             <span className="text-sm font-medium">Custo total do envio</span>
-            <span className="text-base font-bold">
-              {brl.format(totalCost)}
-            </span>
+            <span className="text-base font-bold">{brl.format(totalCost)}</span>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -484,9 +718,7 @@ export function CreateShipmentDialog({
               disabled={createShipment.isPending}
               className="bg-bee-gold hover:bg-bee-amber text-black font-semibold"
             >
-              {createShipment.isPending
-                ? "Salvando..."
-                : "Salvar bonificação"}
+              {createShipment.isPending ? "Salvando..." : "Salvar bonificação"}
             </Button>
           </DialogFooter>
         </form>

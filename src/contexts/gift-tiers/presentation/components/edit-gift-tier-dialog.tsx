@@ -52,6 +52,7 @@ export function EditGiftTierDialog({
         name: giftTier.name,
         description: giftTier.description ?? undefined,
         minOrderValue: giftTier.minOrderValue,
+        costPrice: giftTier.costPrice ?? undefined,
         productId: giftTier.productId ?? undefined,
       });
       setImageFile(null);
@@ -140,6 +141,23 @@ export function EditGiftTierDialog({
             />
             {errors.minOrderValue && (
               <p className="text-sm text-destructive">{errors.minOrderValue.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-costPrice">
+              Preço de custo (R$) <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="edit-costPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Ex: 12.50"
+              {...register("costPrice", { valueAsNumber: true })}
+            />
+            {errors.costPrice && (
+              <p className="text-sm text-destructive">{errors.costPrice.message}</p>
             )}
           </div>
 

@@ -5,6 +5,7 @@ export interface CreateGiftTierParams {
   description?: string;
   image?: File;
   minOrderValue: number;
+  costPrice: number;
   productId?: string;
 }
 
@@ -13,6 +14,7 @@ export interface UpdateGiftTierParams {
   description?: string;
   image?: File;
   minOrderValue?: number;
+  costPrice?: number;
   productId?: string;
 }
 

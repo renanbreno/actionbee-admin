@@ -23,6 +23,7 @@ export interface ProductVariant {
     acronym: string;
     name: string;
   };
+  unitCost?: number;
   hasFreeShipping?: boolean;
   isRetailerVariant?: boolean;
   availableStock?: number;

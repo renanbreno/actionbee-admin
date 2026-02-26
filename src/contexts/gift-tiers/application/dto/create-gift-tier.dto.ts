@@ -4,5 +4,6 @@ export interface CreateGiftTierDto {
   imageUrl?: string;
   image?: File;
   minOrderValue: number;
+  costPrice: number;
   productId?: string;
 }

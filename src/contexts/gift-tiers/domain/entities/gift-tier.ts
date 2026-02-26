@@ -4,6 +4,7 @@ export interface GiftTier {
   description?: string;
   imageUrl?: string;
   minOrderValue: number;
+  costPrice: number;
   productId?: string;
   isActive: boolean;
   createdAt: string;

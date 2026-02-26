@@ -45,6 +45,7 @@ export function CreateGiftTierDialog({
       name: "",
       description: undefined,
       minOrderValue: 0,
+      costPrice: 0,
       productId: undefined,
     },
   });
@@ -127,6 +128,23 @@ export function CreateGiftTierDialog({
             />
             {errors.minOrderValue && (
               <p className="text-sm text-destructive">{errors.minOrderValue.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="create-costPrice">
+              Preço de custo (R$) <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="create-costPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Ex: 12.50"
+              {...register("costPrice", { valueAsNumber: true })}
+            />
+            {errors.costPrice && (
+              <p className="text-sm text-destructive">{errors.costPrice.message}</p>
             )}
           </div>
 

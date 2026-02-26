@@ -5,7 +5,8 @@ import {
 } from "../entities/affiliate-shipment";
 
 export interface CreateShipmentItemDTO {
-  productId: string;
+  variantId?: string;
+  giftTierId?: string;
   quantity: number;
 }
 

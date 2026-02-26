@@ -1,11 +1,15 @@
 export type ShipmentStatus = "PENDING" | "SHIPPED" | "DELIVERED";
 
 export interface ShipmentItem {
-  productId: string;
+  id?: string;
+  productId?: string;    // present only for variant items
+  variantId?: string;    // present only for variant items
+  giftTierId?: string;   // present only for gift items
   productName: string;
   quantity: number;
-  unitCost: number;
-  totalCost: number;
+  unitCost?: number;
+  totalCost?: number;
+  unitsPerVariant?: number;
 }
 
 export interface AffiliateShipment {
@@ -14,7 +18,7 @@ export interface AffiliateShipment {
   referenceMonth: string; // "2026-02"
   status: ShipmentStatus;
   items: ShipmentItem[];
-  totalCost: number;
+  totalCost?: number;
   notes?: string | null;
   createdAt: string;
   updatedAt: string;

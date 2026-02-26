@@ -16,6 +16,9 @@ export const createGiftTierSchema = z.object({
   minOrderValue: z
     .number({ message: "Informe o valor mínimo do pedido" })
     .min(0.01, "O valor mínimo deve ser maior que zero"),
+  costPrice: z
+    .number({ message: "Informe o preço de custo" })
+    .min(0, "O preço de custo não pode ser negativo"),
   productId: z.string().optional(),
 });
 
