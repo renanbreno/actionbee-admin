@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LogIn, CreditCard, Lock, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAffiliateLogin } from '../hooks/use-affiliate-login';
-import { AffiliateNoPasswordError } from '../../domain/errors/no-password.error';
 import { affiliateAuthApiClient } from '../../infrastructure/api/affiliate-auth-api.client';
 
 function formatCpf(value: string) {
@@ -45,6 +44,7 @@ export function AffiliateLoginForm({ onSuccess, onFirstAccess }: AffiliateLoginF
 
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
+    defaultValues: { password: '' },
   });
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,11 +54,10 @@ export function AffiliateLoginForm({ onSuccess, onFirstAccess }: AffiliateLoginF
     setCpf(formatted.replace(/\D/g, ''));
   };
 
-  // Probe the backend with the CPF only (dummy password).
-  // The backend checks hasPassword() BEFORE comparing the hash:
-  //   → "Senha não cadastrada" = first access, no password set yet
-  //   → any other error        = affiliate has a password, show password field
-  const handleCpfSubmit = async (e: React.FormEvent) => {
+  // Check if the CPF exists and has a password set.
+  // If no password → first access flow.
+  // If has password → show password field.
+  const handleCpfSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (cpf.length !== 11) {
       setCpfError('CPF inválido');
@@ -66,14 +65,14 @@ export function AffiliateLoginForm({ onSuccess, onFirstAccess }: AffiliateLoginF
     }
     setProbing(true);
     try {
-      await affiliateAuthApiClient.login(cpf, '_probe_');
-      onSuccess();
-    } catch (err) {
-      if (err instanceof AffiliateNoPasswordError) {
-        onFirstAccess(cpf);
-      } else {
+      const result = await affiliateAuthApiClient.checkCpf(cpf);
+      if (result.hasPassword) {
         setStep('password');
+      } else {
+        onFirstAccess(cpf);
       }
+    } catch {
+      setCpfError('CPF não encontrado');
     } finally {
       setProbing(false);
     }
@@ -168,9 +167,10 @@ export function AffiliateLoginForm({ onSuccess, onFirstAccess }: AffiliateLoginF
               id="password"
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
+              value={passwordForm.watch('password') || ''}
+              onChange={(e) => passwordForm.setValue('password', e.target.value)}
               autoFocus
               className="h-12 border-border bg-muted/40 pl-10 pr-11 transition-all focus-visible:border-bee-gold/50 focus-visible:ring-2 focus-visible:ring-bee-gold/20"
-              {...passwordForm.register('password')}
             />
             <button
               type="button"

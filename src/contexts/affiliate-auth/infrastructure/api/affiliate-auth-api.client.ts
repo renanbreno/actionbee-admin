@@ -1,6 +1,5 @@
 import { env } from '@/shared/config/env';
 import { AffiliateInvalidCredentialsError } from '../../domain/errors/invalid-credentials.error';
-import { AffiliateNoPasswordError } from '../../domain/errors/no-password.error';
 
 export interface AffiliateAuthApiResponse {
   accessToken: string;
@@ -12,20 +11,29 @@ export interface AffiliateAuthApiResponse {
 }
 
 export const affiliateAuthApiClient = {
+  async checkCpf(cpf: string): Promise<{ hasPassword: boolean }> {
+    const res = await fetch(`${env.API_BASE_URL}/affiliate/auth/check?cpf=${encodeURIComponent(cpf)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (res.status === 404) {
+      throw new AffiliateInvalidCredentialsError();
+    }
+
+    if (!res.ok) {
+      throw new AffiliateInvalidCredentialsError();
+    }
+
+    return res.json();
+  },
+
   async login(cpf: string, password: string): Promise<AffiliateAuthApiResponse> {
     const res = await fetch(`${env.API_BASE_URL}/affiliate/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cpf, password }),
     });
-
-    if (res.status === 401) {
-      const body = await res.json().catch(() => ({}));
-      if (body?.message === 'Senha não cadastrada') {
-        throw new AffiliateNoPasswordError();
-      }
-      throw new AffiliateInvalidCredentialsError();
-    }
 
     if (!res.ok) {
       throw new AffiliateInvalidCredentialsError();
