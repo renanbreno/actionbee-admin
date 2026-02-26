@@ -227,7 +227,7 @@ export function CreateShipmentDialog({
       giftTierId: giftTier.id,
       productName: giftTier.name,
       quantity: 1,
-      unitCost: 0,
+      unitCost: giftTier.costPrice,
     });
     resetGiftSelection();
   };
@@ -612,7 +612,7 @@ export function CreateShipmentDialog({
                       >
                         <span className="text-sm truncate">{g.name}</span>
                         <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                          Brinde
+                          {g.costPrice ? brl.format(g.costPrice) : "-"}
                         </span>
                       </button>
                     ))}
@@ -641,10 +641,10 @@ export function CreateShipmentDialog({
                         <th className="px-3 py-2 text-left font-medium text-muted-foreground">
                           Produto
                         </th>
-                        <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">
+                        <th className="px-4 py-2 text-center font-medium text-muted-foreground w-24">
                           Quantidade
                         </th>
-                        <th className="px-3 py-2 text-right font-medium text-muted-foreground w-24">
+                        <th className="px-4 py-2 text-right font-medium text-muted-foreground w-28">
                           Custo unit.
                         </th>
                         <th className="px-3 py-2 text-right font-medium text-muted-foreground w-24">
@@ -687,7 +687,7 @@ export function CreateShipmentDialog({
                                 )}
                               </div>
                             </td>
-                            <td className="px-3 py-2 w-20 min-w-0">
+                            <td className="px-4 py-2 w-24 min-w-0">
                               <Controller
                                 control={form.control}
                                 name={`items.${index}.quantity`}
@@ -718,11 +718,11 @@ export function CreateShipmentDialog({
                                 )}
                               />
                             </td>
-                            <td className="px-3 py-2 text-right text-muted-foreground w-24 min-w-0">
-                              {isGift ? "—" : brl.format(cost)}
+                            <td className="px-4 py-2 text-right text-muted-foreground w-28 min-w-0">
+                              {brl.format(cost)}
                             </td>
-                            <td className="px-3 py-2 text-right font-medium w-24 min-w-0">
-                              {isGift ? "—" : brl.format(qty * cost)}
+                            <td className="px-4 py-2 text-right font-medium w-28 min-w-0">
+                              {brl.format(qty * cost)}
                             </td>
                             <td className="px-3 py-2">
                               <button
@@ -814,22 +814,18 @@ export function CreateShipmentDialog({
                             />
                           </div>
 
-                          {!isGift && (
-                            <div className="flex items-center gap-2 flex-1">
-                              <span className="text-sm text-muted-foreground">Custo:</span>
-                              <span className="text-sm font-medium">
-                                {brl.format(cost)}
-                              </span>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className="text-sm text-muted-foreground">Custo:</span>
+                            <span className="text-sm font-medium">
+                              {brl.format(cost)}
+                            </span>
+                          </div>
                         </div>
 
-                        {!isGift && (
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Total:</span>
-                            <span className="font-bold">{brl.format(qty * cost)}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Total:</span>
+                          <span className="font-bold">{brl.format(qty * cost)}</span>
+                        </div>
                       </div>
                     );
                   })}
@@ -852,7 +848,7 @@ export function CreateShipmentDialog({
             <span className="text-base font-bold">{brl.format(totalCost)}</span>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
+          <DialogFooter className="gap-2 sm:gap-3 flex-col sm:flex-row">
             <Button
               type="button"
               variant="ghost"
