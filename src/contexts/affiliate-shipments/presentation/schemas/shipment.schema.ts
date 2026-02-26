@@ -20,10 +20,10 @@ export const createShipmentSchema = z.object({
   referenceMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/, "Formato inválido (AAAA-MM)"),
-  notes: z.string().optional().nullable(),
+  notes: z.string().max(1000, "Máximo 1000 caracteres").optional().nullable(),
   items: z
     .array(shipmentItemSchema)
-    .min(1, "Adicione ao menos um produto"),
+    .min(1, "Adicione ao menos um produto ou brinde"),
 });
 
 export type CreateShipmentFormValues = z.infer<typeof createShipmentSchema>;

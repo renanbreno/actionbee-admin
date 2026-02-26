@@ -237,15 +237,22 @@ export function CreateShipmentDialog({
 
   // ─── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = form.handleSubmit((values) => {
+    // Transform items into separate products and gifts arrays for the API
+    const products = values.items
+      .filter((item) => item.variantId)
+      .map(({ variantId, quantity }) => ({ variantId, quantity }));
+    const gifts = values.items
+      .filter((item) => item.giftTierId)
+      .map(({ giftTierId, quantity }) => ({ giftTierId, quantity }));
+
     createShipment.mutate(
       {
         affiliateId: values.affiliateId,
         data: {
           referenceMonth: values.referenceMonth,
+          products,
+          gifts,
           notes: values.notes,
-          items: values.items.map(({ variantId, giftTierId, quantity }) =>
-            variantId ? { variantId, quantity } : { giftTierId, quantity },
-          ),
         },
       },
       {

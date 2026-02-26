@@ -4,16 +4,21 @@ import {
   ShipmentStatus,
 } from "../entities/affiliate-shipment";
 
-export interface CreateShipmentItemDTO {
-  variantId?: string;
-  giftTierId?: string;
+export interface CreateShipmentProductDTO {
+  variantId: string;
+  quantity: number;
+}
+
+export interface CreateShipmentGiftDTO {
+  giftTierId: string;
   quantity: number;
 }
 
 export interface CreateShipmentDTO {
   referenceMonth: string;
+  products?: CreateShipmentProductDTO[];
+  gifts?: CreateShipmentGiftDTO[];
   notes?: string | null;
-  items: CreateShipmentItemDTO[];
 }
 
 export interface AffiliateShipmentRepository {

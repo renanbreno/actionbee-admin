@@ -59,6 +59,12 @@ function ShipmentCard({
   const updateStatus = useUpdateShipmentStatus(affiliateId);
   const deleteShipment = useDeleteShipment(affiliateId);
 
+  // Calcula o total incluindo produtos e brindes
+  const totalCost = shipment.items.reduce(
+    (sum, item) => sum + ((item.unitCost ?? 0) * item.quantity),
+    0,
+  );
+
   const handleStatusChange = (status: ShipmentStatus) => {
     updateStatus.mutate(
       { shipmentId: shipment.id, status },
@@ -168,7 +174,7 @@ function ShipmentCard({
                   </span>
                 </div>
                 <span className="text-muted-foreground shrink-0 ml-2">
-                  {item.giftTierId ? "—" : brl.format(item.totalCost ?? 0)}
+                  {brl.format((item.unitCost ?? 0) * item.quantity)}
                 </span>
               </div>
             ))}
@@ -182,7 +188,7 @@ function ShipmentCard({
               )}
             </div>
             <div className="text-sm font-semibold">
-              {brl.format(shipment.totalCost ?? 0)}
+              {brl.format(totalCost)}
             </div>
           </div>
 
