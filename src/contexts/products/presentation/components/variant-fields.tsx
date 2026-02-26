@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { ProductFormValues } from "../schemas/product.schema";
 import { useActiveUnits } from "@/contexts/units/presentation/hooks";
+import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 
 function VariantRow({
   index,
@@ -166,22 +167,21 @@ function VariantRow({
           {/* Row 2: Preços */}
           {isRetailerVariant ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">
-                  Preço Lojista (R$) <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  {...register(`variants.${index}.retailerPrice`, {
-                    valueAsNumber: true,
-                    setValueAs: (v) =>
-                      v === "" || isNaN(v) ? null : Number(v),
-                  })}
-                />
-              </div>
+              <Controller
+                name={`variants.${index}.retailerPrice`}
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    label="Preço Lojista (R$)"
+                    value={field.value ?? 0}
+                    onChange={(v) => field.onChange(v === 0 ? null : v)}
+                    error={variantErrors?.retailerPrice?.message as string | undefined}
+                    required
+                    className="text-xs"
+                    inputClassName="text-xs"
+                  />
+                )}
+              />
               <div className="space-y-1.5">
                 <Label className="text-xs">
                   Unidades/variante <span className="text-destructive">*</span>
@@ -190,6 +190,7 @@ function VariantRow({
                   type="number"
                   min="1"
                   placeholder="1"
+                  className="text-xs"
                   {...register(`variants.${index}.unitsPerVariant`, {
                     valueAsNumber: true,
                   })}
@@ -204,39 +205,35 @@ function VariantRow({
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">
-                    Preço (R$) <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0,00"
-                    {...register(`variants.${index}.price`, {
-                      valueAsNumber: true,
-                    })}
-                  />
-                  {variantErrors?.price && (
-                    <p className="text-destructive text-xs">
-                      {variantErrors.price.message}
-                    </p>
+                <Controller
+                  name={`variants.${index}.price`}
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      label="Preço (R$)"
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={variantErrors?.price?.message as string | undefined}
+                      required
+                      className="text-xs"
+                      inputClassName="text-xs"
+                    />
                   )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Preço Oferta (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0,00"
-                    {...register(`variants.${index}.offerPrice`, {
-                      valueAsNumber: true,
-                      setValueAs: (v) =>
-                        v === "" || isNaN(v) ? null : Number(v),
-                    })}
-                  />
-                </div>
+                />
+                <Controller
+                  name={`variants.${index}.offerPrice`}
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      label="Preço Oferta (R$)"
+                      value={field.value ?? null}
+                      onChange={(v) => field.onChange(v === 0 ? null : v)}
+                      error={variantErrors?.offerPrice?.message as string | undefined}
+                      className="text-xs"
+                      inputClassName="text-xs"
+                    />
+                  )}
+                />
                 <div className="space-y-1.5">
                   <Label className="text-xs">
                     Unidades/variante <span className="text-destructive">*</span>
@@ -245,6 +242,7 @@ function VariantRow({
                     type="number"
                     min="1"
                     placeholder="1"
+                    className="text-xs"
                     {...register(`variants.${index}.unitsPerVariant`, {
                       valueAsNumber: true,
                     })}

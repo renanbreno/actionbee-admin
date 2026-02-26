@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
@@ -20,6 +20,7 @@ import {
   CreateGiftTierFormValues,
 } from "../schemas/gift-tier.schema";
 import { useCreateGiftTier } from "../hooks/use-create-gift-tier";
+import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 
 interface CreateGiftTierDialogProps {
   open: boolean;
@@ -38,6 +39,7 @@ export function CreateGiftTierDialog({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<CreateGiftTierFormValues>({
     resolver: zodResolver(createGiftTierSchema),
@@ -114,39 +116,35 @@ export function CreateGiftTierDialog({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="create-minOrderValue">
-              Valor mínimo do pedido (R$) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="create-minOrderValue"
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="Ex: 150.00"
-              {...register("minOrderValue", { valueAsNumber: true })}
-            />
-            {errors.minOrderValue && (
-              <p className="text-sm text-destructive">{errors.minOrderValue.message}</p>
+          <Controller
+            name="minOrderValue"
+            control={control}
+            render={({ field }) => (
+              <CurrencyInput
+                id="create-minOrderValue"
+                label="Valor mínimo do pedido (R$)"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.minOrderValue?.message}
+                required
+              />
             )}
-          </div>
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="create-costPrice">
-              Preço de custo (R$) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="create-costPrice"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Ex: 12.50"
-              {...register("costPrice", { valueAsNumber: true })}
-            />
-            {errors.costPrice && (
-              <p className="text-sm text-destructive">{errors.costPrice.message}</p>
+          <Controller
+            name="costPrice"
+            control={control}
+            render={({ field }) => (
+              <CurrencyInput
+                id="create-costPrice"
+                label="Preço de custo (R$)"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.costPrice?.message}
+                required
+              />
             )}
-          </div>
+          />
 
           {/* Imagem */}
           <div className="space-y-2">

@@ -138,6 +138,89 @@ export function getDocumentType(value: string): "cpf" | "cnpj" | null {
 }
 
 /**
+ * Aplica máscara de moeda (BRL) durante a digitação
+ * Formato: R$ 0,00
+ *
+ * @param value - Valor para mascarar (string com números ou formatado)
+ * @returns Valor formatado como moeda brasileira
+ *
+ * @example
+ * maskCurrency("10") → "R$ 10,00"
+ * maskCurrency("1000") → "R$ 1.000,00"
+ * maskCurrency("10,50") → "R$ 10,50"
+ * maskCurrency("R$ 10,00") → "R$ 10,00"
+ */
+export function maskCurrency(value: string): string {
+  // Remove tudo que não é dígito
+  const digits = value.replace(/\D/g, "");
+
+  // Se não tem dígitos, retorna vazio
+  if (digits.length === 0) return "";
+
+  // Converte para centavos (últimos 2 dígitos são os centavos)
+  const numericValue = Number(digits) / 100;
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(numericValue);
+}
+
+/**
+ * Remove máscara de moeda (retorna apenas os centavos como número)
+ *
+ * @param value - Valor formatado como moeda brasileira
+ * @returns Valor numérico em centavos
+ *
+ * @example
+ * unmaskCurrency("R$ 10,00") → 1000
+ * unmaskCurrency("R$ 1.000,50") → 100050
+ * unmaskCurrency("") → 0
+ */
+export function unmaskCurrency(value: string): number {
+  // Remove tudo que não é dígito
+  const digits = value.replace(/\D/g, "");
+
+  // Se não tem dígitos, retorna 0
+  if (digits.length === 0) return 0;
+
+  return Number(digits);
+}
+
+/**
+ * Formata valor numérico como moeda brasileira para exibição
+ *
+ * @param value - Valor numérico em reais
+ * @returns String formatada como moeda brasileira
+ *
+ * @example
+ * formatCurrency(10) → "R$ 10,00"
+ * formatCurrency(1000.5) → "R$ 1.000,50"
+ */
+export function formatCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return "R$ 0,00";
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+}
+
+/**
+ * Converte valor formatado como moeda para valor numérico em reais
+ *
+ * @param value - Valor formatado como moeda brasileira
+ * @returns Valor numérico em reais
+ *
+ * @example
+ * currencyToNumber("R$ 10,00") → 10
+ * currencyToNumber("R$ 1.000,50") → 1000.5
+ */
+export function currencyToNumber(value: string): number {
+  return unmaskCurrency(value) / 100;
+}
+
+/**
  * Rich text utilities for Tiptap JSON serialization
  */
 

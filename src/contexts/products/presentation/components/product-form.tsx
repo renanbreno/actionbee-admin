@@ -32,6 +32,7 @@ import {
 import { VariantFields } from "./variant-fields";
 import { ImageUploadField } from "./image-upload-field";
 import { normalizeRichText } from "@/shared/utils/masks";
+import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 
 // Animated section component for smooth transitions
 function AnimatedSection({ show, children }: { show: boolean; children: React.ReactNode }) {
@@ -365,22 +366,20 @@ export function ProductForm({
 
                 {/* Preço de custo */}
                 <div className="space-y-2">
-                  <Label htmlFor="costPrice">
-                    Preço de custo (R$) <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="costPrice"
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    placeholder="Ex: 15.00"
-                    {...register("costPrice", { valueAsNumber: true })}
+                  <Controller
+                    name="costPrice"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        id="costPrice"
+                        label="Preço de custo (R$)"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={errors.costPrice?.message}
+                        required
+                      />
+                    )}
                   />
-                  {errors.costPrice && (
-                    <p className="text-destructive text-sm">
-                      {errors.costPrice.message}
-                    </p>
-                  )}
                   {mode === "edit" && watchedCostPrice === 0 && (
                     <p className="text-amber-600 text-xs">
                       Este produto foi salvo com preço de custo R$ 0,00. Atualize para o valor real.

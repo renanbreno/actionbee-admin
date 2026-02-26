@@ -26,6 +26,7 @@ import {
 } from "../schemas/store-settings.schema";
 import { maskPhone, maskDocument, formatPhone, formatDocument } from "@/shared/utils/masks";
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
+import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 
 function maskCep(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -330,18 +331,22 @@ export function StoreSettingsForm() {
               )}
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="freeShippingMinValue" className="text-xs">Valor mínimo para frete grátis (R$)</Label>
-            <Input
-              id="freeShippingMinValue"
-              type="number"
-              min={0}
-              step={0.01}
-              placeholder="0,00"
-              {...register("freeShippingMinValue", { valueAsNumber: true })}
-            />
-            <FieldError message={errors.freeShippingMinValue?.message} />
-          </div>
+          <Controller
+            name="freeShippingMinValue"
+            control={control}
+            render={({ field }) => (
+              <div className="space-y-1">
+                <CurrencyInput
+                  id="freeShippingMinValue"
+                  label="Valor mínimo para frete grátis (R$)"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.freeShippingMinValue?.message}
+                  inputClassName="text-xs"
+                />
+              </div>
+            )}
+          />
 
           <Separator />
 
@@ -359,18 +364,22 @@ export function StoreSettingsForm() {
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="motoboyDeliveryPrice" className="text-xs">Preço motoboy (R$)</Label>
-              <Input
-                id="motoboyDeliveryPrice"
-                type="number"
-                min={0}
-                step={0.01}
-                placeholder="0,00"
-                {...register("motoboyDeliveryPrice", { valueAsNumber: true })}
-              />
-              <FieldError message={errors.motoboyDeliveryPrice?.message} />
-            </div>
+            <Controller
+              name="motoboyDeliveryPrice"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-1">
+                  <CurrencyInput
+                    id="motoboyDeliveryPrice"
+                    label="Preço motoboy (R$)"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.motoboyDeliveryPrice?.message}
+                    inputClassName="text-xs"
+                  />
+                </div>
+              )}
+            />
             <div className="space-y-1">
               <Label htmlFor="motoboyDeliveryTimeDays" className="text-xs">Prazo (dias)</Label>
               <Input
@@ -391,18 +400,22 @@ export function StoreSettingsForm() {
       <Section icon={CreditCard} title="Parcelamento e Brindes">
         <div className="flex flex-col gap-2.5">
           <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-            <div className="space-y-1">
-              <Label htmlFor="paymentMinInstallmentValue" className="text-xs">Valor mín. por parcela (R$)</Label>
-              <Input
-                id="paymentMinInstallmentValue"
-                type="number"
-                min={0.01}
-                step={0.01}
-                placeholder="5,00"
-                {...register("paymentMinInstallmentValue", { valueAsNumber: true })}
-              />
-              <FieldError message={errors.paymentMinInstallmentValue?.message} />
-            </div>
+            <Controller
+              name="paymentMinInstallmentValue"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-1">
+                  <CurrencyInput
+                    id="paymentMinInstallmentValue"
+                    label="Valor mín. por parcela (R$)"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.paymentMinInstallmentValue?.message}
+                    inputClassName="text-xs"
+                  />
+                </div>
+              )}
+            />
             <div className="space-y-1">
               <Label htmlFor="paymentMaxInstallmentsLimit" className="text-xs">Máx. de parcelas</Label>
               <Input
@@ -426,18 +439,22 @@ export function StoreSettingsForm() {
               Defina um valor de corte: pedidos <span className="font-medium text-foreground">abaixo</span> dele recebem menos parcelas sem juros, pedidos <span className="font-medium text-foreground">iguais ou acima</span> recebem mais.
             </p>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="paymentInterestFreeThreshold" className="text-xs">Valor de corte (R$)</Label>
-            <Input
-              id="paymentInterestFreeThreshold"
-              type="number"
-              min={0}
-              step={0.01}
-              placeholder="Ex: 300,00"
-              {...register("paymentInterestFreeThreshold", { valueAsNumber: true })}
-            />
-            <FieldError message={errors.paymentInterestFreeThreshold?.message} />
-          </div>
+          <Controller
+            name="paymentInterestFreeThreshold"
+            control={control}
+            render={({ field }) => (
+              <div className="space-y-1">
+                <CurrencyInput
+                  id="paymentInterestFreeThreshold"
+                  label="Valor de corte (R$)"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.paymentInterestFreeThreshold?.message}
+                  inputClassName="text-xs"
+                />
+              </div>
+            )}
+          />
           <div className="grid grid-cols-2 gap-x-3">
             <div className="space-y-1">
               <Label htmlFor="paymentInterestFreeInstallmentsBelow" className="text-xs">

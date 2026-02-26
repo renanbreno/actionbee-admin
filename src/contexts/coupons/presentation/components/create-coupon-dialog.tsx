@@ -34,6 +34,7 @@ import {
   CreateCouponFormInput,
 } from "../schemas/coupon.schema";
 import { useCreateCoupon } from "../hooks/use-create-coupon";
+import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 
 const typeOptions = [
   {
@@ -214,7 +215,7 @@ export function CreateCouponDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
-                <Label htmlFor="maxDiscountAmount" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   Desconto máximo <span className="text-muted-foreground/60 font-normal">(opcional)</span>
                 </Label>
                 <TooltipProvider>
@@ -230,23 +231,22 @@ export function CreateCouponDialog({
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <Input
-                id="maxDiscountAmount"
-                type="number"
-                min={0}
-                step={0.01}
-                placeholder="Ex: 50.00"
-                {...register("maxDiscountAmount", { valueAsNumber: true })}
+              <Controller
+                name="maxDiscountAmount"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    value={field.value ?? null}
+                    onChange={(v) => field.onChange(v === 0 ? null : v)}
+                    error={errors.maxDiscountAmount?.message}
+                    placeholder="Ex: 50,00"
+                  />
+                )}
               />
-              {errors.maxDiscountAmount && (
-                <p className="text-destructive text-sm">
-                  {errors.maxDiscountAmount.message}
-                </p>
-              )}
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
-                <Label htmlFor="minCartValue" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   Valor mínimo do carrinho <span className="text-muted-foreground/60 font-normal">(opcional)</span>
                 </Label>
                 <TooltipProvider>
@@ -262,19 +262,18 @@ export function CreateCouponDialog({
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <Input
-                id="minCartValue"
-                type="number"
-                min={0}
-                step={0.01}
-                placeholder="Ex: 100.00"
-                {...register("minCartValue", { valueAsNumber: true })}
+              <Controller
+                name="minCartValue"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    value={field.value ?? null}
+                    onChange={(v) => field.onChange(v === 0 ? null : v)}
+                    error={errors.minCartValue?.message}
+                    placeholder="Ex: 100,00"
+                  />
+                )}
               />
-              {errors.minCartValue && (
-                <p className="text-destructive text-sm">
-                  {errors.minCartValue.message}
-                </p>
-              )}
             </div>
           </div>
 
