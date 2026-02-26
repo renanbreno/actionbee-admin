@@ -54,7 +54,7 @@ export const productFormSchema = z.object({
   variationType: z.string().optional().nullable(),
   isActive: z.boolean(),
   showOnEcommerce: z.boolean(),
-  categoryId: z.string({ required_error: "Selecione uma categoria" }).min(1, "Selecione uma categoria"),
+  categoryId: z.string().min(1, "Selecione uma categoria"),
   variants: z
     .array(productVariantSchema)
     .min(1, "Adicione pelo menos uma variante"),
