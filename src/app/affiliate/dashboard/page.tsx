@@ -82,14 +82,11 @@ function AffiliateDashboardContent() {
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-bee-gold text-lg font-black text-black">
-              🐝
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-bee-gold/20 text-bee-gold">
+              <TrendingUp className="h-4 w-4" />
             </div>
-            <div>
-              <p className="text-sm font-semibold leading-none">{user?.name}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Portal do Afiliado</p>
-            </div>
+            <span className="text-sm font-semibold">Portal do Afiliado</span>
           </div>
           <Button
             variant="ghost"
@@ -104,17 +101,28 @@ function AffiliateDashboardContent() {
         </div>
       </header>
 
+      {/* Hero Welcome Section */}
+      <div className="mx-auto max-w-2xl px-4 pt-6 pb-2">
+        <div className="bg-gradient-to-r from-bee-gold/10 via-bee-gold/5 to-transparent rounded-2xl p-6 border border-bee-gold/10">
+          <h1 className="text-2xl font-bold tracking-tight">Olá, {user?.name}! 👋</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Aqui está o resumo do seu desempenho. Continue o excelente trabalho!
+          </p>
+        </div>
+      </div>
+
       {/* Period filter */}
       <div className="mx-auto max-w-2xl px-4 pt-4">
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x items-center">
+          <span className="text-xs font-semibold uppercase text-muted-foreground mr-1 tracking-wider">Período</span>
           {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`snap-start whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-300 ${
                 period === p
-                  ? 'bg-bee-gold text-black'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                  ? 'bg-bee-gold text-black shadow-sm scale-100'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground scale-95 hover:scale-100'
               }`}
             >
               {PERIOD_LABELS[p]}
@@ -123,29 +131,29 @@ function AffiliateDashboardContent() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mx-auto max-w-2xl px-4">
-        <div className="flex border-b">
+      {/* Tabs - Pill style */}
+      <div className="mx-auto max-w-2xl px-4 mt-4">
+        <div className="flex p-1 space-x-1 bg-muted/40 rounded-xl backdrop-blur-sm">
           <button
             onClick={() => setActiveTab('commissions')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
               activeTab === 'commissions'
-                ? 'border-bee-gold text-bee-gold'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'bg-background shadow-sm text-foreground ring-1 ring-black/5'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
             }`}
           >
-            <TrendingUp className="h-4 w-4" />
+            <TrendingUp className={`h-4 w-4 ${activeTab === 'commissions' ? 'text-bee-gold' : ''}`} />
             Comissões
           </button>
           <button
             onClick={() => setActiveTab('shipments')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
               activeTab === 'shipments'
-                ? 'border-bee-gold text-bee-gold'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'bg-background shadow-sm text-foreground ring-1 ring-black/5'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
             }`}
           >
-            <Package className="h-4 w-4" />
+            <Package className={`h-4 w-4 ${activeTab === 'shipments' ? 'text-bee-gold' : ''}`} />
             Bonificações
           </button>
         </div>

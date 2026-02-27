@@ -16,12 +16,12 @@ function ShipmentStatusLabel({ status }: { status: string }) {
     DELIVERED: 'Entregue',
   };
   const colors: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    SHIPPED: 'bg-blue-100 text-blue-800',
-    DELIVERED: 'bg-green-100 text-green-800',
+    PENDING: 'border-yellow-200 bg-yellow-50/50 text-yellow-800',
+    SHIPPED: 'border-blue-200 bg-blue-50/50 text-blue-800',
+    DELIVERED: 'border-green-200 bg-green-50/50 text-green-800',
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors[status] ?? 'bg-muted text-muted-foreground'}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${colors[status] ?? 'bg-muted/20 border-border text-muted-foreground'}`}>
       {map[status] ?? status}
     </span>
   );
@@ -38,24 +38,33 @@ export function ShipmentsList({ shipments }: { shipments: AffiliateShipment[] })
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {shipments.map((shipment) => (
-        <div key={shipment.id} className="rounded-xl border bg-card overflow-hidden">
-          <div className="flex items-center justify-between border-b px-4 py-3">
-            <div className="flex items-center gap-2">
-              <ShipmentStatusIcon status={shipment.status} />
-              <span className="text-sm font-medium">{shipment.referenceMonth}</span>
+        <div key={shipment.id} className="group rounded-2xl border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background shadow-sm ring-1 ring-black/5">
+                <ShipmentStatusIcon status={shipment.status} />
+              </div>
+              <div>
+                <span className="text-sm font-semibold">{shipment.referenceMonth}</span>
+                <p className="text-[10px] text-muted-foreground font-mono mt-0.5 uppercase tracking-wide">Ref: {shipment.id.slice(0, 8)}</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <ShipmentStatusLabel status={shipment.status} />
             </div>
           </div>
 
-          <div className="divide-y">
+          <div className="divide-y px-2">
             {shipment.items.map((item: ShipmentItem) => (
-              <div key={item.productId} className="flex items-center justify-between px-4 py-2 text-sm">
-                <span className="text-muted-foreground">{item.productName}</span>
-                <span className="text-xs text-muted-foreground">{item.quantity}×</span>
+              <div key={item.productId} className="flex items-center justify-between px-2 py-3 text-sm group-hover:bg-muted/20 transition-colors rounded-lg my-1">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center h-6 w-6 rounded bg-muted/50 text-xs font-medium text-muted-foreground">
+                    {item.quantity}x
+                  </div>
+                  <span className="font-medium text-foreground">{item.productName}</span>
+                </div>
               </div>
             ))}
           </div>

@@ -1,3 +1,5 @@
+import { AffiliateAuthRepository } from '../../domain/repositories/affiliate-auth-repository.interface';
+
 export class AffiliateResetPasswordUseCase {
   constructor(private readonly authRepository: AffiliateAuthRepository) {}
 

@@ -240,10 +240,10 @@ export function CreateShipmentDialog({
     // Transform items into separate products and gifts arrays for the API
     const products = values.items
       .filter((item) => item.variantId)
-      .map(({ variantId, quantity }) => ({ variantId, quantity }));
+      .map(({ variantId, quantity }) => ({ variantId: variantId as string, quantity }));
     const gifts = values.items
       .filter((item) => item.giftTierId)
-      .map(({ giftTierId, quantity }) => ({ giftTierId, quantity }));
+      .map(({ giftTierId, quantity }) => ({ giftTierId: giftTierId as string, quantity }));
 
     createShipment.mutate(
       {
