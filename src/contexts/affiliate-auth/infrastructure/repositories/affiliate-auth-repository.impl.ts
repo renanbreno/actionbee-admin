@@ -26,4 +26,16 @@ export class AffiliateAuthRepositoryImpl implements AffiliateAuthRepository {
     const raw = await affiliateAuthApiClient.setupPassword(cpf, password);
     return toResult(raw);
   }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return affiliateAuthApiClient.forgotPassword(email);
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    return affiliateAuthApiClient.resetPassword(token, password);
+  }
+
+  async verifyResetToken(token: string): Promise<{ valid: boolean; email: string }> {
+    return affiliateAuthApiClient.verifyResetToken(token);
+  }
 }

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { LogIn, CreditCard, Lock, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAffiliateLogin } from '../hooks/use-affiliate-login';
 import { affiliateAuthApiClient } from '../../infrastructure/api/affiliate-auth-api.client';
+import { useRouter } from 'next/navigation';
 
 function formatCpf(value: string) {
   return value
@@ -32,6 +33,7 @@ interface AffiliateLoginFormProps {
 }
 
 export function AffiliateLoginForm({ onSuccess, onFirstAccess }: AffiliateLoginFormProps) {
+  const router = useRouter();
   const loginMutation = useAffiliateLogin();
 
   const [step, setStep] = useState<'cpf' | 'password'>('cpf');
@@ -213,6 +215,14 @@ export function AffiliateLoginForm({ onSuccess, onFirstAccess }: AffiliateLoginF
           className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           ← Usar outro CPF
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push('/affiliate/recuperar-senha')}
+          className="w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Esqueci minha senha
         </button>
       </form>
     </div>

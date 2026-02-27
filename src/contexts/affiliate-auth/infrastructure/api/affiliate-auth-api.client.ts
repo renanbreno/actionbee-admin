@@ -56,4 +56,48 @@ export const affiliateAuthApiClient = {
 
     return res.json();
   },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const res = await fetch(`${env.API_BASE_URL}/affiliate/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.message ?? 'Erro ao solicitar recuperação de senha');
+    }
+
+    return res.json();
+  },
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    const res = await fetch(`${env.API_BASE_URL}/affiliate/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password }),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.message ?? 'Erro ao redefinir senha');
+    }
+
+    return res.json();
+  },
+
+  async verifyResetToken(token: string): Promise<{ valid: boolean; email: string }> {
+    const res = await fetch(`${env.API_BASE_URL}/affiliate/auth/verify-reset-token?token=${encodeURIComponent(token)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.message ?? 'Token inválido ou expirado');
+    }
+
+    return res.json();
+  },
 };
