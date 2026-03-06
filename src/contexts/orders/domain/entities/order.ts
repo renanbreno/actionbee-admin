@@ -67,6 +67,12 @@ export interface OrderShippingInfo {
   trackingUrl?: string;
 }
 
+export interface OrderPaymentEntry {
+  paymentMethod: string;
+  amount: number;
+  status: string;
+}
+
 export interface OrderDetail extends OrderListItem {
   items: OrderDetailItem[];
   shippingAddress: OrderShippingAddress;
@@ -77,6 +83,7 @@ export interface OrderDetail extends OrderListItem {
   boletoBarcode?: string;
   boletoPdfUrl?: string;
   boletoDueDate?: string;
+  payments: OrderPaymentEntry[];
 }
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Minus,
   Package,
+  Percent,
   Plus,
   QrCode,
   Search,
@@ -36,6 +37,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,6 +61,7 @@ import { useCreateOrder } from "@/contexts/orders/presentation/hooks/use-create-
 import { ShippingOptionsSelector } from "@/shared/presentation/components/shipping-options-selector";
 import type { ShippingOption } from "@/shared/infrastructure/api/shipping/types";
 import { useAddressLookup } from "@/shared/presentation/hooks/use-address-lookup";
+import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 
 interface GiftTier {
   id: string;
@@ -172,6 +181,20 @@ const PAYMENT_METHODS = [
   { value: "DEBIT_CARD", label: "Débito", icon: CreditCard },
   { value: "BOLETO", label: "Boleto", icon: Barcode },
 ];
+
+const PAYMENT_METHODS_FOR_PAYMENTS = [
+  { value: "PIX", label: "Pix", icon: QrCode },
+  { value: "CREDIT_CARD", label: "Crédito", icon: CreditCard },
+  { value: "DEBIT_CARD", label: "Débito", icon: CreditCard },
+  { value: "BOLETO", label: "Boleto", icon: Barcode },
+];
+
+interface PaymentEntry {
+  id: string;
+  method: string;
+  amount: number;
+  boletoDueDays: 30 | 60;
+}
 
 const STEPS = [
   { id: 1, label: "Identificação", icon: User },
@@ -569,12 +592,14 @@ export default function NewOrderPage() {
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerResult | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [payments, setPayments] = useState<PaymentEntry[]>([
+    { id: crypto.randomUUID(), method: "", amount: 0, boletoDueDays: 30 },
+  ]);
   const [orderSource, setOrderSource] = useState<
     "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | ""
   >("");
-  const [boletoDueDays, setBoletoDueDays] = useState<30 | 60>(30);
   const [couponCode, setCouponCode] = useState("");
+  const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
   const [notes, setNotes] = useState("");
   const [selectedGiftIds, setSelectedGiftIds] = useState<string[]>([]);
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("");
@@ -750,6 +775,43 @@ export default function NewOrderPage() {
       ? (total * couponLookup.discountPercentage) / 100
       : 0;
   const discountedTotal = total - discountAmount;
+  const manualDiscountAmount = discount
+    ? discount.type === "PERCENTAGE"
+      ? Math.round((discountedTotal * discount.value) / 100 * 100) / 100
+      : discount.value
+    : 0;
+  const discountExceedsTotal =
+    discount !== null &&
+    discount.value > 0 &&
+    (discount.type === "ABSOLUTE"
+      ? discount.value >= discountedTotal
+      : discount.value >= 100);
+  const finalTotal = Math.max(0, discountedTotal - manualDiscountAmount);
+
+  const shippingPrice =
+    effectiveDeliveryType === "DELIVERY"
+      ? parseFloat(shippingInfo.price) || 0
+      : 0;
+  const orderTotal = finalTotal + shippingPrice;
+  const paymentsSum = payments.reduce((sum, p) => sum + p.amount, 0);
+  const paymentsMatch = Math.abs(paymentsSum - orderTotal) <= 0.01;
+
+  function addPayment() {
+    setPayments((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), method: "", amount: 0, boletoDueDays: 30 },
+    ]);
+  }
+
+  function removePayment(id: string) {
+    setPayments((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function updatePayment(id: string, changes: Partial<Omit<PaymentEntry, "id">>) {
+    setPayments((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...changes } : p)),
+    );
+  }
 
   const handleSelectShippingOption = useCallback((option: ShippingOption) => {
     setSelectedShippingOption(option);
@@ -781,8 +843,14 @@ export default function NewOrderPage() {
         return !!selectedCustomer;
       case 2:
         return cartItems.length > 0;
-      case 3:
-        if (!paymentMethod || !effectiveDeliveryType || !orderSource) return false;
+      case 3: {
+        if (!effectiveDeliveryType || !orderSource) return false;
+        if (payments.length === 0) return false;
+        const allPaymentsValid = payments.every(
+          (p) => p.method && p.amount > 0,
+        );
+        if (!allPaymentsValid || !paymentsMatch) return false;
+        if (discountExceedsTotal) return false;
         if (effectiveDeliveryType !== "DELIVERY") return true;
         return (
           !!effectiveAddress.street &&
@@ -790,6 +858,7 @@ export default function NewOrderPage() {
           !!shippingInfo.carrier &&
           !!shippingInfo.service
         );
+      }
       default:
         return false;
     }
@@ -809,7 +878,7 @@ export default function NewOrderPage() {
   }
 
   function handleSubmit() {
-    if (!selectedCustomer || !paymentMethod || !orderSource) return;
+    if (!selectedCustomer || !orderSource) return;
     createOrderMutation.mutate(
       {
         customerId: selectedCustomer.id,
@@ -820,10 +889,14 @@ export default function NewOrderPage() {
           price: i.unitPrice,
           originalPrice: i.originalPrice,
         })),
-        paymentMethod,
+        payments: payments.map((p) => ({
+          method: p.method,
+          amount: p.amount,
+          ...(p.method === "BOLETO" ? { boletoDueDays: p.boletoDueDays } : {}),
+        })),
         source: orderSource,
-        boletoDueDays: paymentMethod === "BOLETO" ? boletoDueDays : undefined,
         couponCode: couponCode || undefined,
+        discount: discount && discount.value > 0 ? discount : undefined,
         shippingAddress:
           effectiveDeliveryType === "DELIVERY"
             ? {
@@ -1087,11 +1160,11 @@ export default function NewOrderPage() {
                             <span className="font-medium">
                               {cartItems.length}{" "}
                               {cartItems.length === 1 ? "item" : "itens"} ·{" "}
-                              {formatCurrency(discountedTotal)}
+                              {formatCurrency(finalTotal)}
                             </span>
-                            {discountAmount > 0 && (
+                            {(discountAmount > 0 || manualDiscountAmount > 0) && (
                               <span className="text-green-600 text-xs shrink-0">
-                                − {formatCurrency(discountAmount)}
+                                − {formatCurrency(discountAmount + manualDiscountAmount)}
                               </span>
                             )}
                           </div>
@@ -1158,41 +1231,63 @@ export default function NewOrderPage() {
                                 </div>
                                 {discountAmount > 0 && (
                                   <div className="flex justify-between text-sm text-green-600">
-                                    <span>Desconto</span>
+                                    <span>Cupom ({couponCode})</span>
                                     <span className="font-medium">
                                       − {formatCurrency(discountAmount)}
+                                    </span>
+                                  </div>
+                                )}
+                                {manualDiscountAmount > 0 && (
+                                  <div className="flex justify-between text-sm text-green-600">
+                                    <span>
+                                      Desconto avulso{discount?.type === "PERCENTAGE" ? ` (${discount.value}%)` : ""}
+                                    </span>
+                                    <span className="font-medium">
+                                      − {formatCurrency(manualDiscountAmount)}
                                     </span>
                                   </div>
                                 )}
                                 <div className="flex justify-between font-bold">
                                   <span>Total</span>
                                   <span className="text-bee-gold">
-                                    {formatCurrency(discountedTotal)}
+                                    {formatCurrency(finalTotal)}
                                   </span>
                                 </div>
                               </div>
                             </>
                           )}
-                          {/* Payment method */}
-                          {paymentMethod && (
+                          {/* Payments */}
+                          {payments.some((p) => p.method) && (
                             <>
                               <Separator />
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
+                              <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground">
                                   Pagamento
                                 </span>
-                                {(() => {
-                                  const method = PAYMENT_METHODS.find(
-                                    (m) => m.value === paymentMethod,
-                                  );
-                                  const Icon = method?.icon;
-                                  return (
-                                    <span className="flex items-center gap-1.5 font-medium">
-                                      {Icon && <Icon className="h-4 w-4" />}
-                                      {method?.label}
-                                    </span>
-                                  );
-                                })()}
+                                {payments
+                                  .filter((p) => p.method)
+                                  .map((p) => {
+                                    const m = PAYMENT_METHODS.find(
+                                      (x) => x.value === p.method,
+                                    );
+                                    const Icon = m?.icon;
+                                    return (
+                                      <div
+                                        key={p.id}
+                                        className="flex items-center justify-between text-sm"
+                                      >
+                                        <span className="flex items-center gap-1.5 font-medium">
+                                          {Icon && <Icon className="h-3.5 w-3.5" />}
+                                          {m?.label}
+                                        </span>
+                                        {p.amount > 0 && (
+                                          <span className="tabular-nums">
+                                            {formatCurrency(p.amount)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                               </div>
                             </>
                           )}
@@ -1249,34 +1344,118 @@ export default function NewOrderPage() {
                     <Separator className="mt-4" />
                   </div>
 
-                  {/* Payment method */}
-                  <div className="space-y-1.5">
-                    <Label>Forma de Pagamento *</Label>
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-                      {PAYMENT_METHODS.map((m, idx) => {
-                        const Icon = m.icon;
-                        const isSelected = paymentMethod === m.value;
-                        const isLastAlone =
-                          PAYMENT_METHODS.length % 2 !== 0 &&
-                          idx === PAYMENT_METHODS.length - 1;
-                        return (
-                          <button
-                            key={m.value}
-                            type="button"
-                            onClick={() => setPaymentMethod(m.value)}
-                            className={[
-                              "flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-all cursor-pointer",
-                              isLastAlone ? "col-span-2 lg:col-span-1" : "",
-                              isSelected
-                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
-                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40 text-foreground",
-                            ].join(" ")}
+                  {/* Payments */}
+                  <div className="space-y-3">
+                    <Label>Formas de Pagamento *</Label>
+                    <div className="space-y-2">
+                      {payments.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex flex-row gap-2 rounded-xl border p-3"
+                        >
+                          {/* Method select */}
+                          <Select
+                            value={entry.method}
+                            onValueChange={(val) =>
+                              updatePayment(entry.id, { method: val })
+                            }
                           >
-                            <Icon className="h-6 w-6" />
-                            {m.label}
-                          </button>
-                        );
-                      })}
+                            <SelectTrigger className="w-36 shrink-0">
+                              <SelectValue placeholder="Método" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
+                                const Icon = m.icon;
+                                return (
+                                  <SelectItem key={m.value} value={m.value}>
+                                    <span className="flex items-center gap-2">
+                                      <Icon className="h-4 w-4" />
+                                      {m.label}
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+
+                          {/* Amount input */}
+                          <div className="flex-1">
+                            <CurrencyInput
+                              value={entry.amount}
+                              onChange={(val) =>
+                                updatePayment(entry.id, { amount: val })
+                              }
+                            />
+                          </div>
+
+                          {/* Boleto due days */}
+                          {entry.method === "BOLETO" && (
+                            <Select
+                              value={String(entry.boletoDueDays)}
+                              onValueChange={(val) =>
+                                updatePayment(entry.id, {
+                                  boletoDueDays: Number(val) as 30 | 60,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="sm:w-32 shrink-0">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="30">30 dias</SelectItem>
+                                <SelectItem value="60">60 dias</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+
+                          {/* Remove button */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-destructive"
+                            disabled={payments.length === 1}
+                            onClick={() => removePayment(entry.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Add payment + sum feedback */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 self-start"
+                        onClick={addPayment}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Adicionar forma de pagamento
+                      </Button>
+                      {cartItems.length > 0 && (
+                        <div
+                          className={[
+                            "ml-auto text-sm tabular-nums font-medium",
+                            paymentsMatch ? "text-green-600" : "text-destructive",
+                          ].join(" ")}
+                        >
+                          {formatCurrency(paymentsSum)}
+                          {" / "}
+                          {formatCurrency(orderTotal)}
+                          {!paymentsMatch && (
+                            <span className="text-xs ml-1">
+                              (diferença:{" "}
+                              {formatCurrency(
+                                Math.abs(paymentsSum - orderTotal),
+                              )}
+                              )
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1306,30 +1485,6 @@ export default function NewOrderPage() {
                       })}
                     </div>
                   </div>
-
-                  {/* Boleto due days */}
-                  {paymentMethod === "BOLETO" && (
-                    <div className="space-y-1.5">
-                      <Label>Vencimento do Boleto *</Label>
-                      <div className="flex gap-2">
-                        {([30, 60] as const).map((days) => (
-                          <button
-                            key={days}
-                            type="button"
-                            onClick={() => setBoletoDueDays(days)}
-                            className={[
-                              "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
-                              boletoDueDays === days
-                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
-                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
-                            ].join(" ")}
-                          >
-                            {days} dias
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Coupon */}
                   <div className="space-y-2">
@@ -1404,6 +1559,84 @@ export default function NewOrderPage() {
                           </p>
                         </div>
                       </div>
+                    )}
+                  </div>
+
+                  {/* Manual discount */}
+                  <div className="space-y-2">
+                    <Label>
+                      Desconto Avulso{" "}
+                      <span className="text-muted-foreground text-xs">(opcional)</span>
+                    </Label>
+                    {!discount ? (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDiscount({ type: "ABSOLUTE", value: 0 })}
+                          className="flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground hover:border-foreground/40 hover:text-foreground transition-colors"
+                        >
+                          R$ Valor fixo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDiscount({ type: "PERCENTAGE", value: 0 })}
+                          className="flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground hover:border-foreground/40 hover:text-foreground transition-colors"
+                        >
+                          <Percent className="h-3.5 w-3.5" />
+                          Percentual
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDiscount((d) =>
+                              d ? { ...d, type: d.type === "ABSOLUTE" ? "PERCENTAGE" : "ABSOLUTE", value: 0 } : null
+                            )
+                          }
+                          className="shrink-0 rounded-lg border px-3 py-2 text-sm font-medium min-w-[4rem] text-center hover:bg-muted transition-colors"
+                        >
+                          {discount.type === "ABSOLUTE" ? "R$" : "%"}
+                        </button>
+                        {discount.type === "ABSOLUTE" ? (
+                          <CurrencyInput
+                            value={discount.value}
+                            onChange={(val) => setDiscount((d) => d ? { ...d, value: val } : null)}
+                          />
+                        ) : (
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={discount.value || ""}
+                            onChange={(e) => {
+                              const v = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                              setDiscount((d) => d ? { ...d, value: v } : null);
+                            }}
+                            placeholder="0 – 100"
+                          />
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-9 w-9 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDiscount(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {discountExceedsTotal && (
+                      <p className="text-xs text-destructive font-medium">
+                        O desconto não pode ser maior que o valor da venda ({formatCurrency(discountedTotal)}).
+                      </p>
+                    )}
+                    {discount && !discountExceedsTotal && manualDiscountAmount > 0 && (
+                      <p className="text-xs text-green-600 font-medium">
+                        − {formatCurrency(manualDiscountAmount)} aplicados sobre o subtotal
+                      </p>
                     )}
                   </div>
 
@@ -1875,9 +2108,19 @@ export default function NewOrderPage() {
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
-                      <span>Desconto</span>
+                      <span>Cupom ({couponCode})</span>
                       <span className="font-medium">
                         − {formatCurrency(discountAmount)}
+                      </span>
+                    </div>
+                  )}
+                  {manualDiscountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>
+                        Desconto avulso{discount?.type === "PERCENTAGE" ? ` (${discount.value}%)` : ""}
+                      </span>
+                      <span className="font-medium">
+                        − {formatCurrency(manualDiscountAmount)}
                       </span>
                     </div>
                   )}
@@ -1885,32 +2128,44 @@ export default function NewOrderPage() {
                   <div className="flex justify-between text-base font-bold">
                     <span>Total</span>
                     <span className="text-bee-gold">
-                      {formatCurrency(discountedTotal)}
+                      {formatCurrency(finalTotal)}
                     </span>
                   </div>
                 </div>
               )}
 
-              {/* Payment Method */}
-              {paymentMethod && (
+              {/* Payments */}
+              {payments.some((p) => p.method) && (
                 <>
                   <Separator />
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">
                       Pagamento
                     </span>
-                    {(() => {
-                      const method = PAYMENT_METHODS.find(
-                        (m) => m.value === paymentMethod,
-                      );
-                      const Icon = method?.icon;
-                      return (
-                        <span className="flex items-center gap-1.5 text-sm font-medium">
-                          {Icon && <Icon className="h-4 w-4" />}
-                          {method?.label}
-                        </span>
-                      );
-                    })()}
+                    {payments
+                      .filter((p) => p.method)
+                      .map((p) => {
+                        const m = PAYMENT_METHODS.find(
+                          (x) => x.value === p.method,
+                        );
+                        const Icon = m?.icon;
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="flex items-center gap-1.5 text-sm font-medium">
+                              {Icon && <Icon className="h-4 w-4" />}
+                              {m?.label}
+                            </span>
+                            {p.amount > 0 && (
+                              <span className="text-sm tabular-nums">
+                                {formatCurrency(p.amount)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 </>
               )}

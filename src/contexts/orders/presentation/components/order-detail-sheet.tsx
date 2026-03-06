@@ -12,16 +12,20 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
+  Banknote,
   Barcode,
   CalendarDays,
   Copy,
+  CreditCard,
   Download,
   Gift,
   MapPin,
   Package,
+  QrCode,
   Truck,
   User,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { OrderDetail, OrderStatus } from "../../domain/entities/order";
 import { useOrderDetail } from "../hooks/use-order-detail";
 
@@ -49,6 +53,15 @@ function formatDate(dateStr: string): string {
     minute: "2-digit",
   });
 }
+
+const PAYMENT_METHOD_CONFIG: Record<string, { label: string; icon: LucideIcon }> = {
+  CASH: { label: "Dinheiro", icon: Banknote },
+  PIX: { label: "Pix", icon: QrCode },
+  CREDIT_CARD: { label: "Cartão de Crédito", icon: CreditCard },
+  DEBIT_CARD: { label: "Cartão de Débito", icon: CreditCard },
+  BOLETO: { label: "Boleto", icon: Barcode },
+};
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -98,6 +111,46 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
           </div>
         </div>
       </Section>
+
+      {/* Pagamento */}
+      {order.paymentMethod && (
+        <Section title="Pagamento">
+          <div className="rounded-lg border bg-card p-4 space-y-2 text-sm">
+            {order.payments && order.payments.length > 0
+              ? order.payments.map((payment, i) => {
+                  const config = PAYMENT_METHOD_CONFIG[payment.paymentMethod];
+                  const Icon = config?.icon ?? CreditCard;
+                  const label = config?.label ?? payment.paymentMethod;
+                  return (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium">{label}</span>
+                      </div>
+                      <span className="font-semibold tabular-nums">
+                        {formatCurrency(payment.amount)}
+                      </span>
+                    </div>
+                  );
+                })
+              : order.paymentMethod
+                  .split(",")
+                  .map((m) => m.trim())
+                  .filter(Boolean)
+                  .map((method) => {
+                    const config = PAYMENT_METHOD_CONFIG[method];
+                    const Icon = config?.icon ?? CreditCard;
+                    const label = config?.label ?? method;
+                    return (
+                      <div key={method} className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium">{label}</span>
+                      </div>
+                    );
+                  })}
+          </div>
+        </Section>
+      )}
 
       {/* Items */}
       <Section title="Itens">
@@ -151,9 +204,11 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
                 <span>{formatCurrency(order.shippingInfo.price)}</span>
               </div>
             )}
-            {order.couponCode && (
+            {order.totalAmount > order.discountedAmount && (
               <div className="flex justify-between text-emerald-600">
-                <span>Desconto ({order.couponCode})</span>
+                <span>
+                  {order.couponCode ? `Desconto (${order.couponCode})` : "Desconto manual"}
+                </span>
                 <span>-{formatCurrency(order.totalAmount - order.discountedAmount)}</span>
               </div>
             )}

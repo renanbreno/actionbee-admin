@@ -83,13 +83,24 @@ const PAYMENT_METHOD_ICONS: Record<string, LucideIcon> = {
   BOLETO: Barcode,
 };
 
-function PaymentMethodLabel({ method }: { method: string }) {
+function PaymentMethodIcon({ method }: { method: string }) {
   const Icon = PAYMENT_METHOD_ICONS[method];
   const label = PAYMENT_METHOD_LABELS[method] ?? method;
+  if (!Icon) return <span className="text-xs text-muted-foreground">{label}</span>;
+  return (
+    <span title={label}>
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </span>
+  );
+}
+
+function PaymentMethodLabel({ method }: { method: string }) {
+  const methods = method.split(",").map((m) => m.trim()).filter(Boolean);
   return (
     <span className="flex items-center gap-1.5">
-      {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
-      {label}
+      {methods.map((m) => (
+        <PaymentMethodIcon key={m} method={m} />
+      ))}
     </span>
   );
 }

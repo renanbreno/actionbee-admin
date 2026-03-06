@@ -1,4 +1,5 @@
 import { OrderDetail, OrderListItem, PaginatedOrders } from "../entities/order";
+import { CreateOrderDTO } from "../../application/dto/create-order.dto";
 
 export interface GetOrdersFilters {
   page: number;
@@ -9,32 +10,7 @@ export interface GetOrdersFilters {
   endDate?: string;
 }
 
-export interface CreateOrderParams {
-  customerId: string;
-  items: { productId: string; variantId: string; quantity: number; price: number; originalPrice?: number }[];
-  paymentMethod: string;
-  source: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE";
-  couponCode?: string;
-  shippingAddress?: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  shippingInfo?: {
-    carrier: string;
-    service: string;
-    serviceCode?: number;
-    price: number;
-    deliveryTime: number;
-  };
-  giftTierIds?: string[];
-  notes?: string;
-  boletoDueDays?: 30 | 60;
-}
+export type CreateOrderParams = CreateOrderDTO;
 
 export interface UpdateOrderStatusParams {
   status: string;

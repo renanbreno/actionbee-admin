@@ -24,15 +24,28 @@ export interface CreateOrderShippingInfoDTO {
   deliveryTime: number;
 }
 
+export interface CreateOrderPaymentDTO {
+  method: string;
+  amount: number;
+  boletoDueDays?: 30 | 60;
+}
+
+export type DiscountType = "ABSOLUTE" | "PERCENTAGE";
+
+export interface CreateOrderDiscountDTO {
+  type: DiscountType;
+  value: number;
+}
+
 export interface CreateOrderDTO {
   customerId: string;
   items: CreateOrderItemDTO[];
-  paymentMethod: string;
+  payments: CreateOrderPaymentDTO[];
   source: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE";
   couponCode?: string;
+  discount?: CreateOrderDiscountDTO;
   shippingAddress?: CreateOrderShippingAddressDTO;
   shippingInfo?: CreateOrderShippingInfoDTO;
   giftTierIds?: string[];
   notes?: string;
-  boletoDueDays?: 30 | 60;
 }
