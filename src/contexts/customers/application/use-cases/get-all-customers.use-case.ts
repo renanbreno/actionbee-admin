@@ -7,8 +7,9 @@ export class GetAllCustomersUseCase {
   async execute(
     page: number,
     limit: number,
-    search?: string
+    search?: string,
+    inactiveOnly?: boolean
   ): Promise<PaginatedCustomers> {
-    return this.repository.getAllPaginated(page, limit, search);
+    return this.repository.getAllPaginated(page, limit, search, inactiveOnly);
   }
 }

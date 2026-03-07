@@ -9,6 +9,23 @@ export interface CustomerAddress {
   country: string;
 }
 
+export interface CustomerLastOrderItem {
+  productName: string;
+  variantName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface CustomerLastOrder {
+  id: string;
+  orderNumber: string;
+  status: string;
+  totalAmount: number;
+  createdAt: string;
+  items: CustomerLastOrderItem[];
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -22,6 +39,8 @@ export interface Customer {
   address?: CustomerAddress | null;
   createdAt: string;
   updatedAt?: string;
+  lastOrderDate?: string | null;
+  lastOrder?: CustomerLastOrder | null;
 }
 
 export interface PaginatedCustomers {

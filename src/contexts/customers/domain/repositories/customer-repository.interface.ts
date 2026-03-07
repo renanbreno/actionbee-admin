@@ -1,7 +1,7 @@
 import { Customer, PaginatedCustomers } from "../entities/customer";
 
 export interface CustomerRepository {
-  getAllPaginated(page: number, limit: number, search?: string): Promise<PaginatedCustomers>;
+  getAllPaginated(page: number, limit: number, search?: string, inactiveOnly?: boolean): Promise<PaginatedCustomers>;
   getById(id: string): Promise<Customer>;
   create(data: CreateCustomerDTO): Promise<Customer>;
   update(id: string, data: UpdateCustomerDTO): Promise<Customer>;

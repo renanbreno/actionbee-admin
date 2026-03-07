@@ -6,9 +6,10 @@ export class CustomerRepositoryImpl implements CustomerRepository {
   async getAllPaginated(
     page: number,
     limit: number,
-    search?: string
+    search?: string,
+    inactiveOnly?: boolean
   ): Promise<PaginatedCustomers> {
-    return customersApiClient.getAllPaginated(page, limit, search);
+    return customersApiClient.getAllPaginated(page, limit, search, inactiveOnly);
   }
 
   async getById(id: string): Promise<Customer> {

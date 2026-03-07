@@ -9,13 +9,15 @@ export const customersApiClient = {
   getAllPaginated: async (
     page: number,
     limit: number,
-    search?: string
+    search?: string,
+    inactiveOnly?: boolean
   ): Promise<PaginatedCustomers> => {
     const params = new URLSearchParams({
       page: String(page),
       limit: String(limit),
     });
     if (search) params.set("search", search);
+    if (inactiveOnly) params.append("inactiveOnly", "true");
 
     return apiFetch<PaginatedCustomers>(
       `/admin/customers?${params.toString()}`

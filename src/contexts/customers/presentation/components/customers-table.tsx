@@ -19,6 +19,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Edit,
   AlertTriangle,
@@ -32,8 +34,15 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  ShoppingBag,
+  MessageCircle,
 } from "lucide-react";
-import { Customer, PaginatedCustomers } from "../../domain/entities/customer";
+import { Customer, CustomerLastOrder, PaginatedCustomers } from "../../domain/entities/customer";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useCustomers } from "../hooks/use-customers";
 import { CustomerFormDialog } from "./customer-form-dialog";
 import { formatPhone, formatDocument } from "@/shared/utils/masks";
@@ -44,6 +53,102 @@ function formatDate(dateStr: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+const LAST_ORDER_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  DELIVERED: { bg: "bg-green-100", text: "text-green-700", label: "Entregue" },
+  CONFIRMED: { bg: "bg-green-100", text: "text-green-700", label: "Confirmado" },
+  SHIPPED:   { bg: "bg-green-100", text: "text-green-700", label: "Enviado" },
+  PENDING:   { bg: "bg-amber-100", text: "text-amber-700", label: "Pendente" },
+  CANCELLED: { bg: "bg-red-100",   text: "text-red-700",   label: "Cancelado" },
+};
+
+function getLastOrderStyle(status: string) {
+  return LAST_ORDER_STATUS_STYLES[status] ?? { bg: "bg-gray-100", text: "text-gray-600", label: status };
+}
+
+function formatCurrency(value: number): string {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function whatsappUrl(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const number = digits.startsWith("55") ? digits : `55${digits}`;
+  return `https://wa.me/${number}`;
+}
+
+function isDormant(lastOrderDate?: string | null): boolean {
+  if (!lastOrderDate) return true;
+  const diff = Date.now() - new Date(lastOrderDate).getTime();
+  return diff >= 30 * 24 * 60 * 60 * 1000;
+}
+
+function LastOrderCell({ lastOrder, lastOrderDate }: { lastOrder?: CustomerLastOrder | null; lastOrderDate?: string | null }) {
+  if (!lastOrder || !lastOrderDate) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <ShoppingBag className="h-3.5 w-3.5 text-red-400" />
+        <span className="text-xs font-medium text-red-500">Sem compras</span>
+      </div>
+    );
+  }
+
+  const style = getLastOrderStyle(lastOrder.status);
+
+  const trigger = (
+    <div className="space-y-1 cursor-pointer group/lastorder rounded-md px-2 py-1.5 -mx-2 -my-1.5 transition-colors hover:bg-muted">
+      <div className="flex items-center gap-1.5">
+        <ShoppingBag className={`h-3.5 w-3.5 ${style.text}`} />
+        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${style.bg} ${style.text}`}>
+          {style.label}
+        </span>
+        <ChevronRight className="h-3 w-3 text-muted-foreground/50 transition-transform group-hover/lastorder:translate-x-0.5 group-hover/lastorder:text-muted-foreground" />
+      </div>
+      <div className="text-xs text-muted-foreground group-hover/lastorder:text-foreground transition-colors">
+        {formatDate(lastOrderDate)} · {formatCurrency(lastOrder.totalAmount)}
+      </div>
+    </div>
+  );
+
+  if (!lastOrder.items?.length) return trigger;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent align="start" className="w-80 p-0">
+        <div className="px-4 py-3 border-b">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Pedido {lastOrder.orderNumber}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {formatDate(lastOrderDate)}
+          </p>
+        </div>
+        <ul className="divide-y">
+          {lastOrder.items.map((item, i) => (
+            <li key={i} className="flex items-start justify-between gap-3 px-4 py-2.5">
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{item.productName}</p>
+                {item.variantName && (
+                  <p className="text-xs text-muted-foreground truncate">{item.variantName}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Qtd: {item.quantity}</p>
+              </div>
+              <span className="text-xs font-medium shrink-0 text-right">
+                {formatCurrency(item.totalPrice)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="px-4 py-2.5 border-t flex justify-between items-center">
+          <span className="text-xs text-muted-foreground font-medium">Total</span>
+          <span className={`text-sm font-semibold ${style.text}`}>
+            {formatCurrency(lastOrder.totalAmount)}
+          </span>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 /* ─── Actions Dropdown ─── */
@@ -79,9 +184,10 @@ function CustomerCard({
   onEdit: () => void;
 }) {
   const documentNumber = customer.cnpj ? formatDocument(customer.cnpj) : customer.cpf ? formatDocument(customer.cpf) : null;
+  const dormant = isDormant(customer.lastOrderDate);
 
   return (
-    <Card className="shadow-sm">
+    <Card className={`shadow-sm ${dormant ? "border-orange-300 bg-orange-50/50" : ""}`}>
       <CardContent className="space-y-4 p-4">
         {/* Header */}
         <div className="flex items-center gap-3 min-w-0">
@@ -89,7 +195,15 @@ function CustomerCard({
             <User className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-base truncate">{customer.name}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-base truncate">{customer.name}</p>
+              {dormant && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 shrink-0">
+                  <AlertTriangle className="h-3 w-3" />
+                  +30 dias
+                </span>
+              )}
+            </div>
             <p className="text-muted-foreground text-sm truncate">{customer.email}</p>
           </div>
           <CustomerActions onEdit={onEdit} />
@@ -107,6 +221,16 @@ function CustomerCard({
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4" />
               <span>{formatPhone(customer.phone)}</span>
+              <a
+                href={whatsappUrl(customer.phone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-600 hover:text-green-700 transition-colors"
+                title="Abrir no WhatsApp"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MessageCircle className="h-4 w-4" />
+              </a>
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -127,6 +251,12 @@ function CustomerCard({
             </span>
           </div>
         )}
+
+        {/* Última compra */}
+        <div className="border-t pt-3">
+          <p className="text-xs text-muted-foreground mb-1.5 font-medium">Última compra</p>
+          <LastOrderCell lastOrder={customer.lastOrder} lastOrderDate={customer.lastOrderDate} />
+        </div>
 
         {/* Address */}
         {customer.address && (
@@ -152,17 +282,30 @@ function CustomerRow({
   onEdit: () => void;
 }) {
   const documentNumber = customer.cnpj ? formatDocument(customer.cnpj) : customer.cpf ? formatDocument(customer.cpf) : null;
+  const dormant = isDormant(customer.lastOrderDate);
 
   return (
-    <TableRow className="group">
+    <TableRow className={`group ${dormant ? "bg-orange-50/60 hover:bg-orange-50" : ""}`}>
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-full ${customer.isFinalConsumer === false ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"}`}>
+          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${customer.isFinalConsumer === false ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"}`}>
             <User className="h-4.5 w-4.5" />
           </div>
           <div>
-            <p className="font-medium">{customer.name}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium">{customer.name}</p>
+              {dormant && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700">
+                  <AlertTriangle className="h-3 w-3" />
+                  +30 dias
+                </span>
+              )}
+            </div>
             <p className="text-muted-foreground text-xs">{customer.email}</p>
+            <p className="text-muted-foreground/70 text-xs flex items-center gap-1 mt-0.5">
+              <Package className="h-3 w-3" />
+              {customer.ordersCount ?? 0} pedido{(customer.ordersCount ?? 0) !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
       </TableCell>
@@ -184,6 +327,16 @@ function CustomerRow({
             <>
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
               <span>{formatPhone(customer.phone)}</span>
+              <a
+                href={whatsappUrl(customer.phone)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-600 hover:text-green-700 transition-colors"
+                title="Abrir no WhatsApp"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+              </a>
             </>
           ) : (
             <span className="text-muted-foreground text-sm">—</span>
@@ -199,14 +352,11 @@ function CustomerRow({
           <span className="text-muted-foreground text-sm">—</span>
         )}
       </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Package className="h-3.5 w-3.5" />
-          <span>{customer.ordersCount ?? 0}</span>
-        </div>
-      </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {formatDate(customer.createdAt)}
+      </TableCell>
+      <TableCell>
+        <LastOrderCell lastOrder={customer.lastOrder} lastOrderDate={customer.lastOrderDate} />
       </TableCell>
       <TableCell className="text-right">
         <CustomerActions onEdit={onEdit} />
@@ -241,12 +391,12 @@ function TableSkeleton() {
     <>
       {Array.from({ length: 5 }).map((_, i) => (
         <TableRow key={i}>
-          <TableCell><Skeleton className="h-9 w-48" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+          <TableCell><Skeleton className="h-12 w-44" /></TableCell>
           <TableCell><Skeleton className="h-4 w-24" /></TableCell>
           <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-12" /></TableCell>
           <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-18" /></TableCell>
+          <TableCell><Skeleton className="h-9 w-32" /></TableCell>
           <TableCell><Skeleton className="h-8 w-8 rounded" /></TableCell>
         </TableRow>
       ))}
@@ -283,11 +433,12 @@ export function CustomersTable() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [inactiveOnly, setInactiveOnly] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const limit = 10;
 
-  const { data, isLoading, isError } = useCustomers(page, limit, search);
+  const { data, isLoading, isError } = useCustomers(page, limit, search, inactiveOnly);
 
   const paginatedData = data as PaginatedCustomers | undefined;
   const customers = paginatedData?.customers ?? [];
@@ -321,6 +472,16 @@ export function CustomersTable() {
           onChange={(e) => setSearchInput(e.target.value)}
           className="pl-9"
         />
+      </div>
+      <div className="flex items-center gap-2">
+        <Switch
+          id="inactive-filter-mobile"
+          checked={inactiveOnly}
+          onCheckedChange={(v) => { setInactiveOnly(v); setPage(1); }}
+        />
+        <Label htmlFor="inactive-filter-mobile" className="text-sm cursor-pointer">
+          Inativos (+30 dias)
+        </Label>
       </div>
 
       {isLoading &&
@@ -378,6 +539,16 @@ export function CustomersTable() {
             className="pl-9"
           />
         </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="inactive-filter"
+            checked={inactiveOnly}
+            onCheckedChange={(v) => { setInactiveOnly(v); setPage(1); }}
+          />
+          <Label htmlFor="inactive-filter" className="text-sm cursor-pointer">
+            Inativos (+30 dias)
+          </Label>
+        </div>
         <div className="text-sm text-muted-foreground">
           {total} cliente{total !== 1 ? "s" : ""}
         </div>
@@ -387,12 +558,12 @@ export function CustomersTable() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[250px]">Cliente</TableHead>
-              <TableHead className="w-[140px]">CPF/CNPJ</TableHead>
-              <TableHead className="w-[130px]">Telefone</TableHead>
+              <TableHead className="w-[240px]">Cliente</TableHead>
+              <TableHead className="w-[130px]">CPF/CNPJ</TableHead>
+              <TableHead className="w-[120px]">Telefone</TableHead>
               <TableHead className="w-[110px]">Tipo</TableHead>
-              <TableHead className="w-[60px]">Pedidos</TableHead>
               <TableHead className="w-[90px]">Cadastro</TableHead>
+              <TableHead className="w-[160px]">Última Compra</TableHead>
               <TableHead className="w-[50px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
