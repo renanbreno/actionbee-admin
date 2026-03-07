@@ -276,9 +276,6 @@ function ProductRow({ product }: { product: Product }) {
       <TableCell>
         <ProductStatusBadge isActive={product.isActive} />
       </TableCell>
-      <TableCell className="text-sm font-medium">
-        {basePrice != null ? formatPrice(basePrice) : "—"}
-      </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {product.costPrice != null ? formatPrice(product.costPrice) : "—"}
       </TableCell>
@@ -336,9 +333,6 @@ function TableSkeleton() {
           </TableCell>
           <TableCell>
             <Skeleton className="h-5 w-16 rounded-full" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-20" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-20" />
@@ -518,7 +512,6 @@ export function ProductsTable() {
               <TableHead className="w-[80px] text-center">Variantes</TableHead>
               <TableHead className="w-[80px] text-center">Estoque</TableHead>
               <TableHead className="w-[90px]">Status</TableHead>
-              <TableHead className="w-[100px]">Preço base</TableHead>
               <TableHead className="w-[110px]">Preço de custo</TableHead>
               <TableHead className="w-[50px] text-right">Ações</TableHead>
             </TableRow>
@@ -527,14 +520,14 @@ export function ProductsTable() {
             {isLoading && <TableSkeleton />}
             {isError && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   <ErrorState />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && !isError && products.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   <EmptyState />
                 </TableCell>
               </TableRow>
