@@ -12,6 +12,7 @@ export interface ProductVariant {
   price: number;
   offerPrice?: number | null;
   retailerPrice?: number | null;
+  distributorPrice?: number | null;
   height?: number | null;
   width?: number | null;
   depth?: number | null;

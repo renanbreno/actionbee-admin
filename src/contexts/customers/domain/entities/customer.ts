@@ -26,6 +26,20 @@ export interface CustomerLastOrder {
   items: CustomerLastOrderItem[];
 }
 
+export const CustomerType = {
+  FINAL_CONSUMER: 'FINAL_CONSUMER',
+  RETAILER_RESELLER: 'RETAILER_RESELLER',
+  DISTRIBUTOR_RESELLER: 'DISTRIBUTOR_RESELLER',
+} as const;
+
+export type CustomerType = typeof CustomerType[keyof typeof CustomerType];
+
+export const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
+  FINAL_CONSUMER: 'Consumidor Final',
+  RETAILER_RESELLER: 'Lojista',
+  DISTRIBUTOR_RESELLER: 'Distribuidor',
+};
+
 export interface Customer {
   id: string;
   name: string;
@@ -33,7 +47,7 @@ export interface Customer {
   phone?: string | null;
   cpf?: string | null;
   cnpj?: string | null;
-  isFinalConsumer?: boolean | null;
+  customerType?: CustomerType | null;
   emailVerified: boolean;
   ordersCount?: number;
   address?: CustomerAddress | null;

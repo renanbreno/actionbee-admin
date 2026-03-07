@@ -120,12 +120,12 @@ function VariantRow({
             </div>
           </div>
 
-          {/* Toggle: Variante de lojista */}
+          {/* Toggle: Variante de revendedor */}
           <div className="flex items-center justify-between rounded-lg border p-3 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
             <div className="space-y-0.5">
-              <Label className="text-xs font-medium">Variante de lojista</Label>
+              <Label className="text-xs font-medium">Variante de revendedor</Label>
               <p className="text-xs text-muted-foreground">
-                Oculta no e-commerce. Usa o preço de lojista em pedidos manuais.
+                Oculta no e-commerce. Usa o preço de revendedor em pedidos manuais.
               </p>
             </div>
             <Controller
@@ -166,17 +166,31 @@ function VariantRow({
 
           {/* Row 2: Preços */}
           {isRetailerVariant ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Controller
                 name={`variants.${index}.retailerPrice`}
                 control={control}
                 render={({ field }) => (
                   <CurrencyInput
-                    label="Preço Lojista (R$)"
+                    label="Preço Revendedor (R$)"
                     value={field.value ?? 0}
                     onChange={(v) => field.onChange(v === 0 ? null : v)}
                     error={variantErrors?.retailerPrice?.message as string | undefined}
                     required
+                    className="text-xs"
+                    inputClassName="text-xs"
+                  />
+                )}
+              />
+              <Controller
+                name={`variants.${index}.distributorPrice`}
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    label="Preço Distribuidor (R$)"
+                    value={field.value ?? 0}
+                    onChange={(v) => field.onChange(v === 0 ? null : v)}
+                    error={variantErrors?.distributorPrice?.message as string | undefined}
                     className="text-xs"
                     inputClassName="text-xs"
                   />
@@ -204,55 +218,87 @@ function VariantRow({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Controller
-                  name={`variants.${index}.price`}
-                  control={control}
-                  render={({ field }) => (
-                    <CurrencyInput
-                      label="Preço (R$)"
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={variantErrors?.price?.message as string | undefined}
-                      required
-                      className="text-xs"
-                      inputClassName="text-xs"
-                    />
-                  )}
-                />
-                <Controller
-                  name={`variants.${index}.offerPrice`}
-                  control={control}
-                  render={({ field }) => (
-                    <CurrencyInput
-                      label="Preço Oferta (R$)"
-                      value={field.value ?? null}
-                      onChange={(v) => field.onChange(v === 0 ? null : v)}
-                      error={variantErrors?.offerPrice?.message as string | undefined}
-                      className="text-xs"
-                      inputClassName="text-xs"
-                    />
-                  )}
-                />
-                <div className="space-y-1.5">
-                  <Label className="text-xs">
-                    Unidades/variante <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="1"
-                    className="text-xs"
-                    {...register(`variants.${index}.unitsPerVariant`, {
-                      valueAsNumber: true,
-                    })}
+              {/* Preços por tipo de cliente */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Preços por tipo de cliente</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/30">
+                  <Controller
+                    name={`variants.${index}.price`}
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        label="Consumidor Final (R$)"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={variantErrors?.price?.message as string | undefined}
+                        required
+                        className="text-xs"
+                        inputClassName="text-xs"
+                      />
+                    )}
                   />
-                  {variantErrors?.unitsPerVariant && (
-                    <p className="text-destructive text-xs">
-                      {variantErrors.unitsPerVariant.message}
-                    </p>
-                  )}
+                  <Controller
+                    name={`variants.${index}.offerPrice`}
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        label="Preço Oferta (R$)"
+                        value={field.value ?? null}
+                        onChange={(v) => field.onChange(v === 0 ? null : v)}
+                        error={variantErrors?.offerPrice?.message as string | undefined}
+                        className="text-xs"
+                        inputClassName="text-xs"
+                      />
+                    )}
+                  />
+                  <Controller
+                    name={`variants.${index}.retailerPrice`}
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        label="Revendedor (R$)"
+                        value={field.value ?? 0}
+                        onChange={(v) => field.onChange(v === 0 ? null : v)}
+                        error={variantErrors?.retailerPrice?.message as string | undefined}
+                        className="text-xs"
+                        inputClassName="text-xs"
+                      />
+                    )}
+                  />
+                  <Controller
+                    name={`variants.${index}.distributorPrice`}
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        label="Distribuidor (R$)"
+                        value={field.value ?? 0}
+                        onChange={(v) => field.onChange(v === 0 ? null : v)}
+                        error={variantErrors?.distributorPrice?.message as string | undefined}
+                        className="text-xs"
+                        inputClassName="text-xs"
+                      />
+                    )}
+                  />
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  Unidades/variante <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  className="text-xs"
+                  {...register(`variants.${index}.unitsPerVariant`, {
+                    valueAsNumber: true,
+                  })}
+                />
+                {variantErrors?.unitsPerVariant && (
+                  <p className="text-destructive text-xs">
+                    {variantErrors.unitsPerVariant.message}
+                  </p>
+                )}
               </div>
             </>
           )}
@@ -387,6 +433,7 @@ export function VariantFields() {
       price: 0,
       offerPrice: null,
       retailerPrice: null,
+      distributorPrice: null,
       height: null,
       width: null,
       depth: null,

@@ -37,7 +37,7 @@ import {
   ShoppingBag,
   MessageCircle,
 } from "lucide-react";
-import { Customer, CustomerLastOrder, PaginatedCustomers } from "../../domain/entities/customer";
+import { Customer, CustomerLastOrder, CustomerType, CUSTOMER_TYPE_LABELS, PaginatedCustomers } from "../../domain/entities/customer";
 import {
   Popover,
   PopoverContent,
@@ -46,6 +46,17 @@ import {
 import { useCustomers } from "../hooks/use-customers";
 import { CustomerFormDialog } from "./customer-form-dialog";
 import { formatPhone, formatDocument } from "@/shared/utils/masks";
+
+function getCustomerTypeStyle(customerType?: CustomerType | null) {
+  switch (customerType) {
+    case CustomerType.RETAILER_RESELLER:
+      return { avatar: "bg-amber-100 text-amber-600", badge: "bg-amber-100 text-amber-700" };
+    case CustomerType.DISTRIBUTOR_RESELLER:
+      return { avatar: "bg-purple-100 text-purple-600", badge: "bg-purple-100 text-purple-700" };
+    default:
+      return { avatar: "bg-blue-100 text-blue-600", badge: "bg-green-100 text-green-700" };
+  }
+}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("pt-BR", {
@@ -185,13 +196,14 @@ function CustomerCard({
 }) {
   const documentNumber = customer.cnpj ? formatDocument(customer.cnpj) : customer.cpf ? formatDocument(customer.cpf) : null;
   const dormant = isDormant(customer.lastOrderDate);
+  const typeStyle = getCustomerTypeStyle(customer.customerType);
 
   return (
     <Card className={`shadow-sm ${dormant ? "border-orange-300 bg-orange-50/50" : ""}`}>
       <CardContent className="space-y-4 p-4">
         {/* Header */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className={`flex h-11 w-11 items-center justify-center rounded-full shrink-0 ${customer.isFinalConsumer === false ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"}`}>
+          <div className={`flex h-11 w-11 items-center justify-center rounded-full shrink-0 ${typeStyle.avatar}`}>
             <User className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -244,10 +256,10 @@ function CustomerCard({
         </div>
 
         {/* Tipo de cliente */}
-        {customer.isFinalConsumer !== undefined && customer.isFinalConsumer !== null && (
+        {customer.customerType != null && (
           <div className="flex items-center gap-1.5 text-xs">
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${customer.isFinalConsumer ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-              {customer.isFinalConsumer ? "Consumidor Final" : "Revendedor"}
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${typeStyle.badge}`}>
+              {CUSTOMER_TYPE_LABELS[customer.customerType] ?? customer.customerType}
             </span>
           </div>
         )}
@@ -283,12 +295,13 @@ function CustomerRow({
 }) {
   const documentNumber = customer.cnpj ? formatDocument(customer.cnpj) : customer.cpf ? formatDocument(customer.cpf) : null;
   const dormant = isDormant(customer.lastOrderDate);
+  const typeStyle = getCustomerTypeStyle(customer.customerType);
 
   return (
     <TableRow className={`group ${dormant ? "bg-orange-50/60 hover:bg-orange-50" : ""}`}>
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${customer.isFinalConsumer === false ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"}`}>
+          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${typeStyle.avatar}`}>
             <User className="h-4.5 w-4.5" />
           </div>
           <div>
@@ -344,9 +357,9 @@ function CustomerRow({
         </div>
       </TableCell>
       <TableCell>
-        {customer.isFinalConsumer !== undefined && customer.isFinalConsumer !== null ? (
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${customer.isFinalConsumer ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-            {customer.isFinalConsumer ? "Consumidor Final" : "Revendedor"}
+        {customer.customerType != null ? (
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${typeStyle.badge}`}>
+            {CUSTOMER_TYPE_LABELS[customer.customerType] ?? customer.customerType}
           </span>
         ) : (
           <span className="text-muted-foreground text-sm">—</span>

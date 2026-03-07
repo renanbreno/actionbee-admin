@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useForm, FieldError } from "react-hook-form";
+import { useForm, FieldError, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo } from "react";
 import { toast } from "sonner";
@@ -15,6 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Mail, User, Phone, MapPin, FileText } from "lucide-react";
 import { Customer } from "../../domain/entities/customer";
@@ -90,9 +97,9 @@ export function CustomerFormDialog({
     return "";
   }, [fullCustomer]);
 
-  // Deriva o valor inicial do isFinalConsumer
-  const initialIsFinalConsumer = useMemo(() => {
-    return fullCustomer?.isFinalConsumer ?? true;
+  // Deriva o valor inicial do customerType
+  const initialCustomerType = useMemo(() => {
+    return fullCustomer?.customerType ?? 'FINAL_CONSUMER';
   }, [fullCustomer]);
 
   const {
@@ -102,6 +109,7 @@ export function CustomerFormDialog({
     watch,
     setValue,
     reset,
+    control,
   } = useForm<FormValues>({
       resolver: zodResolver(isEditing ? updateCustomerSchema : createCustomerSchema),
       defaultValues: {
@@ -109,7 +117,7 @@ export function CustomerFormDialog({
         email: "",
         phone: "",
         document: "",
-        isFinalConsumer: true,
+        customerType: 'FINAL_CONSUMER',
         address: undefined,
       },
     });
@@ -126,7 +134,7 @@ export function CustomerFormDialog({
         email: fullCustomer.email ?? "",
         phone: initialPhone,
         document: initialDocument,
-        isFinalConsumer: initialIsFinalConsumer,
+        customerType: initialCustomerType,
         address: fullCustomer.address ?? undefined,
       });
     } else {
@@ -135,11 +143,11 @@ export function CustomerFormDialog({
         email: "",
         phone: "",
         document: "",
-        isFinalConsumer: true,
+        customerType: 'FINAL_CONSUMER',
         address: undefined,
       });
     }
-  }, [fullCustomer, initialPhone, initialDocument, initialIsFinalConsumer, reset]);
+  }, [fullCustomer, initialPhone, initialDocument, initialCustomerType, reset]);
 
   const showAddress = watch("address") !== undefined;
 
@@ -182,7 +190,7 @@ export function CustomerFormDialog({
       phone: unmaskPhone(data.phone ?? "") || undefined,
       cpf: docType === "cpf" ? documentDigits : undefined,
       cnpj: docType === "cnpj" ? documentDigits : undefined,
-      isFinalConsumer: data.isFinalConsumer ?? true,
+      customerType: data.customerType ?? 'FINAL_CONSUMER',
       ...(showAddress && data.address && { address: data.address }),
     };
 
@@ -334,26 +342,31 @@ export function CustomerFormDialog({
                 </p>
               </div>
 
-              {/* Tipo de cliente - toggle compacto */}
+              {/* Tipo de cliente - Select com 3 opções */}
               <div className="space-y-2">
-                <Label htmlFor="cust-isFinalConsumer" className="text-sm font-medium">
+                <Label htmlFor="cust-customerType" className="text-sm font-medium">
                   Tipo
                 </Label>
-                <div className="flex items-center gap-3 h-10 px-3 py-2 border rounded-md bg-background sm:h-[42px]">
-                  <Switch
-                    id="cust-isFinalConsumer"
-                    checked={watch("isFinalConsumer") ?? true}
-                    onCheckedChange={(checked) => setValue("isFinalConsumer", checked)}
-                  />
-                  <span className="text-sm">
-                    {watch("isFinalConsumer") ?? true ? "Consumidor final" : "Revendedor"}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground hidden sm:block">
-                  {watch("isFinalConsumer") ?? true
-                    ? "Consumo próprio"
-                    : "Para revenda"}
-                </p>
+                <Controller
+                  name="customerType"
+                  control={control}
+                  defaultValue="FINAL_CONSUMER"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? 'FINAL_CONSUMER'}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger id="cust-customerType">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FINAL_CONSUMER">Consumidor Final</SelectItem>
+                        <SelectItem value="RETAILER_RESELLER">Lojista (Revendedor)</SelectItem>
+                        <SelectItem value="DISTRIBUTOR_RESELLER">Distribuidor (Revendedor)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 

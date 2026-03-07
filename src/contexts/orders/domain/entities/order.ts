@@ -37,6 +37,8 @@ export interface PaginatedOrders {
   totalPages: number;
 }
 
+export type OrderItemPriceType = "COMMON" | "RETAILER" | "DISTRIBUTOR";
+
 export interface OrderDetailItem {
   productId: string;
   productName: string;
@@ -46,6 +48,7 @@ export interface OrderDetailItem {
   unitPrice: number;
   originalPrice?: number;
   totalPrice: number;
+  priceType?: OrderItemPriceType;
 }
 
 export interface OrderShippingAddress {

@@ -133,12 +133,15 @@ interface CustomerDetail extends CustomerResult {
   address?: CustomerAddress;
 }
 
+type PriceType = "common" | "retailer" | "distributor";
+
 interface ProductVariant {
   id: string;
   name: string;
   price: number;
   offerPrice?: number;
   retailerPrice?: number;
+  distributorPrice?: number;
   isRetailerVariant?: boolean;
   hasFreeShipping?: boolean;
   unitsPerVariant?: number;
@@ -158,6 +161,7 @@ interface CartItem {
   unitPrice: number;
   originalPrice?: number;
   quantity: number;
+  priceType?: "COMMON" | "RETAILER" | "DISTRIBUTOR";
 }
 
 type DeliveryType = "PICKUP" | "DELIVERY" | "NONE" | "";
@@ -365,7 +369,15 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     null,
   );
+  const [selectedPriceType, setSelectedPriceType] = useState<PriceType>("common");
   const [qty, setQty] = useState(1);
+
+  function handleSelectVariant(v: ProductVariant) {
+    setSelectedVariant(v);
+    setSelectedPriceType(
+      v.isRetailerVariant && v.retailerPrice != null ? "retailer" : "common",
+    );
+  }
   const debouncedSearch = useDebounce(search, 300);
 
   const { data, isLoading } = useQuery({
@@ -379,22 +391,36 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
 
   function handleAdd() {
     if (!selectedProduct || !selectedVariant) return;
-    const isRetailer = selectedVariant.isRetailerVariant && selectedVariant.retailerPrice != null;
+
+    let unitPrice: number;
+    let originalPrice: number | undefined;
+    if (selectedPriceType === "retailer") {
+      unitPrice = selectedVariant.retailerPrice!;
+    } else if (selectedPriceType === "distributor") {
+      unitPrice = selectedVariant.distributorPrice!;
+    } else {
+      unitPrice = selectedVariant.offerPrice ?? selectedVariant.price;
+      originalPrice = selectedVariant.offerPrice ? selectedVariant.price : undefined;
+    }
+
+    const priceType =
+      selectedPriceType === "retailer" ? "RETAILER" as const :
+      selectedPriceType === "distributor" ? "DISTRIBUTOR" as const :
+      "COMMON" as const;
+
     onAddItem({
       productId: selectedProduct.id,
       productName: selectedProduct.name,
       variantId: selectedVariant.id,
       variantName: selectedVariant.name,
-      unitPrice: isRetailer
-        ? selectedVariant.retailerPrice!
-        : (selectedVariant.offerPrice ?? selectedVariant.price),
-      originalPrice: !isRetailer && selectedVariant.offerPrice
-        ? selectedVariant.price
-        : undefined,
+      unitPrice,
+      originalPrice,
       quantity: qty,
+      priceType,
     });
     setSelectedProduct(null);
     setSelectedVariant(null);
+    setSelectedPriceType("common");
     setSearch("");
     setQty(1);
   }
@@ -438,7 +464,7 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
                 <button
                   key={v.id}
                   type="button"
-                  onClick={() => setSelectedVariant(v)}
+                  onClick={() => handleSelectVariant(v)}
                   className={[
                     "w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all",
                     isSelected
@@ -466,7 +492,7 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
                       )}
                       {isRetailer && (
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 dark:bg-amber-950/40 dark:border-amber-900">
-                          Lojista
+                          Revendedor
                         </span>
                       )}
                     </div>
@@ -501,6 +527,65 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
             })}
           </div>
         </div>
+
+        {selectedVariant?.isRetailerVariant && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Tipo de preço</Label>
+            <div className="flex flex-wrap gap-2">
+              {!selectedVariant.isRetailerVariant && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedPriceType("common")}
+                  className={[
+                    "flex-1 min-w-24 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                    selectedPriceType === "common"
+                      ? "border-bee-gold bg-bee-gold/10 text-bee-gold"
+                      : "border-border hover:border-muted-foreground/40",
+                  ].join(" ")}
+                >
+                  <span className="block font-semibold">Comum</span>
+                  <span className="text-muted-foreground font-normal">
+                    {formatCurrency(selectedVariant.offerPrice ?? selectedVariant.price)}
+                  </span>
+                </button>
+              )}
+              {selectedVariant.retailerPrice != null && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedPriceType("retailer")}
+                  className={[
+                    "flex-1 min-w-24 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                    selectedPriceType === "retailer"
+                      ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                      : "border-border hover:border-muted-foreground/40",
+                  ].join(" ")}
+                >
+                  <span className="block font-semibold">Lojista</span>
+                  <span className="text-muted-foreground font-normal">
+                    {formatCurrency(selectedVariant.retailerPrice)}
+                  </span>
+                </button>
+              )}
+              {selectedVariant.distributorPrice != null && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedPriceType("distributor")}
+                  className={[
+                    "flex-1 min-w-24 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                    selectedPriceType === "distributor"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                      : "border-border hover:border-muted-foreground/40",
+                  ].join(" ")}
+                >
+                  <span className="block font-semibold">Distribuidor</span>
+                  <span className="text-muted-foreground font-normal">
+                    {formatCurrency(selectedVariant.distributorPrice)}
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <div className="space-y-1.5 flex-1">
@@ -888,6 +973,7 @@ export default function NewOrderPage() {
           quantity: i.quantity,
           price: i.unitPrice,
           originalPrice: i.originalPrice,
+          priceType: i.priceType,
         })),
         payments: payments.map((p) => ({
           method: p.method,

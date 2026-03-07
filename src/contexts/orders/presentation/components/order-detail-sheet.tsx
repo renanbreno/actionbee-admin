@@ -162,7 +162,19 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
             >
               <div className="flex-1">
                 <p className="font-medium">{item.productName}</p>
-                <p className="text-xs text-muted-foreground mb-1">{item.variantName} × {item.quantity}</p>
+                <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                  <p className="text-xs text-muted-foreground">{item.variantName} × {item.quantity}</p>
+                  {item.priceType === "RETAILER" && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-400">
+                      Lojista
+                    </span>
+                  )}
+                  {item.priceType === "DISTRIBUTOR" && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5 dark:bg-blue-950/40 dark:border-blue-900 dark:text-blue-400">
+                      Distribuidor
+                    </span>
+                  )}
+                </div>
                 {item.originalPrice ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground line-through">

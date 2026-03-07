@@ -139,6 +139,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       price: v.price,
       offerPrice: v.offerPrice ?? null,
       retailerPrice: v.retailerPrice ?? null,
+      distributorPrice: v.distributorPrice ?? null,
       height: v.height ?? null,
       width: v.width ?? null,
       depth: v.depth ?? null,

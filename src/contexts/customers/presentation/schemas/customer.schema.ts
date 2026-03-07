@@ -46,7 +46,7 @@ export const createCustomerSchema = z.object({
   document: z.string().optional().refine(documentRefinement, {
     message: "Informe CPF ou CNPJ completo",
   }),
-  isFinalConsumer: z.boolean().optional(),
+  customerType: z.enum(['FINAL_CONSUMER', 'RETAILER_RESELLER', 'DISTRIBUTOR_RESELLER']).optional(),
   address: customerAddressSchema.optional(),
 });
 
@@ -61,7 +61,7 @@ export const updateCustomerSchema = z.object({
   document: z.string().optional().refine(documentRefinement, {
     message: "Informe CPF ou CNPJ completo",
   }),
-  isFinalConsumer: z.boolean().optional(),
+  customerType: z.enum(['FINAL_CONSUMER', 'RETAILER_RESELLER', 'DISTRIBUTOR_RESELLER']).optional(),
   address: customerAddressSchema.partial().optional(),
 });
 

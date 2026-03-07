@@ -88,6 +88,7 @@ export default function EditProductPage() {
         price: v.price,
         offerPrice: v.offerPrice,
         retailerPrice: v.retailerPrice,
+        distributorPrice: v.distributorPrice,
         height: v.height,
         width: v.width,
         depth: v.depth,

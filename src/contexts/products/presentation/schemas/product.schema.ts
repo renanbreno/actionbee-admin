@@ -21,6 +21,11 @@ export const productVariantSchema = z.object({
     .min(0)
     .nullable()
     .optional(),
+  distributorPrice: z
+    .number()
+    .min(0)
+    .nullable()
+    .optional(),
   height: z.number().min(0).nullable().optional(),
   width: z.number().min(0).nullable().optional(),
   depth: z.number().min(0).nullable().optional(),

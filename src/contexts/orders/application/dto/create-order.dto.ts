@@ -1,9 +1,12 @@
+export type OrderItemPriceType = "COMMON" | "RETAILER" | "DISTRIBUTOR";
+
 export interface CreateOrderItemDTO {
   productId: string;
   variantId: string;
   quantity: number;
   price: number;
   originalPrice?: number;
+  priceType?: OrderItemPriceType;
 }
 
 export interface CreateOrderShippingAddressDTO {

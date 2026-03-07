@@ -1,4 +1,4 @@
-import { Customer, PaginatedCustomers } from "../entities/customer";
+import { Customer, CustomerType, PaginatedCustomers } from "../entities/customer";
 
 export interface CustomerRepository {
   getAllPaginated(page: number, limit: number, search?: string, inactiveOnly?: boolean): Promise<PaginatedCustomers>;
@@ -13,7 +13,7 @@ export interface CreateCustomerDTO {
   phone?: string;
   cpf?: string;
   cnpj?: string;
-  isFinalConsumer?: boolean;
+  customerType?: CustomerType;
   address?: {
     street: string;
     neighborhood: string;
@@ -33,7 +33,7 @@ export interface UpdateCustomerDTO {
   phone?: string;
   cpf?: string;
   cnpj?: string;
-  isFinalConsumer?: boolean;
+  customerType?: CustomerType;
   address?: {
     street?: string;
     neighborhood?: string;
