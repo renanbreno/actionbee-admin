@@ -51,4 +51,5 @@ export interface CreateOrderDTO {
   shippingInfo?: CreateOrderShippingInfoDTO;
   giftTierIds?: string[];
   notes?: string;
+  representativeId?: string;
 }

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
-import { Representative } from "../../domain/entities/representative";
+import { Representative, RepresentativeCustomer } from "../../domain/entities/representative";
 
 export interface CreateRepresentativeApiRequest {
   name: string;
@@ -45,5 +45,22 @@ export const representativesApiClient = {
     return apiFetch<void>(`/admin/representatives/${id}`, {
       method: "DELETE",
     });
+  },
+
+  associateCustomer(representativeId: string, customerId: string): Promise<RepresentativeCustomer[]> {
+    return apiFetch<RepresentativeCustomer[]>(`/admin/representatives/${representativeId}/customers`, {
+      method: "POST",
+      body: JSON.stringify({ customerId }),
+    });
+  },
+
+  dissociateCustomer(representativeId: string, customerId: string): Promise<RepresentativeCustomer[]> {
+    return apiFetch<RepresentativeCustomer[]>(`/admin/representatives/${representativeId}/customers/${customerId}`, {
+      method: "DELETE",
+    });
+  },
+
+  getCustomers(representativeId: string): Promise<RepresentativeCustomer[]> {
+    return apiFetch<RepresentativeCustomer[]>(`/admin/representatives/${representativeId}/customers`);
   },
 };

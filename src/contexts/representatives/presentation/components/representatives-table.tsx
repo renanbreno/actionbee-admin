@@ -33,11 +33,13 @@ import {
   Mail,
   FileText,
   Search,
+  Users,
 } from "lucide-react";
 import { Representative } from "../../domain/entities/representative";
 import { useRepresentatives } from "../hooks/use-representatives";
 import { useDeleteRepresentative } from "../hooks/use-delete-representative";
 import { RepresentativeFormDialog } from "./representative-form-dialog";
+import { ManageCustomersDialog } from "./manage-customers-dialog";
 import { formatDocument, formatPhone } from "@/shared/utils/masks";
 
 function getDocument(rep: Representative): string | null {
@@ -57,9 +59,11 @@ function formatDate(dateStr: string): string {
 /* ─── Actions Dropdown ─── */
 function RepresentativeActions({
   onEdit,
+  onManageCustomers,
   onDelete,
 }: {
   onEdit: () => void;
+  onManageCustomers: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -70,7 +74,11 @@ function RepresentativeActions({
           <span className="sr-only">Ações</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={onManageCustomers}>
+          <Users className="mr-2 h-3.5 w-3.5" />
+          Gerenciar Clientes
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={onEdit}>
           <Edit className="mr-2 h-3.5 w-3.5" />
           Editar
@@ -92,10 +100,12 @@ function RepresentativeActions({
 function RepresentativeCard({
   representative,
   onEdit,
+  onManageCustomers,
   onDelete,
 }: {
   representative: Representative;
   onEdit: () => void;
+  onManageCustomers: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -109,7 +119,11 @@ function RepresentativeCard({
             <p className="font-semibold text-base truncate">{representative.name}</p>
             <p className="text-muted-foreground text-sm truncate">{representative.email}</p>
           </div>
-          <RepresentativeActions onEdit={onEdit} onDelete={onDelete} />
+          <RepresentativeActions
+            onEdit={onEdit}
+            onManageCustomers={onManageCustomers}
+            onDelete={onDelete}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
@@ -119,10 +133,19 @@ function RepresentativeCard({
               <span>{formatPhone(representative.phone)}</span>
             </div>
           )}
-          {getDocument(representative) && (
+          {(() => {
+            const doc = getDocument(representative);
+            return doc ? (
+              <div className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span>{doc}</span>
+              </div>
+            ) : null;
+          })()}
+          {representative.customersCount > 0 && (
             <div className="flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5 shrink-0" />
-              <span>{getDocument(representative)}</span>
+              <Users className="h-3.5 w-3.5 shrink-0 text-bee-amber" />
+              <span>{representative.customersCount} cliente{representative.customersCount !== 1 ? "s" : ""}</span>
             </div>
           )}
           <div className="flex items-center gap-1.5">
@@ -139,10 +162,12 @@ function RepresentativeCard({
 function RepresentativeRow({
   representative,
   onEdit,
+  onManageCustomers,
   onDelete,
 }: {
   representative: Representative;
   onEdit: () => void;
+  onManageCustomers: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -175,10 +200,24 @@ function RepresentativeRow({
         {getDocument(representative) ?? <span>—</span>}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
+        {representative.customersCount > 0 ? (
+          <div className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-bee-amber" />
+            <span>{representative.customersCount} cliente{representative.customersCount !== 1 ? "s" : ""}</span>
+          </div>
+        ) : (
+          <span>—</span>
+        )}
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
         {formatDate(representative.createdAt)}
       </TableCell>
       <TableCell className="text-right">
-        <RepresentativeActions onEdit={onEdit} onDelete={onDelete} />
+        <RepresentativeActions
+          onEdit={onEdit}
+          onManageCustomers={onManageCustomers}
+          onDelete={onDelete}
+        />
       </TableCell>
     </TableRow>
   );
@@ -213,6 +252,7 @@ function TableSkeleton() {
           <TableCell><Skeleton className="h-9 w-52" /></TableCell>
           <TableCell><Skeleton className="h-4 w-32" /></TableCell>
           <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
           <TableCell><Skeleton className="h-4 w-24" /></TableCell>
           <TableCell><Skeleton className="h-8 w-8 rounded ml-auto" /></TableCell>
         </TableRow>
@@ -253,6 +293,8 @@ export function RepresentativesTable({
   const [name, setName] = useState("");
   const [editingRep, setEditingRep] = useState<Representative | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [managingCustomersRep, setManagingCustomersRep] = useState<Representative | null>(null);
+  const [isManageCustomersDialogOpen, setIsManageCustomersDialogOpen] = useState(false);
 
   const deleteMutation = useDeleteRepresentative();
   const { data, isLoading, isError } = useRepresentatives(name || undefined);
@@ -273,6 +315,11 @@ export function RepresentativesTable({
   const handleEdit = (rep: Representative) => {
     setEditingRep(rep);
     setIsEditDialogOpen(true);
+  };
+
+  const handleManageCustomers = (rep: Representative) => {
+    setManagingCustomersRep(rep);
+    setIsManageCustomersDialogOpen(true);
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -315,6 +362,7 @@ export function RepresentativesTable({
           key={rep.id}
           representative={rep}
           onEdit={() => handleEdit(rep)}
+          onManageCustomers={() => handleManageCustomers(rep)}
           onDelete={() => handleDelete(rep.id, rep.name)}
         />
       ))}
@@ -330,6 +378,7 @@ export function RepresentativesTable({
             <TableHead className="w-[240px]">Representante</TableHead>
             <TableHead className="w-[160px]">Telefone</TableHead>
             <TableHead className="w-[170px]">CPF / CNPJ</TableHead>
+            <TableHead className="w-[140px]">Clientes</TableHead>
             <TableHead className="w-[120px]">Cadastro</TableHead>
             <TableHead className="w-[50px] text-right">Ações</TableHead>
           </TableRow>
@@ -338,14 +387,14 @@ export function RepresentativesTable({
           {isLoading && <TableSkeleton />}
           {isError && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center">
+              <TableCell colSpan={6} className="text-center">
                 <ErrorState />
               </TableCell>
             </TableRow>
           )}
           {!isLoading && !isError && representatives.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center">
+              <TableCell colSpan={6} className="text-center">
                 <EmptyState />
               </TableCell>
             </TableRow>
@@ -355,6 +404,7 @@ export function RepresentativesTable({
               key={rep.id}
               representative={rep}
               onEdit={() => handleEdit(rep)}
+              onManageCustomers={() => handleManageCustomers(rep)}
               onDelete={() => handleDelete(rep.id, rep.name)}
             />
           ))}
@@ -372,6 +422,11 @@ export function RepresentativesTable({
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         representative={editingRep}
+      />
+      <ManageCustomersDialog
+        open={isManageCustomersDialogOpen}
+        onOpenChange={setIsManageCustomersDialogOpen}
+        representative={managingCustomersRep}
       />
     </>
   );

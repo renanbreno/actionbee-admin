@@ -1,4 +1,4 @@
-import { Representative } from "../entities/representative";
+import { Representative, RepresentativeCustomer } from "../entities/representative";
 
 export interface CreateRepresentativeParams {
   name: string;
@@ -22,4 +22,7 @@ export interface RepresentativeRepository {
   create(params: CreateRepresentativeParams): Promise<Representative>;
   update(id: string, params: UpdateRepresentativeParams): Promise<Representative>;
   delete(id: string): Promise<void>;
+  associateCustomer(representativeId: string, customerId: string): Promise<RepresentativeCustomer[]>;
+  dissociateCustomer(representativeId: string, customerId: string): Promise<RepresentativeCustomer[]>;
+  getCustomers(representativeId: string): Promise<RepresentativeCustomer[]>;
 }

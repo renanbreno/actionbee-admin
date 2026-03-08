@@ -1,4 +1,4 @@
-import { Representative } from "../../domain/entities/representative";
+import { Representative, RepresentativeCustomer } from "../../domain/entities/representative";
 import {
   RepresentativeRepository,
   CreateRepresentativeParams,
@@ -25,5 +25,17 @@ export class RepresentativeRepositoryImpl implements RepresentativeRepository {
 
   async delete(id: string): Promise<void> {
     return representativesApiClient.delete(id);
+  }
+
+  async associateCustomer(representativeId: string, customerId: string): Promise<RepresentativeCustomer[]> {
+    return representativesApiClient.associateCustomer(representativeId, customerId);
+  }
+
+  async dissociateCustomer(representativeId: string, customerId: string): Promise<RepresentativeCustomer[]> {
+    return representativesApiClient.dissociateCustomer(representativeId, customerId);
+  }
+
+  async getCustomers(representativeId: string): Promise<RepresentativeCustomer[]> {
+    return representativesApiClient.getCustomers(representativeId);
   }
 }

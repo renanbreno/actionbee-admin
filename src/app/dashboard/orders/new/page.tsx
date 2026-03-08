@@ -63,6 +63,8 @@ import { ShippingOptionsSelector } from "@/shared/presentation/components/shippi
 import type { ShippingOption } from "@/shared/infrastructure/api/shipping/types";
 import { useAddressLookup } from "@/shared/presentation/hooks/use-address-lookup";
 import { CurrencyInput } from "@/shared/presentation/components/currency-input";
+import { useRepresentatives } from "@/contexts/representatives/presentation/hooks/use-representatives";
+import { useRepresentativeCustomers } from "@/contexts/representatives/presentation/hooks/use-representative-customers";
 
 interface GiftTier {
   id: string;
@@ -209,7 +211,7 @@ const STEPS = [
 ];
 
 const STEP_META = [
-  { title: "Identificação", description: "Selecione o cliente para o pedido" },
+  { title: "Identificação", description: "Selecione a origem e o cliente para o pedido" },
   {
     title: "Itens & Brindes",
     description: "Adicione produtos e brindes ao pedido",
@@ -685,6 +687,7 @@ export default function NewOrderPage() {
   const [orderSource, setOrderSource] = useState<
     "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | ""
   >("");
+  const [selectedRepresentative, setSelectedRepresentative] = useState<{ id: string; name: string } | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
   const [notes, setNotes] = useState("");
@@ -719,6 +722,17 @@ export default function NewOrderPage() {
 
   const createOrderMutation = useCreateOrder();
   const addressLookup = useAddressLookup();
+
+  const isRepresentativeSource = orderSource === "REPRESENTATIVE";
+  const [repSearch, setRepSearch] = useState("");
+  const debouncedRepSearch = useDebounce(repSearch, 300);
+  const [repCustomerSearch, setRepCustomerSearch] = useState("");
+  const { data: representatives, isLoading: representativesLoading } = useRepresentatives(
+    isRepresentativeSource && debouncedRepSearch.length >= 2 ? debouncedRepSearch : undefined,
+  );
+  const { data: representativeCustomers, isLoading: repCustomersLoading } = useRepresentativeCustomers(
+    isRepresentativeSource ? selectedRepresentative?.id ?? null : null,
+  );
 
   const { data: customerDetail } = useQuery({
     queryKey: ["customer-detail", selectedCustomer?.id],
@@ -926,12 +940,15 @@ export default function NewOrderPage() {
 
   function canProceed(): boolean {
     switch (step) {
-      case 1:
-        return !!selectedCustomer;
+      case 1: {
+        if (!orderSource || !selectedCustomer) return false;
+        if (isRepresentativeSource && !selectedRepresentative) return false;
+        return true;
+      }
       case 2:
         return cartItems.length > 0;
       case 3: {
-        if (!effectiveDeliveryType || !orderSource) return false;
+        if (!effectiveDeliveryType) return false;
         if (payments.length === 0) return false;
         const allPaymentsValid = payments.every(
           (p) => p.method && p.amount > 0,
@@ -1009,6 +1026,7 @@ export default function NewOrderPage() {
             : undefined,
         giftTierIds: selectedGiftIds.length > 0 ? selectedGiftIds : undefined,
         notes: notes || undefined,
+        representativeId: selectedRepresentative?.id || undefined,
       },
       { onSuccess: () => router.push("/dashboard/orders") },
     );
@@ -1061,19 +1079,224 @@ export default function NewOrderPage() {
 
             <CardContent>
               {step === 1 && (
-                <CustomerSearch
-                  selected={selectedCustomer}
-                  onSelect={(customer) => {
-                    setSelectedCustomer(customer);
-                    setAddressOverrides({});
-                    setDeliveryType("");
-                  }}
-                  onClear={() => {
-                    setSelectedCustomer(null);
-                    setAddressOverrides({});
-                    setDeliveryType("");
-                  }}
-                />
+                <div className="space-y-5">
+                  {/* Order source selection */}
+                  <div className="space-y-1.5">
+                    <Label>Origem do Pedido *</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {ORDER_SOURCES.map((source) => {
+                        const Icon = source.icon;
+                        const isSelected = orderSource === source.value;
+                        return (
+                          <button
+                            key={source.value}
+                            type="button"
+                            onClick={() => {
+                              setOrderSource(source.value);
+                              if (source.value !== "REPRESENTATIVE") {
+                                setSelectedRepresentative(null);
+                                setSelectedCustomer(null);
+                                setAddressOverrides({});
+                                setDeliveryType("");
+                              } else {
+                                setSelectedCustomer(null);
+                                setAddressOverrides({});
+                                setDeliveryType("");
+                              }
+                            }}
+                            className={[
+                              "flex flex-col items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all cursor-pointer",
+                              isSelected
+                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
+                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40 text-foreground",
+                            ].join(" ")}
+                          >
+                            <Icon className="h-5 w-5" />
+                            {source.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Representative selector (only when source is REPRESENTATIVE) */}
+                  {isRepresentativeSource && (
+                    <div className="space-y-1.5">
+                      <Label>Representante *</Label>
+                      {selectedRepresentative ? (
+                        <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="h-4 w-4 text-muted-foreground" />
+                            <p className="text-sm font-medium">{selectedRepresentative.name}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setSelectedRepresentative(null);
+                              setSelectedCustomer(null);
+                              setRepSearch("");
+                              setRepCustomerSearch("");
+                              setAddressOverrides({});
+                              setDeliveryType("");
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar representante por nome..."
+                              value={repSearch}
+                              onChange={(e) => setRepSearch(e.target.value)}
+                              className="pl-9"
+                            />
+                          </div>
+                          {debouncedRepSearch.length >= 2 && (
+                            <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg">
+                              {representativesLoading && (
+                                <p className="p-3 text-sm text-muted-foreground">Buscando...</p>
+                              )}
+                              {!representativesLoading && (!representatives || representatives.length === 0) && (
+                                <p className="p-3 text-sm text-muted-foreground">
+                                  Nenhum representante encontrado.
+                                </p>
+                              )}
+                              {representatives?.map((rep) => (
+                                <button
+                                  key={rep.id}
+                                  type="button"
+                                  className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors text-sm"
+                                  onClick={() => {
+                                    setSelectedRepresentative({ id: rep.id, name: rep.name });
+                                    setSelectedCustomer(null);
+                                    setRepSearch("");
+                                    setRepCustomerSearch("");
+                                    setAddressOverrides({});
+                                    setDeliveryType("");
+                                  }}
+                                >
+                                  <p className="font-medium">{rep.name}</p>
+                                  <p className="text-xs text-muted-foreground">{rep.email}</p>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Customer selection */}
+                  {orderSource && (!isRepresentativeSource || selectedRepresentative) && (
+                    <div className="space-y-1.5">
+                      <Label>Cliente *</Label>
+                      {isRepresentativeSource && selectedRepresentative ? (
+                        /* Representative customers - search with filtered dropdown */
+                        selectedCustomer ? (
+                          <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">{selectedCustomer.name}</p>
+                                <p className="text-xs text-muted-foreground">{selectedCustomer.email}</p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                setSelectedCustomer(null);
+                                setRepCustomerSearch("");
+                                setAddressOverrides({});
+                                setDeliveryType("");
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ) : repCustomersLoading ? (
+                          <div className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Carregando clientes...
+                          </div>
+                        ) : !representativeCustomers || representativeCustomers.length === 0 ? (
+                          <p className="text-sm text-muted-foreground p-3">
+                            Nenhum cliente associado a este representante.
+                          </p>
+                        ) : (() => {
+                          const searchLower = repCustomerSearch.toLowerCase();
+                          const filtered = searchLower.length >= 2
+                            ? representativeCustomers.filter(
+                                (c) =>
+                                  c.name.toLowerCase().includes(searchLower) ||
+                                  c.email.toLowerCase().includes(searchLower),
+                              )
+                            : [];
+                          return (
+                            <div className="relative">
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  placeholder="Buscar cliente por nome ou e-mail..."
+                                  value={repCustomerSearch}
+                                  onChange={(e) => setRepCustomerSearch(e.target.value)}
+                                  className="pl-9"
+                                />
+                              </div>
+                              {repCustomerSearch.length >= 2 && (
+                                <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border bg-popover shadow-lg">
+                                  {filtered.length === 0 ? (
+                                    <p className="p-3 text-sm text-muted-foreground">
+                                      Nenhum cliente encontrado.
+                                    </p>
+                                  ) : (
+                                    filtered.map((c) => (
+                                      <button
+                                        key={c.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedCustomer({ id: c.id, name: c.name, email: c.email });
+                                          setRepCustomerSearch("");
+                                          setAddressOverrides({});
+                                          setDeliveryType("");
+                                        }}
+                                        className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors text-sm border-b last:border-b-0"
+                                      >
+                                        <p className="font-medium">{c.name}</p>
+                                        <p className="text-xs text-muted-foreground">{c.email}</p>
+                                      </button>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        /* Normal customer search */
+                        <CustomerSearch
+                          selected={selectedCustomer}
+                          onSelect={(customer) => {
+                            setSelectedCustomer(customer);
+                            setAddressOverrides({});
+                            setDeliveryType("");
+                          }}
+                          onClear={() => {
+                            setSelectedCustomer(null);
+                            setAddressOverrides({});
+                            setDeliveryType("");
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
               {step === 2 && (
@@ -1261,6 +1484,16 @@ export default function NewOrderPage() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="mt-2 rounded-lg border bg-card p-4 space-y-3">
+                          {/* Representative info */}
+                          {selectedRepresentative && (
+                            <div className="flex items-center gap-2 rounded-lg bg-bee-gold/5 border border-bee-gold/20 px-3 py-2">
+                              <Briefcase className="h-3.5 w-3.5 text-bee-gold shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Representante</p>
+                                <p className="text-sm font-medium truncate">{selectedRepresentative.name}</p>
+                              </div>
+                            </div>
+                          )}
                           {/* Items list */}
                           {cartItems.length > 0 && (
                             <div className="space-y-2">
@@ -1544,33 +1777,6 @@ export default function NewOrderPage() {
                           )}
                         </div>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Order source */}
-                  <div className="space-y-1.5">
-                    <Label>Origem do Pedido *</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {ORDER_SOURCES.map((source) => {
-                        const Icon = source.icon;
-                        const isSelected = orderSource === source.value;
-                        return (
-                          <button
-                            key={source.value}
-                            type="button"
-                            onClick={() => setOrderSource(source.value)}
-                            className={[
-                              "flex flex-col items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all cursor-pointer",
-                              isSelected
-                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
-                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40 text-foreground",
-                            ].join(" ")}
-                          >
-                            <Icon className="h-5 w-5" />
-                            {source.label}
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
 
@@ -2128,6 +2334,17 @@ export default function NewOrderPage() {
                   <p className="text-xs text-muted-foreground">
                     Nenhum cliente selecionado
                   </p>
+                </div>
+              )}
+
+              {/* Representative Info */}
+              {selectedRepresentative && (
+                <div className="flex items-center gap-2 rounded-lg bg-bee-gold/5 border border-bee-gold/20 px-3 py-2">
+                  <Briefcase className="h-4 w-4 text-bee-gold shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Representante</p>
+                    <p className="text-sm font-medium truncate">{selectedRepresentative.name}</p>
+                  </div>
                 </div>
               )}
 
