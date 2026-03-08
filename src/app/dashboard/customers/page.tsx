@@ -8,18 +8,10 @@ import {
   CustomersTable,
   CustomerFormDialog,
 } from "@/contexts/customers/presentation/components";
-import { useCustomers } from "@/contexts/customers/presentation/hooks/use-customers";
 
 export default function CustomersPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const limit = 10;
-
-  const { data } = useCustomers(1, limit, "");
-
-  const paginatedData = data as
-    | { customers: unknown[]; total: number }
-    | undefined;
-  const total = paginatedData?.total ?? 0;
+  const [total, setTotal] = useState<number | null>(null);
 
   return (
     <div className="space-y-6 sm:space-y-8 min-w-0">
@@ -34,7 +26,7 @@ export default function CustomersPage() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
                 Clientes
               </h1>
-              {total > 0 && (
+              {total !== null && (
                 <Badge variant="secondary" className="text-xs font-medium">
                   {total} {total === 1 ? "cliente" : "clientes"}
                 </Badge>
@@ -57,7 +49,7 @@ export default function CustomersPage() {
       </div>
 
       {/* Table */}
-      <CustomersTable />
+      <CustomersTable onTotalChange={setTotal} />
 
       {/* Mobile FAB */}
       <button

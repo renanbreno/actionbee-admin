@@ -1,4 +1,4 @@
-import { CustomerRepository, CreateCustomerDTO, UpdateCustomerDTO } from "../../domain/repositories/customer-repository.interface";
+import { CustomerRepository, CreateCustomerDTO, UpdateCustomerDTO, PurchaseStatus, CustomerTypeFilter } from "../../domain/repositories/customer-repository.interface";
 import { customersApiClient } from "../api/customers-api.client";
 import { Customer, PaginatedCustomers } from "../../domain/entities/customer";
 
@@ -7,9 +7,10 @@ export class CustomerRepositoryImpl implements CustomerRepository {
     page: number,
     limit: number,
     search?: string,
-    inactiveOnly?: boolean
+    purchaseStatus?: PurchaseStatus,
+    customerType?: CustomerTypeFilter
   ): Promise<PaginatedCustomers> {
-    return customersApiClient.getAllPaginated(page, limit, search, inactiveOnly);
+    return customersApiClient.getAllPaginated(page, limit, search, purchaseStatus, customerType);
   }
 
   async getById(id: string): Promise<Customer> {

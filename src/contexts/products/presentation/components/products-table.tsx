@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -404,36 +405,51 @@ export function ProductsTable() {
     setPage(1);
   };
 
+  /* ─── Filters ─── */
+  const filtersSection = (
+    <div className="rounded-xl border bg-card p-4 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="product-search" className="text-sm font-medium">
+            Buscar
+          </Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="product-search"
+              placeholder="Buscar produto..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="pl-9"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="product-category" className="text-sm font-medium">
+            Categoria
+          </Label>
+          <Select onValueChange={handleCategoryChange} defaultValue="all">
+            <SelectTrigger id="product-category">
+              <SelectValue placeholder="Todas as categorias" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as categorias</SelectItem>
+              {(categories ?? []).map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+
   /* ─── Mobile ─── */
   const mobileView = (
     <div className="space-y-3 md:hidden">
-      {/* Filters */}
-      <div className="space-y-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar produto..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-9"
-          />
-        </div>
-        <Select onValueChange={handleCategoryChange} defaultValue="all">
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Todas as categorias" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as categorias</SelectItem>
-            {(categories ?? []).map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {isLoading &&
         Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
       {isError && <ErrorState />}
@@ -473,35 +489,6 @@ export function ProductsTable() {
   /* ─── Desktop ─── */
   const desktopView = (
     <div className="hidden md:block space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar produto..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-9"
-          />
-        </div>
-        <Select onValueChange={handleCategoryChange} defaultValue="all">
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Todas as categorias" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as categorias</SelectItem>
-            {(categories ?? []).map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <span className="text-sm text-muted-foreground ml-auto">
-          {total} produto{total !== 1 ? "s" : ""}
-        </span>
-      </div>
-
       <div className="rounded-xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
@@ -572,6 +559,7 @@ export function ProductsTable() {
 
   return (
     <>
+      {filtersSection}
       {mobileView}
       {desktopView}
     </>

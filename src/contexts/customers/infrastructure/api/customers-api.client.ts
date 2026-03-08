@@ -3,6 +3,8 @@ import type { Customer, PaginatedCustomers } from "../../domain/entities/custome
 import type {
   CreateCustomerDTO,
   UpdateCustomerDTO,
+  PurchaseStatus,
+  CustomerTypeFilter,
 } from "../../domain/repositories/customer-repository.interface";
 
 export const customersApiClient = {
@@ -10,14 +12,16 @@ export const customersApiClient = {
     page: number,
     limit: number,
     search?: string,
-    inactiveOnly?: boolean
+    purchaseStatus?: PurchaseStatus,
+    customerType?: CustomerTypeFilter
   ): Promise<PaginatedCustomers> => {
     const params = new URLSearchParams({
       page: String(page),
       limit: String(limit),
     });
     if (search) params.set("search", search);
-    if (inactiveOnly) params.append("inactiveOnly", "true");
+    if (purchaseStatus && purchaseStatus !== 'all') params.set("purchaseStatus", purchaseStatus);
+    if (customerType && customerType !== 'all') params.set("customerType", customerType);
 
     return apiFetch<PaginatedCustomers>(
       `/admin/customers?${params.toString()}`

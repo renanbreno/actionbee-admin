@@ -353,7 +353,20 @@ function TopCategoriesList({
     );
   }
 
-  if (categories.length === 0) return null;
+  if (categories.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-5">
+          <LayoutGrid className="h-4 w-4 text-blue-600" />
+          <p className="text-sm font-semibold">Receita por Categoria de Afiliado</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+          <LayoutGrid className="h-8 w-8 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">Nenhuma categoria com vendas no período</p>
+        </div>
+      </div>
+    );
+  }
 
   const chartData = categories.map((c, i) => ({
     ...c,

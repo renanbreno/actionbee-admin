@@ -65,6 +65,19 @@ export interface SalesBySource {
   percentage: number;
 }
 
+export interface GiftTierSummary {
+  tierName: string;
+  count: number;
+  costPerUnit: number;
+  totalCost: number;
+}
+
+export interface GiftMetrics {
+  totalGiftsGiven: number;
+  totalGiftCost: number;
+  byTier: GiftTierSummary[];
+}
+
 export interface DashboardSales {
   totalOrders: number;
   grossRevenue: number;
@@ -83,12 +96,15 @@ export interface DashboardSales {
   };
   ordersByStatus: OrdersByStatus[];
   salesBySource?: SalesBySource[];
+  gifts?: GiftMetrics;
 }
 
 export interface DashboardCustomers {
   totalCustomers: number;
   newCustomers: number;
   activeCustomers: number;
+  customersWithNoOrders: number;
+  churnedCustomers: number;
   topCustomers: TopCustomer[];
 }
 
@@ -140,6 +156,20 @@ export interface DashboardAffiliates {
   }>;
 }
 
+export interface ChannelBreakdown {
+  totalOrders: number;
+  grossRevenue: number;
+  netRevenue: number;
+  avgOrderValue: number;
+  totalCustomers: number;
+  newCustomers: number;
+}
+
+export interface DashboardChannels {
+  b2b: ChannelBreakdown;
+  b2c: ChannelBreakdown;
+}
+
 export interface DashboardMetrics {
   generatedAt: string;
   period: {
@@ -150,4 +180,5 @@ export interface DashboardMetrics {
   customers: DashboardCustomers;
   products: DashboardProducts;
   affiliates: DashboardAffiliates;
+  channels?: DashboardChannels;
 }

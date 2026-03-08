@@ -1,7 +1,16 @@
 import { Customer, CustomerType, PaginatedCustomers } from "../entities/customer";
 
+export type PurchaseStatus = 'all' | 'never' | 'inactive' | 'active';
+export type CustomerTypeFilter = 'all' | 'FINAL_CONSUMER' | 'RETAILER_RESELLER' | 'DISTRIBUTOR_RESELLER';
+
 export interface CustomerRepository {
-  getAllPaginated(page: number, limit: number, search?: string, inactiveOnly?: boolean): Promise<PaginatedCustomers>;
+  getAllPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+    purchaseStatus?: PurchaseStatus,
+    customerType?: CustomerTypeFilter
+  ): Promise<PaginatedCustomers>;
   getById(id: string): Promise<Customer>;
   create(data: CreateCustomerDTO): Promise<Customer>;
   update(id: string, data: UpdateCustomerDTO): Promise<Customer>;

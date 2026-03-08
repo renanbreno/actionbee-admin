@@ -1,4 +1,4 @@
-import type { CustomerRepository } from "../../domain/repositories/customer-repository.interface";
+import type { CustomerRepository, PurchaseStatus, CustomerTypeFilter } from "../../domain/repositories/customer-repository.interface";
 import { PaginatedCustomers } from "../../domain/entities/customer";
 
 export class GetAllCustomersUseCase {
@@ -8,8 +8,9 @@ export class GetAllCustomersUseCase {
     page: number,
     limit: number,
     search?: string,
-    inactiveOnly?: boolean
+    purchaseStatus?: PurchaseStatus,
+    customerType?: CustomerTypeFilter
   ): Promise<PaginatedCustomers> {
-    return this.repository.getAllPaginated(page, limit, search, inactiveOnly);
+    return this.repository.getAllPaginated(page, limit, search, purchaseStatus, customerType);
   }
 }

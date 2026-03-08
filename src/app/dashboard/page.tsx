@@ -274,7 +274,7 @@ export default function DashboardPage() {
       )}
 
       {/* Sections */}
-      <DashboardSalesSection data={data?.sales} isLoading={isLoading} />
+      <DashboardSalesSection data={data?.sales} channels={data?.channels} isLoading={isLoading} />
 
       <Separator />
 

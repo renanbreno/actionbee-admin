@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -268,20 +269,32 @@ export function BrandsTable() {
     }
   };
 
+  /* ─── Filters ─── */
+  const filtersSection = (
+    <div className="rounded-xl border bg-card p-4 shadow-sm">
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="brand-search" className="text-sm font-medium">
+            Buscar
+          </Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="brand-search"
+              placeholder="Buscar marca..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   /* ─── Mobile ─── */
   const mobileView = (
     <div className="space-y-3 md:hidden">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar marca..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
       {isLoading &&
         Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
       {isError && <ErrorState />}
@@ -301,21 +314,6 @@ export function BrandsTable() {
   /* ─── Desktop ─── */
   const desktopView = (
     <div className="hidden md:block space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar marca..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <span className="text-sm text-muted-foreground ml-auto">
-          {filteredBrands.length} marca{filteredBrands.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-
       <div className="rounded-xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
@@ -357,6 +355,7 @@ export function BrandsTable() {
 
   return (
     <>
+      {filtersSection}
       {mobileView}
       {desktopView}
 
