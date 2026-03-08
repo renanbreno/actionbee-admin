@@ -58,7 +58,7 @@ export interface TopAffiliateCategory {
 }
 
 export interface SalesBySource {
-  source: 'WHATSAPP' | 'IN_STORE' | 'INSTAGRAM' | 'ECOMMERCE';
+  source: 'WHATSAPP' | 'IN_STORE' | 'INSTAGRAM' | 'ECOMMERCE' | 'REPRESENTATIVE';
   orders: number;
   grossRevenue: number;
   netRevenue: number;

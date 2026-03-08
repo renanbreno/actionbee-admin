@@ -44,7 +44,7 @@ export interface CreateOrderDTO {
   customerId: string;
   items: CreateOrderItemDTO[];
   payments: CreateOrderPaymentDTO[];
-  source: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE";
+  source: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE" | "REPRESENTATIVE";
   couponCode?: string;
   discount?: CreateOrderDiscountDTO;
   shippingAddress?: CreateOrderShippingAddressDTO;

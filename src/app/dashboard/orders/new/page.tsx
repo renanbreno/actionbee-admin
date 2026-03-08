@@ -7,6 +7,7 @@ import {
   Banknote,
   Ban,
   Barcode,
+  Briefcase,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -176,6 +177,7 @@ const ORDER_SOURCES = [
   { value: "WHATSAPP" as const, label: "WhatsApp", icon: MessageSquare },
   { value: "IN_STORE" as const, label: "Loja Física", icon: Store },
   { value: "INSTAGRAM" as const, label: "Instagram", icon: Instagram },
+  { value: "REPRESENTATIVE" as const, label: "Representante", icon: Briefcase },
 ];
 
 const PAYMENT_METHODS = [
@@ -681,7 +683,7 @@ export default function NewOrderPage() {
     { id: crypto.randomUUID(), method: "", amount: 0, boletoDueDays: 30 },
   ]);
   const [orderSource, setOrderSource] = useState<
-    "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | ""
+    "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | ""
   >("");
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);

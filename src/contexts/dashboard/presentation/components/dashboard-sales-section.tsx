@@ -117,10 +117,11 @@ function OrderStatusList({
 }
 
 const SOURCE_CONFIG: Record<string, { label: string; color: string }> = {
-  WHATSAPP:  { label: "WhatsApp",    color: "#22c55e" },
-  IN_STORE:  { label: "Loja Física", color: "#FBBD23" },
-  INSTAGRAM: { label: "Instagram",   color: "#ec4899" },
-  ECOMMERCE: { label: "E-commerce",  color: "#6366f1" },
+  WHATSAPP:       { label: "WhatsApp",     color: "#22c55e" },
+  IN_STORE:       { label: "Loja Física",  color: "#FBBD23" },
+  INSTAGRAM:      { label: "Instagram",    color: "#ec4899" },
+  ECOMMERCE:      { label: "E-commerce",   color: "#6366f1" },
+  REPRESENTATIVE: { label: "Representante", color: "#f97316" },
 };
 
 function SourceTooltip({
@@ -179,13 +180,13 @@ function SalesBySourceCard({
     <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-5">
         <Radio className="h-4 w-4 text-bee-gold" />
-        <p className="text-sm font-semibold">Vendas por Canal <span className="text-xs font-normal text-muted-foreground">(B2C)</span></p>
+        <p className="text-sm font-semibold">Vendas por Origem</p>
       </div>
 
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
           <Radio className="h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm text-muted-foreground">Nenhum pedido B2C no período</p>
+          <p className="text-sm text-muted-foreground">Nenhum pedido no período</p>
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -225,11 +226,14 @@ function SalesBySourceCard({
                         style={{ backgroundColor: cfg.color }}
                       />
                       <span className="text-xs font-medium">{cfg.label}</span>
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: cfg.color + "26", color: cfg.color }}
+                      >
+                        {item.orders}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2.5 text-xs">
-                      <span className="text-muted-foreground">{item.orders} pedido{item.orders !== 1 ? "s" : ""}</span>
-                      <span className="font-semibold w-10 text-right">{item.percentage.toFixed(1)}%</span>
-                    </div>
+                    <span className="text-xs font-semibold w-10 text-right">{item.percentage.toFixed(1)}%</span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-1.5">
                     <div
@@ -318,7 +322,7 @@ function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | un
     <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-5">
         <BarChart3 className="h-4 w-4 text-bee-gold" />
-        <p className="text-sm font-semibold">Vendas por Canal B2B / B2C</p>
+        <p className="text-sm font-semibold">Vendas por Canal</p>
       </div>
 
       {!channels || totalOrders === 0 ? (
