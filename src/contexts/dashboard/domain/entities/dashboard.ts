@@ -165,9 +165,27 @@ export interface ChannelBreakdown {
   newCustomers: number;
 }
 
+export interface TopRepresentative {
+  id: string;
+  name: string;
+  totalOrders: number;
+  grossRevenue: number;
+  netRevenue: number;
+  totalCustomers: number;
+}
+
+export interface RepresentativeChannelMetrics extends ChannelBreakdown {
+  topRepresentatives: TopRepresentative[];
+  activeRepresentatives: number;
+}
+
 export interface DashboardChannels {
-  b2b: ChannelBreakdown;
-  b2c: ChannelBreakdown;
+  b2bDirect: ChannelBreakdown & {
+    retailers: ChannelBreakdown;
+    distributors: ChannelBreakdown;
+  };
+  b2cDirect: ChannelBreakdown;
+  representatives: RepresentativeChannelMetrics;
 }
 
 export interface DashboardMetrics {

@@ -49,7 +49,7 @@ export interface CreateOrderDTO {
   discount?: CreateOrderDiscountDTO;
   shippingAddress?: CreateOrderShippingAddressDTO;
   shippingInfo?: CreateOrderShippingInfoDTO;
-  giftTierIds?: string[];
+  gifts?: { giftTierId: string; quantity: number }[];
   notes?: string;
   representativeId?: string;
 }

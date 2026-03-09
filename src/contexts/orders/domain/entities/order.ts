@@ -81,7 +81,7 @@ export interface OrderDetail extends OrderListItem {
   shippingAddress: OrderShippingAddress;
   shippingInfo: OrderShippingInfo;
   couponCode?: string;
-  gifts: { giftName: string; giftImageUrl?: string }[];
+  gifts: { giftName: string; giftImageUrl?: string; quantity: number }[];
   statusHistory: { status: string; changedAt: string }[];
   boletoBarcode?: string;
   boletoPdfUrl?: string;

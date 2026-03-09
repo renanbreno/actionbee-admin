@@ -691,7 +691,7 @@ export default function NewOrderPage() {
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
   const [notes, setNotes] = useState("");
-  const [selectedGiftIds, setSelectedGiftIds] = useState<string[]>([]);
+  const [selectedGifts, setSelectedGifts] = useState<Record<string, number>>({});
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("");
   const [shippingFormOpen, setShippingFormOpen] = useState(false);
   const [addressOverrides, setAddressOverrides] = useState<
@@ -807,9 +807,18 @@ export default function NewOrderPage() {
   const activeGiftTiers = giftTiersData?.filter((g) => g.isActive) ?? [];
 
   function toggleGift(id: string) {
-    setSelectedGiftIds((prev) =>
-      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
-    );
+    setSelectedGifts((prev) => {
+      if (id in prev) {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [id]: 1 };
+    });
+  }
+
+  function setGiftQuantity(id: string, qty: number) {
+    if (qty < 1) return;
+    setSelectedGifts((prev) => ({ ...prev, [id]: qty }));
   }
 
   const debouncedCouponCode = useDebounce(couponCode, 500);
@@ -1024,7 +1033,9 @@ export default function NewOrderPage() {
                 deliveryTime: parseInt(shippingInfo.deliveryTime) || 0,
               }
             : undefined,
-        giftTierIds: selectedGiftIds.length > 0 ? selectedGiftIds : undefined,
+        gifts: Object.keys(selectedGifts).length > 0
+          ? Object.entries(selectedGifts).map(([giftTierId, quantity]) => ({ giftTierId, quantity }))
+          : undefined,
         notes: notes || undefined,
         representativeId: selectedRepresentative?.id || undefined,
       },
@@ -1412,7 +1423,7 @@ export default function NewOrderPage() {
                       </p>
                       <div className="space-y-2">
                         {activeGiftTiers.map((gift) => {
-                          const isSelected = selectedGiftIds.includes(gift.id);
+                          const isSelected = gift.id in selectedGifts;
                           return (
                             <div
                               key={gift.id}
@@ -1447,7 +1458,36 @@ export default function NewOrderPage() {
                                 )}
                               </div>
                               {isSelected && (
-                                <Check className="h-4 w-4 text-bee-gold shrink-0" />
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    className="h-6 w-6 rounded border flex items-center justify-center text-xs hover:bg-muted"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const qty = selectedGifts[gift.id];
+                                      if (qty <= 1) {
+                                        toggleGift(gift.id);
+                                      } else {
+                                        setGiftQuantity(gift.id, qty - 1);
+                                      }
+                                    }}
+                                  >
+                                    {selectedGifts[gift.id] <= 1 ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                                  </button>
+                                  <span className="text-xs font-semibold w-5 text-center tabular-nums">
+                                    {selectedGifts[gift.id]}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="h-6 w-6 rounded border flex items-center justify-center text-xs hover:bg-muted"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setGiftQuantity(gift.id, selectedGifts[gift.id] + 1);
+                                    }}
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
                               )}
                             </div>
                           );
@@ -1631,18 +1671,19 @@ export default function NewOrderPage() {
                             </>
                           )}
                           {/* Gifts */}
-                          {selectedGiftIds.length > 0 && (
+                          {Object.keys(selectedGifts).length > 0 && (
                             <>
                               <Separator />
                               <div className="space-y-1.5">
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                  Brindes ({selectedGiftIds.length})
+                                  Brindes ({Object.keys(selectedGifts).length})
                                 </p>
                                 <div className="flex flex-wrap gap-1">
-                                  {selectedGiftIds
-                                    .map((id) =>
-                                      activeGiftTiers.find((g) => g.id === id),
-                                    )
+                                  {Object.entries(selectedGifts)
+                                    .map(([id, qty]) => {
+                                      const gift = activeGiftTiers.find((g) => g.id === id);
+                                      return gift ? { ...gift, qty } : null;
+                                    })
                                     .filter(Boolean)
                                     .map((gift) => (
                                       <div
@@ -1651,7 +1692,7 @@ export default function NewOrderPage() {
                                       >
                                         <Gift className="h-3 w-3 text-bee-gold" />
                                         <span className="truncate max-w-25">
-                                          {gift!.name}
+                                          {gift!.name}{gift!.qty > 1 ? ` x${gift!.qty}` : ''}
                                         </span>
                                       </div>
                                     ))}
@@ -2495,16 +2536,19 @@ export default function NewOrderPage() {
               )}
 
               {/* Selected Gifts */}
-              {selectedGiftIds.length > 0 && (
+              {Object.keys(selectedGifts).length > 0 && (
                 <>
                   <Separator />
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Brindes ({selectedGiftIds.length})
+                      Brindes ({Object.keys(selectedGifts).length})
                     </p>
                     <div className="flex flex-wrap gap-1">
-                      {selectedGiftIds
-                        .map((id) => activeGiftTiers.find((g) => g.id === id))
+                      {Object.entries(selectedGifts)
+                        .map(([id, qty]) => {
+                          const gift = activeGiftTiers.find((g) => g.id === id);
+                          return gift ? { ...gift, qty } : null;
+                        })
                         .filter(Boolean)
                         .map((gift) => (
                           <div
@@ -2513,7 +2557,7 @@ export default function NewOrderPage() {
                           >
                             <Gift className="h-3 w-3 text-bee-gold" />
                             <span className="truncate max-w-25">
-                              {gift!.name}
+                              {gift!.name}{gift!.qty > 1 ? ` x${gift!.qty}` : ''}
                             </span>
                           </div>
                         ))}

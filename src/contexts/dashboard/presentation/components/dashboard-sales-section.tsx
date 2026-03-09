@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ShoppingCart, TrendingUp, Banknote, BarChart3, ChevronDown, ChevronUp, Radio, Gift } from "lucide-react";
-import { DashboardSales, GiftMetrics, OrdersByStatus, SalesBySource } from "../../domain/entities/dashboard";
+import { ShoppingCart, TrendingUp, Banknote, BarChart3, ChevronDown, ChevronUp, Radio, Gift, Users, Crown } from "lucide-react";
+import { DashboardSales, GiftMetrics, OrdersByStatus, SalesBySource, ChannelBreakdown, TopRepresentative } from "../../domain/entities/dashboard";
 import { DashboardMetricCard } from "./dashboard-metric-card";
 import { DashboardRevenueChart } from "./dashboard-revenue-chart";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -266,11 +266,14 @@ function SalesBySourceCard({
 }
 
 const CHANNEL_CONFIG = {
-  b2b: { label: "B2B", color: "#6366f1" },
-  b2c: { label: "B2C", color: "#FBBD23" },
+  b2bDirect: { label: "B2B Direto", color: "#6366f1" },
+  b2cDirect: { label: "B2C Direto", color: "#FBBD23" },
+  representatives: { label: "Representantes", color: "#f97316" },
 } as const;
 
-function ChannelTooltip({ active, payload }: { active?: boolean; payload?: { payload: { key: "b2b" | "b2c"; orders: number; percentage: number; grossRevenue: number; netRevenue: number } }[] }) {
+type ChannelKey = keyof typeof CHANNEL_CONFIG;
+
+function ChannelTooltip({ active, payload }: { active?: boolean; payload?: { payload: { key: ChannelKey; orders: number; percentage: number; grossRevenue: number; netRevenue: number } }[] }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   const cfg = CHANNEL_CONFIG[d.key];
@@ -284,6 +287,103 @@ function ChannelTooltip({ active, payload }: { active?: boolean; payload?: { pay
   );
 }
 
+function ChannelBreakdownRow({ label, breakdown, color }: { label: string; breakdown: ChannelBreakdown; color: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground pl-5">
+      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: color, opacity: 0.6 }} />
+      <span className="font-medium text-foreground">{label}</span>
+      <span>{breakdown.totalOrders} pedido{breakdown.totalOrders !== 1 ? "s" : ""}</span>
+      <span>Bruto: <span className="font-medium text-foreground">{formatCurrency(breakdown.grossRevenue)}</span></span>
+      <span>Líquido: <span className="font-medium text-emerald-600">{formatCurrency(breakdown.netRevenue)}</span></span>
+      <span>{breakdown.totalCustomers} cliente{breakdown.totalCustomers !== 1 ? "s" : ""}</span>
+    </div>
+  );
+}
+
+function TopRepresentativesCard({ representatives, activeCount, isLoading }: { representatives: TopRepresentative[]; activeCount: number; isLoading: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <Skeleton className="h-4 w-44 mb-4" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex justify-between">
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (representatives.length === 0) {
+    return (
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Crown className="h-4 w-4 text-orange-500" />
+          <p className="text-sm font-semibold">Top Representantes</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
+          <Users className="h-8 w-8 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">Nenhuma venda via representante no período</p>
+        </div>
+      </div>
+    );
+  }
+
+  const hasMore = representatives.length > COLLAPSED_COUNT;
+  const visible = expanded ? representatives : representatives.slice(0, COLLAPSED_COUNT);
+
+  return (
+    <div className="rounded-xl border bg-card p-5 shadow-sm flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Crown className="h-4 w-4 text-orange-500" />
+          <p className="text-sm font-semibold">Top Representantes</p>
+        </div>
+        <span className="text-xs text-muted-foreground">{activeCount} ativo{activeCount !== 1 ? "s" : ""}</span>
+      </div>
+
+      <div className="space-y-3">
+        {visible.map((rep, i) => (
+          <div key={rep.id} className="flex items-start gap-2.5">
+            <span className="text-xs font-bold text-muted-foreground w-4 pt-0.5 text-right shrink-0">{i + 1}.</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-xs font-semibold truncate">{rep.name}</span>
+                <span className="text-xs font-semibold text-emerald-600 shrink-0 ml-2">{formatCurrency(rep.grossRevenue)}</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>{rep.totalOrders} pedido{rep.totalOrders !== 1 ? "s" : ""}</span>
+                <span>{rep.totalCustomers} cliente{rep.totalCustomers !== 1 ? "s" : ""}</span>
+                <span>Líq. {formatCurrency(rep.netRevenue)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {hasMore && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-3 h-auto py-1 text-xs text-muted-foreground gap-1 self-center"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? (
+            <><ChevronUp className="h-3 w-3" /> Ver menos</>
+          ) : (
+            <><ChevronDown className="h-3 w-3" /> Ver todos ({representatives.length})</>
+          )}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | undefined; isLoading: boolean }) {
   if (isLoading) {
     return (
@@ -292,7 +392,7 @@ function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | un
         <div className="flex flex-col sm:flex-row gap-6">
           <Skeleton className="h-40 w-full sm:w-44 rounded-full mx-auto" />
           <div className="flex-1 space-y-4">
-            {[0, 1].map((i) => (
+            {[0, 1, 2].map((i) => (
               <div key={i} className="space-y-1.5">
                 <div className="flex justify-between">
                   <Skeleton className="h-3 w-16" />
@@ -308,15 +408,25 @@ function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | un
     );
   }
 
-  const totalOrders = (channels?.b2b.totalOrders ?? 0) + (channels?.b2c.totalOrders ?? 0);
+  const totalOrders = (channels?.b2bDirect.totalOrders ?? 0) + (channels?.b2cDirect.totalOrders ?? 0) + (channels?.representatives.totalOrders ?? 0);
 
-  const chartData = (["b2b", "b2c"] as const).map((key) => ({
-    key,
-    orders: channels?.[key].totalOrders ?? 0,
-    percentage: totalOrders > 0 ? ((channels?.[key].totalOrders ?? 0) / totalOrders) * 100 : 0,
-    grossRevenue: channels?.[key].grossRevenue ?? 0,
-    netRevenue: channels?.[key].netRevenue ?? 0,
-  }));
+  const chartData = (["b2bDirect", "b2cDirect", "representatives"] as const).map((key) => {
+    const ch = key === "b2bDirect" ? channels?.b2bDirect : key === "b2cDirect" ? channels?.b2cDirect : channels?.representatives;
+    return {
+      key,
+      orders: ch?.totalOrders ?? 0,
+      percentage: totalOrders > 0 ? ((ch?.totalOrders ?? 0) / totalOrders) * 100 : 0,
+      grossRevenue: ch?.grossRevenue ?? 0,
+      netRevenue: ch?.netRevenue ?? 0,
+    };
+  });
+
+  const getBreakdown = (key: ChannelKey): ChannelBreakdown => {
+    if (!channels) return { totalOrders: 0, grossRevenue: 0, netRevenue: 0, avgOrderValue: 0, totalCustomers: 0, newCustomers: 0 };
+    if (key === "b2bDirect") return channels.b2bDirect;
+    if (key === "b2cDirect") return channels.b2cDirect;
+    return channels.representatives;
+  };
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -358,9 +468,9 @@ function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | un
           <div className="flex-1 w-full space-y-4">
             {chartData.map((item) => {
               const cfg = CHANNEL_CONFIG[item.key];
-              const ch = channels[item.key];
+              const ch = getBreakdown(item.key);
               return (
-                <div key={item.key}>
+                <div key={item.key} className="space-y-1">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cfg.color }} />
@@ -380,6 +490,13 @@ function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | un
                     <span>Ticket médio: <span className="font-medium text-foreground">{formatCurrency(ch.avgOrderValue)}</span></span>
                     <span>{ch.totalCustomers} cliente{ch.totalCustomers !== 1 ? "s" : ""} · <span className="font-medium text-foreground">+{ch.newCustomers} novo{ch.newCustomers !== 1 ? "s" : ""}</span></span>
                   </div>
+                  {/* B2B sub-breakdowns */}
+                  {item.key === "b2bDirect" && channels.b2bDirect.totalOrders > 0 && (
+                    <div className="space-y-1 mt-1">
+                      <ChannelBreakdownRow label="Lojistas" breakdown={channels.b2bDirect.retailers} color={cfg.color} />
+                      <ChannelBreakdownRow label="Distribuidores" breakdown={channels.b2bDirect.distributors} color={cfg.color} />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -529,9 +646,17 @@ export function DashboardSalesSection({ data, channels, isLoading }: DashboardSa
         <OrderStatusList statuses={data?.ordersByStatus ?? []} isLoading={isLoading} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SalesBySourceCard salesBySource={data?.salesBySource ?? []} isLoading={isLoading} />
         <ChannelCard channels={channels} isLoading={isLoading} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TopRepresentativesCard
+          representatives={channels?.representatives.topRepresentatives ?? []}
+          activeCount={channels?.representatives.activeRepresentatives ?? 0}
+          isLoading={isLoading}
+        />
         <GiftsCard gifts={data?.gifts} isLoading={isLoading} />
       </div>
     </section>

@@ -296,7 +296,7 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
                 className="flex items-center gap-2 rounded-lg border bg-card p-4 text-sm"
               >
                 <Gift className="h-4 w-4 text-bee-gold" />
-                <span>{gift.giftName}</span>
+                <span>{gift.giftName}{gift.quantity > 1 ? ` x${gift.quantity}` : ''}</span>
               </div>
             ))}
           </div>
