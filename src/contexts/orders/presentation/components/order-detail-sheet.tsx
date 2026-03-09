@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   Banknote,
   Barcode,
+  Briefcase,
   CalendarDays,
   Copy,
   CreditCard,
@@ -109,6 +110,14 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
               <p className="text-xs text-muted-foreground">{order.customerEmail}</p>
             </div>
           </div>
+          {order.representativeName && (
+            <div className="flex items-center gap-2 text-sm">
+              <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                Representante: <span className="font-medium text-foreground">{order.representativeName}</span>
+              </span>
+            </div>
+          )}
         </div>
       </Section>
 

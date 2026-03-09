@@ -13,14 +13,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Banknote,
+  Barcode,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
+  QrCode,
   ShoppingCart,
   AlertTriangle,
   ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SalesReportOrder } from "../../domain/entities/sales-report";
+import type { LucideIcon } from "lucide-react";
 
 function formatCurrency(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -32,6 +37,44 @@ function formatDate(dateStr: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CASH: "Dinheiro",
+  PIX: "Pix",
+  CREDIT_CARD: "Cartão de Crédito",
+  DEBIT_CARD: "Cartão de Débito",
+  BOLETO: "Boleto",
+};
+
+const PAYMENT_METHOD_ICONS: Record<string, LucideIcon> = {
+  CASH: Banknote,
+  PIX: QrCode,
+  CREDIT_CARD: CreditCard,
+  DEBIT_CARD: CreditCard,
+  BOLETO: Barcode,
+};
+
+function PaymentMethodIcon({ method }: { method: string }) {
+  const Icon = PAYMENT_METHOD_ICONS[method];
+  const label = PAYMENT_METHOD_LABELS[method] ?? method;
+  if (!Icon) return <span className="text-xs text-muted-foreground">{label}</span>;
+  return (
+    <span title={label}>
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </span>
+  );
+}
+
+function PaymentMethodLabel({ method }: { method: string }) {
+  const methods = method.split(",").map((m) => m.trim()).filter(Boolean);
+  return (
+    <span className="flex items-center gap-1.5">
+      {methods.map((m) => (
+        <PaymentMethodIcon key={m} method={m} />
+      ))}
+    </span>
+  );
 }
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -61,7 +104,7 @@ function OrderCard({ order }: { order: SalesReportOrder }) {
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="font-semibold text-sm">#{order.orderNumber}</p>
+            <p className="font-mono font-bold text-sm">#{order.orderNumber}</p>
             <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
           </div>
           <StatusBadge status={order.status} />
@@ -79,15 +122,17 @@ function OrderCard({ order }: { order: SalesReportOrder }) {
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Pagamento</p>
-            <p className="font-medium">{order.paymentMethod ?? "—"}</p>
+            <p className="font-medium">
+              {order.paymentMethod ? <PaymentMethodLabel method={order.paymentMethod} /> : "—"}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Total</p>
-            <p className="font-medium">{formatCurrency(order.discountedAmount)}</p>
+            <p className="font-semibold text-bee-gold">{formatCurrency(order.discountedAmount)}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Comissão</p>
-            <p className="font-medium">
+            <p className="font-semibold text-bee-gold">
               {order.commissionAmount != null ? formatCurrency(order.commissionAmount) : "—"}
             </p>
           </div>
@@ -122,10 +167,7 @@ function OrderRow({ order }: { order: SalesReportOrder }) {
       onClick={handleClick}
     >
       <TableCell>
-        <div className="flex items-center gap-1.5">
-          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-          <span className="font-medium">#{order.orderNumber}</span>
-        </div>
+        <span className="font-mono font-bold text-sm">#{order.orderNumber}</span>
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {formatDate(order.createdAt)}
@@ -133,8 +175,10 @@ function OrderRow({ order }: { order: SalesReportOrder }) {
       <TableCell className="text-sm">{order.customerName}</TableCell>
       <TableCell className="text-sm">{order.representativeName ?? "—"}</TableCell>
       <TableCell className="text-sm text-center">{itemsCount}</TableCell>
-      <TableCell className="text-sm">{order.paymentMethod ?? "—"}</TableCell>
-      <TableCell className="text-sm font-medium">
+      <TableCell className="text-sm">
+        {order.paymentMethod ? <PaymentMethodLabel method={order.paymentMethod} /> : "—"}
+      </TableCell>
+      <TableCell className="text-sm font-semibold text-bee-gold">
         {formatCurrency(order.discountedAmount)}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
@@ -142,7 +186,7 @@ function OrderRow({ order }: { order: SalesReportOrder }) {
           ? formatCurrency(order.totalAmount - order.discountedAmount)
           : "—"}
       </TableCell>
-      <TableCell className="text-sm font-medium">
+      <TableCell className="text-sm font-semibold text-bee-gold">
         {order.commissionAmount != null ? formatCurrency(order.commissionAmount) : "—"}
       </TableCell>
       <TableCell>

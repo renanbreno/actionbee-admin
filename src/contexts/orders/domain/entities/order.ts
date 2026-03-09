@@ -18,6 +18,7 @@ export interface OrderListItem {
   orderNumber: string;
   customerName: string;
   customerEmail: string;
+  representativeName?: string;
   totalAmount: number;
   discountedAmount: number;
   status: OrderStatus;
