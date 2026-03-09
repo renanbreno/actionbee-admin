@@ -6,6 +6,7 @@ import { DeleteRepresentativeUseCase } from "./application/use-cases/delete-repr
 import { AssociateCustomerUseCase } from "./application/use-cases/associate-customer.use-case";
 import { DissociateCustomerUseCase } from "./application/use-cases/dissociate-customer.use-case";
 import { GetRepresentativeCustomersUseCase } from "./application/use-cases/get-representative-customers.use-case";
+import { GetSalesReportUseCase } from "./application/use-cases/get-sales-report.use-case";
 
 const representativeRepository = new RepresentativeRepositoryImpl();
 
@@ -28,5 +29,8 @@ export const dissociateCustomerUseCase = new DissociateCustomerUseCase(
   representativeRepository,
 );
 export const getRepresentativeCustomersUseCase = new GetRepresentativeCustomersUseCase(
+  representativeRepository,
+);
+export const getSalesReportUseCase = new GetSalesReportUseCase(
   representativeRepository,
 );

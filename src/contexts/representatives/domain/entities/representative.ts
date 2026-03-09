@@ -16,6 +16,7 @@ export interface Representative {
   cpf: string | null;
   cnpj: string | null;
   phone: string | null;
+  commissionRate: number;
   customersCount: number;
   createdAt: string;
   updatedAt: string;

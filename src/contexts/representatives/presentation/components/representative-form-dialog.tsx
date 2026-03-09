@@ -68,7 +68,7 @@ export function RepresentativeFormDialog({
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(isEditing ? updateRepresentativeSchema : createRepresentativeSchema),
-    defaultValues: { name: "", email: "", phone: "", document: "" },
+    defaultValues: { name: "", email: "", phone: "", document: "", commissionRate: undefined },
   });
 
   const documentValue = watch("document") || "";
@@ -82,9 +82,15 @@ export function RepresentativeFormDialog({
         : representative.cpf
         ? formatDocument(representative.cpf)
         : "";
-      reset({ name: representative.name, email: representative.email, phone, document: doc });
+      reset({
+        name: representative.name,
+        email: representative.email,
+        phone,
+        document: doc,
+        commissionRate: representative.commissionRate,
+      });
     } else {
-      reset({ name: "", email: "", phone: "", document: "" });
+      reset({ name: "", email: "", phone: "", document: "", commissionRate: undefined });
     }
   }, [representative, reset]);
 
@@ -98,6 +104,7 @@ export function RepresentativeFormDialog({
       phone: unmaskPhone((data as CreateRepresentativeFormValues).phone ?? "") || undefined,
       cpf: docType === "cpf" ? docDigits : undefined,
       cnpj: docType === "cnpj" ? docDigits : undefined,
+      ...(data.commissionRate !== undefined && { commissionRate: data.commissionRate }),
     };
 
     const onSuccess = () => {
@@ -208,6 +215,26 @@ export function RepresentativeFormDialog({
                   {documentType === "cnpj" ? "Formatando como CNPJ" : "Digite +11 dígitos para CNPJ"}
                 </p>
               </div>
+            </div>
+
+            {/* Taxa de Comissão */}
+            <div className="space-y-2">
+              <Label htmlFor="rep-commission" className="text-sm font-medium">
+                Taxa de Comissão (%)
+              </Label>
+              <Input
+                id="rep-commission"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="Ex: 10"
+                {...register("commissionRate", { valueAsNumber: true })}
+                className="max-w-[200px]"
+              />
+              {errors.commissionRate && (
+                <p className="text-destructive text-sm">{getErrorMessage(errors.commissionRate as FieldError)}</p>
+              )}
             </div>
 
             <DialogActions

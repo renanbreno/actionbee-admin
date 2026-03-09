@@ -1,5 +1,6 @@
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
 import { Representative, RepresentativeCustomer } from "../../domain/entities/representative";
+import { PaginatedSalesReport, SalesReportFilters } from "../../domain/entities/sales-report";
 
 export interface CreateRepresentativeApiRequest {
   name: string;
@@ -7,6 +8,7 @@ export interface CreateRepresentativeApiRequest {
   cpf?: string;
   cnpj?: string;
   phone: string;
+  commissionRate?: number;
 }
 
 export interface UpdateRepresentativeApiRequest {
@@ -15,6 +17,7 @@ export interface UpdateRepresentativeApiRequest {
   cpf?: string;
   cnpj?: string;
   phone?: string;
+  commissionRate?: number;
 }
 
 export const representativesApiClient = {
@@ -62,5 +65,16 @@ export const representativesApiClient = {
 
   getCustomers(representativeId: string): Promise<RepresentativeCustomer[]> {
     return apiFetch<RepresentativeCustomer[]>(`/admin/representatives/${representativeId}/customers`);
+  },
+
+  getSalesReport(filters: SalesReportFilters): Promise<PaginatedSalesReport> {
+    const params = new URLSearchParams();
+    if (filters.representativeName) params.set("representativeName", filters.representativeName);
+    if (filters.startDate) params.set("startDate", filters.startDate);
+    if (filters.endDate) params.set("endDate", filters.endDate);
+    if (filters.page) params.set("page", String(filters.page));
+    if (filters.limit) params.set("limit", String(filters.limit));
+    const query = params.toString();
+    return apiFetch<PaginatedSalesReport>(`/admin/representatives/sales-report${query ? `?${query}` : ""}`);
   },
 };

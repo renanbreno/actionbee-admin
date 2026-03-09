@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Filter, Package, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ type StatusFilter = "all" | "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | 
 
 export default function OrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     search: "",
@@ -32,6 +33,16 @@ export default function OrdersPage() {
     open: boolean;
     orderId: string | null;
   }>({ open: false, orderId: null });
+
+  // Open detail sheet when orderId is in URL params
+  useEffect(() => {
+    const orderId = searchParams.get("orderId");
+    if (orderId) {
+      setDetailSheet({ open: true, orderId });
+      // Clear the URL param to avoid re-opening on refresh
+      router.replace("/dashboard/orders", { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const [updateStatusDialog, setUpdateStatusDialog] = useState<{
     open: boolean;

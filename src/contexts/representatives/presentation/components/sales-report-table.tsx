@@ -1,0 +1,328 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+  AlertTriangle,
+  ExternalLink,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { SalesReportOrder } from "../../domain/entities/sales-report";
+
+function formatCurrency(value: number): string {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  PENDING: { label: "Pendente", variant: "secondary" },
+  CONFIRMED: { label: "Confirmado", variant: "default" },
+  SHIPPED: { label: "Enviado", variant: "outline" },
+  DELIVERED: { label: "Entregue", variant: "default" },
+  CANCELLED: { label: "Cancelado", variant: "destructive" },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const config = STATUS_MAP[status] ?? { label: status, variant: "secondary" as const };
+  return <Badge variant={config.variant}>{config.label}</Badge>;
+}
+
+/* ─── Mobile Card ─── */
+function OrderCard({ order }: { order: SalesReportOrder }) {
+  const router = useRouter();
+  const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+  function handleClick() {
+    router.push(`/dashboard/orders?orderId=${order.id}`);
+  }
+
+  return (
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-semibold text-sm">#{order.orderNumber}</p>
+            <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
+          </div>
+          <StatusBadge status={order.status} />
+        </div>
+
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+          <span>{order.customerName}</span>
+          {order.representativeName && <span>{order.representativeName}</span>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <p className="text-muted-foreground text-xs">Itens</p>
+            <p className="font-medium">{itemsCount}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Pagamento</p>
+            <p className="font-medium">{order.paymentMethod ?? "—"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Total</p>
+            <p className="font-medium">{formatCurrency(order.discountedAmount)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Comissão</p>
+            <p className="font-medium">
+              {order.commissionAmount != null ? formatCurrency(order.commissionAmount) : "—"}
+            </p>
+          </div>
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs gap-2"
+          onClick={handleClick}
+        >
+          Ver pedido
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── Desktop Row ─── */
+function OrderRow({ order }: { order: SalesReportOrder }) {
+  const router = useRouter();
+  const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+  function handleClick() {
+    router.push(`/dashboard/orders?orderId=${order.id}`);
+  }
+
+  return (
+    <TableRow
+      className="group cursor-pointer hover:bg-muted/50"
+      onClick={handleClick}
+    >
+      <TableCell>
+        <div className="flex items-center gap-1.5">
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          <span className="font-medium">#{order.orderNumber}</span>
+        </div>
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {formatDate(order.createdAt)}
+      </TableCell>
+      <TableCell className="text-sm">{order.customerName}</TableCell>
+      <TableCell className="text-sm">{order.representativeName ?? "—"}</TableCell>
+      <TableCell className="text-sm text-center">{itemsCount}</TableCell>
+      <TableCell className="text-sm">{order.paymentMethod ?? "—"}</TableCell>
+      <TableCell className="text-sm font-medium">
+        {formatCurrency(order.discountedAmount)}
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {order.totalAmount > order.discountedAmount
+          ? formatCurrency(order.totalAmount - order.discountedAmount)
+          : "—"}
+      </TableCell>
+      <TableCell className="text-sm font-medium">
+        {order.commissionAmount != null ? formatCurrency(order.commissionAmount) : "—"}
+      </TableCell>
+      <TableCell>
+        <StatusBadge status={order.status} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
+/* ─── Skeletons ─── */
+function CardSkeleton() {
+  return (
+    <Card className="shadow-sm">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+        </div>
+        <Skeleton className="h-3 w-40" />
+        <div className="grid grid-cols-2 gap-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <TableRow key={i}>
+          {Array.from({ length: 10 }).map((_, j) => (
+            <TableCell key={j}>
+              <Skeleton className="h-4 w-full" />
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center gap-2 py-16">
+      <ShoppingCart className="h-8 w-8 text-muted-foreground/40" />
+      <p className="font-medium">Nenhum pedido encontrado</p>
+      <p className="text-muted-foreground text-sm">
+        Ajuste os filtros para encontrar pedidos de representantes.
+      </p>
+    </div>
+  );
+}
+
+function ErrorState() {
+  return (
+    <div className="flex flex-col items-center gap-2 py-16">
+      <AlertTriangle className="h-8 w-8 text-destructive/60" />
+      <p className="text-destructive font-medium">Erro ao carregar relatório</p>
+      <p className="text-muted-foreground text-sm">Verifique sua conexão e tente novamente.</p>
+    </div>
+  );
+}
+
+/* ─── Pagination ─── */
+function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-center gap-2 pt-4">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={page <= 1}
+        onClick={() => onPageChange(page - 1)}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <span className="text-sm text-muted-foreground">
+        Página {page} de {totalPages}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={page >= totalPages}
+        onClick={() => onPageChange(page + 1)}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+/* ─── Main Component ─── */
+interface SalesReportTableProps {
+  orders: SalesReportOrder[];
+  isLoading?: boolean;
+  isError?: boolean;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
+
+export function SalesReportTable({
+  orders,
+  isLoading,
+  isError,
+  page,
+  totalPages,
+  onPageChange,
+}: SalesReportTableProps) {
+  /* Mobile */
+  const mobileView = (
+    <div className="space-y-3 md:hidden">
+      {isLoading && Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
+      {isError && <ErrorState />}
+      {!isLoading && !isError && orders.length === 0 && <EmptyState />}
+      {orders.map((order) => (
+        <OrderCard key={order.id} order={order} />
+      ))}
+    </div>
+  );
+
+  /* Desktop */
+  const desktopView = (
+    <div className="hidden md:block rounded-xl border bg-card shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-[130px]">Pedido</TableHead>
+            <TableHead className="w-[110px]">Data</TableHead>
+            <TableHead className="w-[160px]">Cliente</TableHead>
+            <TableHead className="w-[140px]">Representante</TableHead>
+            <TableHead className="w-[60px] text-center">Itens</TableHead>
+            <TableHead className="w-[100px]">Pagamento</TableHead>
+            <TableHead className="w-[110px]">Total</TableHead>
+            <TableHead className="w-[100px]">Desconto</TableHead>
+            <TableHead className="w-[110px]">Comissão</TableHead>
+            <TableHead className="w-[100px]">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading && <TableSkeleton />}
+          {isError && (
+            <TableRow>
+              <TableCell colSpan={10} className="text-center">
+                <ErrorState />
+              </TableCell>
+            </TableRow>
+          )}
+          {!isLoading && !isError && orders.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={10} className="text-center">
+                <EmptyState />
+              </TableCell>
+            </TableRow>
+          )}
+          {orders.map((order) => (
+            <OrderRow key={order.id} order={order} />
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  return (
+    <>
+      {mobileView}
+      {desktopView}
+      <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+    </>
+  );
+}

@@ -22,6 +22,11 @@ const baseRepresentativeSchema = z.object({
     .string()
     .min(1, "O CPF ou CNPJ é obrigatório")
     .refine(documentRefinement, { message: "Informe CPF (11 dígitos) ou CNPJ (14 dígitos) completo" }),
+  commissionRate: z
+    .number()
+    .min(0, "A taxa de comissão não pode ser negativa")
+    .max(100, "A taxa de comissão não pode ser maior que 100")
+    .optional(),
 });
 
 export const createRepresentativeSchema = baseRepresentativeSchema;
