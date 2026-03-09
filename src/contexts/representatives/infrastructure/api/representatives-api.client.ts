@@ -1,6 +1,7 @@
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
 import { Representative, RepresentativeCustomer } from "../../domain/entities/representative";
 import { PaginatedSalesReport, SalesReportFilters } from "../../domain/entities/sales-report";
+import { CommissionSummary } from "../../domain/entities/commission-summary";
 
 export interface CreateRepresentativeApiRequest {
   name: string;
@@ -76,5 +77,21 @@ export const representativesApiClient = {
     if (filters.limit) params.set("limit", String(filters.limit));
     const query = params.toString();
     return apiFetch<PaginatedSalesReport>(`/admin/representatives/sales-report${query ? `?${query}` : ""}`);
+  },
+
+  markRepresentativeCommissionPaid(orderId: string): Promise<void> {
+    return apiFetch<void>(`/admin/representative-commissions/orders/${orderId}/mark-paid`, {
+      method: "PATCH",
+    });
+  },
+
+  cancelRepresentativeCommission(orderId: string): Promise<void> {
+    return apiFetch<void>(`/admin/representative-commissions/orders/${orderId}/cancel`, {
+      method: "PATCH",
+    });
+  },
+
+  getCommissionSummary(): Promise<CommissionSummary> {
+    return apiFetch<CommissionSummary>("/admin/representative-commissions/summary");
   },
 };

@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -19,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import {
   Banknote,
   Barcode,
@@ -38,32 +36,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { OrderListItem, OrderStatus } from "../../domain/entities/order";
-
-const STATUS_CONFIG: Record<
-  OrderStatus,
-  { label: string; className: string }
-> = {
-  PENDING: {
-    label: "Pendente",
-    className: "bg-amber-100 text-amber-800 border-amber-200",
-  },
-  CONFIRMED: {
-    label: "Confirmado",
-    className: "bg-blue-100 text-blue-800 border-blue-200",
-  },
-  SHIPPED: {
-    label: "Enviado",
-    className: "bg-purple-100 text-purple-800 border-purple-200",
-  },
-  DELIVERED: {
-    label: "Entregue",
-    className: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  },
-  CANCELLED: {
-    label: "Cancelado",
-    className: "bg-red-100 text-red-800 border-red-200",
-  },
-};
+import { OrderStatusBadge } from "@/shared/presentation/components/order-status-badge";
 
 const TERMINAL_STATUSES: OrderStatus[] = ["DELIVERED", "CANCELLED"];
 
@@ -115,18 +88,6 @@ function formatDate(dateStr: string): string {
 
 function formatCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
-}
-
-function StatusBadge({ status }: { status: OrderStatus }) {
-  const config = STATUS_CONFIG[status] ?? {
-    label: status,
-    className: "bg-gray-100 text-gray-800 border-gray-200",
-  };
-  return (
-    <Badge variant="outline" className={cn("font-medium text-xs", config.className)}>
-      {config.label}
-    </Badge>
-  );
 }
 
 function OrderActions({
@@ -198,7 +159,7 @@ function OrderCard({
             <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
           </div>
           <div className="flex items-center gap-2">
-            <StatusBadge status={order.status} />
+            <OrderStatusBadge status={order.status} />
             <OrderActions
               order={order}
               onViewDetail={onViewDetail}
@@ -292,7 +253,7 @@ function OrderRow({
         <PaymentMethodLabel method={order.paymentMethod} />
       </TableCell>
       <TableCell>
-        <StatusBadge status={order.status} />
+        <OrderStatusBadge status={order.status} />
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1.5 text-sm">

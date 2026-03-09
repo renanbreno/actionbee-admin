@@ -22,10 +22,16 @@ export interface SalesReportOrder {
   paymentMethod: string | null;
   shippingPrice: number;
   couponCode: string | null;
+  // Affiliate commission (for reference)
   commissionRate: number | null;
   commissionAmount: number | null;
   commissionStatus: string | null;
   representativeName: string | null;
+  // Representative commission
+  representativeCommissionRate: number | null;
+  representativeCommissionAmount: number | null;
+  representativeCommissionStatus: "PENDING" | "PAID" | "CANCELLED" | null;
+  representativeCommissionPaidAt: string | null;
 }
 
 export interface SalesReportSummary {

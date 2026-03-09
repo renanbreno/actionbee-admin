@@ -92,17 +92,8 @@ const menuItems: MenuItem[] = [
   },
   {
     title: "Cupons",
+    href: "/dashboard/coupons",
     icon: Percent,
-    submenu: [
-      {
-        title: "Lista de Cupons",
-        href: "/dashboard/coupons",
-      },
-      {
-        title: "Relatório de Uso",
-        href: "/dashboard/commissions",
-      },
-    ],
   },
   {
     title: "Afiliados",
@@ -199,13 +190,13 @@ export function AdminSidebar() {
   };
 
   return (
-    <Sidebar className="border-r-0">
-      <SidebarHeader className="px-6 py-5">
-        <Link href="/dashboard" onClick={() => setOpenMobile(false)} className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-bee-gold">
+    <Sidebar collapsible="icon" className="border-r-0">
+      <SidebarHeader className="h-auto py-4">
+        <Link href="/dashboard" onClick={() => setOpenMobile(false)} className="flex items-center gap-3 justify-center group-data-[collapsible=icon]:justify-center">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-bee-gold shrink-0">
             <span className="text-sm font-black text-black">A</span>
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
               ActionBee
             </span>
@@ -216,9 +207,9 @@ export function AdminSidebar() {
         </Link>
       </SidebarHeader>
 
-      <SidebarSeparator />
+      <div className="mx-2 h-px bg-sidebar-foreground/20" />
 
-      <SidebarContent className="px-3 py-4">
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -238,13 +229,14 @@ export function AdminSidebar() {
                       <>
                         <SidebarMenuButton
                           onClick={() => toggleSubmenu(item.title)}
-                          className="group/item h-10 rounded-lg px-3 transition-all duration-150 cursor-pointer text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                          tooltip={item.title}
+                          className="group/item h-10 rounded-lg transition-all duration-150 cursor-pointer text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         >
                           <item.icon className="h-4 w-4 shrink-0 text-sidebar-foreground/50" />
                           <span className="flex-1">{item.title}</span>
                           <ChevronDown
                             className={cn(
-                              "h-3.5 w-3.5 transition-transform duration-200 text-sidebar-foreground/50",
+                              "h-3.5 w-3.5 transition-transform duration-200 text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden",
                               isExpanded && "rotate-180",
                             )}
                           />
@@ -296,8 +288,9 @@ export function AdminSidebar() {
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
+                        tooltip={item.title}
                         className={cn(
-                          "group/item h-10 rounded-lg px-3 transition-all duration-150",
+                          "group/item h-10 rounded-lg transition-all duration-150",
                           isActive
                             ? "bg-sidebar-accent text-bee-gold font-semibold"
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -324,15 +317,16 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-4 py-3">
-        <SidebarSeparator className="mb-3" />
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8 shrink-0">
+      <div className="mx-2 h-px bg-sidebar-foreground/20" />
+
+      <SidebarFooter className="py-3">
+        <div className="flex items-center gap-3 justify-center group-data-[collapsible=icon]:justify-center">
+          <Avatar className="h-8 w-8 shrink-0 group-data-[collapsible=icon]:hidden">
             <AvatarFallback className="bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
               {user ? getInitials(user.name) : "?"}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden group-data-[collapsible=icon]:hidden">
             <p className="truncate text-sm font-medium text-sidebar-foreground">
               {user?.name}
             </p>
@@ -343,7 +337,7 @@ export function AdminSidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-sidebar-foreground/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="h-8 w-8 shrink-0 text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
             onClick={handleLogout}
             disabled={logoutMutation.isPending}
             title="Sair"

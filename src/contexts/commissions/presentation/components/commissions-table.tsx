@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +31,7 @@ import {
   Ticket,
   User,
   MoreHorizontal,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CommissionOrder, CommissionStatus } from "../../domain/entities/commission";
@@ -149,10 +152,13 @@ function CommissionCard({
       <CardContent className="space-y-3 p-4">
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/orders?orderId=${order.orderId}`}
+            className="flex items-center gap-2 hover:underline"
+          >
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-2">
             <StatusBadge status={order.commissionStatus!} />
             <CommissionActions
@@ -209,6 +215,13 @@ function CommissionCard({
             </p>
           </div>
         </div>
+
+        <Button variant="outline" size="sm" className="w-full text-xs gap-2" asChild>
+          <Link href={`/dashboard/orders?orderId=${order.orderId}`}>
+            Ver pedido
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   );
@@ -230,10 +243,17 @@ function CommissionRow({
   isCancelPending: boolean;
   showActions: boolean;
 }) {
+  const router = useRouter();
+
   return (
-    <TableRow className="group">
+    <TableRow
+      className="group cursor-pointer hover:bg-muted/50"
+      onClick={() => router.push(`/dashboard/orders?orderId=${order.orderId}`)}
+    >
       <TableCell>
-        <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
+        <span className="font-mono font-bold text-sm">
+          {order.orderNumber}
+        </span>
       </TableCell>
       <TableCell>
         <p className="text-sm font-medium">{order.customerName}</p>
@@ -271,7 +291,7 @@ function CommissionRow({
         <StatusBadge status={order.commissionStatus!} />
       </TableCell>
       {showActions && (
-        <TableCell className="text-right">
+        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
           <CommissionActions
             order={order}
             onMarkPaid={onMarkPaid}

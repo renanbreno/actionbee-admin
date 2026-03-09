@@ -1,5 +1,6 @@
 import { Representative, RepresentativeCustomer } from "../../domain/entities/representative";
 import { PaginatedSalesReport, SalesReportFilters } from "../../domain/entities/sales-report";
+import { CommissionSummary } from "../../domain/entities/commission-summary";
 import {
   RepresentativeRepository,
   CreateRepresentativeParams,
@@ -42,5 +43,9 @@ export class RepresentativeRepositoryImpl implements RepresentativeRepository {
 
   async getSalesReport(filters: SalesReportFilters): Promise<PaginatedSalesReport> {
     return representativesApiClient.getSalesReport(filters);
+  }
+
+  async getCommissionSummary(): Promise<CommissionSummary> {
+    return representativesApiClient.getCommissionSummary();
   }
 }

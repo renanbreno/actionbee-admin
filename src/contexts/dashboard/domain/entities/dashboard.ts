@@ -177,6 +177,8 @@ export interface TopRepresentative {
 export interface RepresentativeChannelMetrics extends ChannelBreakdown {
   topRepresentatives: TopRepresentative[];
   activeRepresentatives: number;
+  pendingCommission: number;
+  paidCommission: number;
 }
 
 export interface DashboardChannels {

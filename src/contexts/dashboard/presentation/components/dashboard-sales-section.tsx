@@ -273,16 +273,23 @@ const CHANNEL_CONFIG = {
 
 type ChannelKey = keyof typeof CHANNEL_CONFIG;
 
-function ChannelTooltip({ active, payload }: { active?: boolean; payload?: { payload: { key: ChannelKey; orders: number; percentage: number; grossRevenue: number; netRevenue: number } }[] }) {
+function ChannelTooltip({ active, payload }: { active?: boolean; payload?: { payload: { key: ChannelKey; orders: number; percentage: number; grossRevenue: number; netRevenue: number; pendingCommission?: number; paidCommission?: number } }[] }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   const cfg = CHANNEL_CONFIG[d.key];
+  const hasCommission = d.key === "representatives" && (d.pendingCommission !== undefined || d.paidCommission !== undefined);
   return (
     <div className="rounded-lg border bg-popover p-3 shadow-md text-xs space-y-0.5">
       <p className="font-semibold mb-1.5" style={{ color: cfg.color }}>{cfg.label}</p>
       <p className="text-muted-foreground">{d.orders} pedido{d.orders !== 1 ? "s" : ""} · <span className="font-medium text-foreground">{d.percentage.toFixed(1)}%</span></p>
       <p>Bruto: <span className="font-medium">{formatCurrency(d.grossRevenue)}</span></p>
       <p>Líquido: <span className="font-medium text-emerald-600">{formatCurrency(d.netRevenue)}</span></p>
+      {hasCommission && (
+        <>
+          <p className="pt-1 border-t">Comissões Pendentes: <span className="font-medium text-amber-600">{formatCurrency(d.pendingCommission ?? 0)}</span></p>
+          <p>Comissões Pagas (período): <span className="font-medium text-emerald-600">{formatCurrency(d.paidCommission ?? 0)}</span></p>
+        </>
+      )}
     </div>
   );
 }
@@ -418,6 +425,8 @@ function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | un
       percentage: totalOrders > 0 ? ((ch?.totalOrders ?? 0) / totalOrders) * 100 : 0,
       grossRevenue: ch?.grossRevenue ?? 0,
       netRevenue: ch?.netRevenue ?? 0,
+      pendingCommission: key === "representatives" ? (channels?.representatives?.pendingCommission ?? 0) : undefined,
+      paidCommission: key === "representatives" ? (channels?.representatives?.paidCommission ?? 0) : undefined,
     };
   });
 
@@ -495,6 +504,21 @@ function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | un
                     <div className="space-y-1 mt-1">
                       <ChannelBreakdownRow label="Lojistas" breakdown={channels.b2bDirect.retailers} color={cfg.color} />
                       <ChannelBreakdownRow label="Distribuidores" breakdown={channels.b2bDirect.distributors} color={cfg.color} />
+                    </div>
+                  )}
+                  {/* Representatives commission breakdown */}
+                  {item.key === "representatives" && (channels.representatives.pendingCommission > 0 || channels.representatives.paidCommission > 0) && (
+                    <div className="space-y-1 mt-1">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground pl-5">
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.color, opacity: 0.6 }} />
+                        <span className="font-medium text-foreground">Comissões Pendentes</span>
+                        <span className="font-medium text-amber-600">{formatCurrency(channels.representatives.pendingCommission)}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground pl-5">
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.color, opacity: 0.6 }} />
+                        <span className="font-medium text-foreground">Comissões Pagas (período)</span>
+                        <span className="font-medium text-emerald-600">{formatCurrency(channels.representatives.paidCommission)}</span>
+                      </div>
                     </div>
                   )}
                 </div>

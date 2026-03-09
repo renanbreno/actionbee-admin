@@ -1,5 +1,6 @@
 import { Representative, RepresentativeCustomer } from "../entities/representative";
 import { PaginatedSalesReport, SalesReportFilters } from "../entities/sales-report";
+import { CommissionSummary } from "../entities/commission-summary";
 
 export interface CreateRepresentativeParams {
   name: string;
@@ -29,4 +30,5 @@ export interface RepresentativeRepository {
   dissociateCustomer(representativeId: string, customerId: string): Promise<RepresentativeCustomer[]>;
   getCustomers(representativeId: string): Promise<RepresentativeCustomer[]>;
   getSalesReport(filters: SalesReportFilters): Promise<PaginatedSalesReport>;
+  getCommissionSummary(): Promise<CommissionSummary>;
 }

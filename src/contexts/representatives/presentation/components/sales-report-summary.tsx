@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, DollarSign, TrendingUp, Percent } from "lucide-react";
+import { DollarSign } from "lucide-react";
 import { SalesReportSummary as SalesReportSummaryType } from "../../domain/entities/sales-report";
 
 function formatCurrency(value: number): string {
@@ -11,65 +11,64 @@ function formatCurrency(value: number): string {
 interface SalesReportSummaryProps {
   summary: SalesReportSummaryType;
   isLoading?: boolean;
+  children?: React.ReactNode;
 }
 
-function SummaryCard({
-  label,
-  value,
-  icon: Icon,
+function RevenueCard({
+  grossRevenue,
+  netRevenue,
   isLoading,
 }: {
-  label: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string }>;
+  grossRevenue: number;
+  netRevenue: number;
   isLoading?: boolean;
 }) {
   return (
     <Card className="shadow-sm">
-      <CardContent className="flex items-center gap-4 p-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bee-gold/10 shrink-0">
-          <Icon className="h-5 w-5 text-bee-gold" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm text-muted-foreground">{label}</p>
-          {isLoading ? (
-            <div className="h-6 w-24 animate-pulse rounded bg-muted mt-1" />
-          ) : (
-            <p className="text-lg font-semibold truncate">{value}</p>
-          )}
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bee-gold/10 shrink-0">
+            <DollarSign className="h-5 w-5 text-bee-gold" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-2">
+            {isLoading ? (
+              <>
+                <div className="h-5 w-24 animate-pulse rounded bg-muted" />
+                <div className="h-6 w-32 animate-pulse rounded bg-muted" />
+                <div className="h-5 w-28 animate-pulse rounded bg-muted" />
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">Receita</p>
+                <div>
+                  <p className="text-xs text-muted-foreground">Bruta</p>
+                  <p className="text-lg font-semibold">{formatCurrency(grossRevenue)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Líquida (após descontos)</p>
+                  <p className="text-lg font-semibold">{formatCurrency(netRevenue)}</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground/70 leading-tight">
+                  * Não inclui comissões de representantes
+                </p>
+              </>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-export function SalesReportSummary({ summary, isLoading }: SalesReportSummaryProps) {
+export function SalesReportSummary({ summary, isLoading, children }: SalesReportSummaryProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <SummaryCard
-        label="Total de Pedidos"
-        value={String(summary.totalOrders)}
-        icon={ShoppingCart}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <RevenueCard
+        grossRevenue={summary.grossRevenue}
+        netRevenue={summary.netRevenue}
         isLoading={isLoading}
       />
-      <SummaryCard
-        label="Receita Bruta"
-        value={formatCurrency(summary.grossRevenue)}
-        icon={DollarSign}
-        isLoading={isLoading}
-      />
-      <SummaryCard
-        label="Receita Líquida"
-        value={formatCurrency(summary.netRevenue)}
-        icon={TrendingUp}
-        isLoading={isLoading}
-      />
-      <SummaryCard
-        label="Comissão Total"
-        value={formatCurrency(summary.totalCommission)}
-        icon={Percent}
-        isLoading={isLoading}
-      />
+      {children}
     </div>
   );
 }

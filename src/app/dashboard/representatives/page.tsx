@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 import { Plus, Users, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,10 @@ import { SalesReportFilters } from "@/contexts/representatives/presentation/comp
 import { SalesReportSummary } from "@/contexts/representatives/presentation/components/sales-report-summary";
 import { SalesReportTable } from "@/contexts/representatives/presentation/components/sales-report-table";
 import { useSalesReport } from "@/contexts/representatives/presentation/hooks/use-sales-report";
+import { useMarkRepresentativeCommissionPaid } from "@/contexts/representatives/presentation/hooks/use-mark-representative-commission-paid";
+import { useCancelRepresentativeCommission } from "@/contexts/representatives/presentation/hooks/use-cancel-representative-commission";
+import { useCommissionSummary } from "@/contexts/representatives/presentation/hooks/use-commission-summary";
+import { CommissionSummaryCard } from "@/contexts/representatives/presentation/components/commission-summary-card";
 
 export default function RepresentativesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -26,9 +30,16 @@ export default function RepresentativesPage() {
   });
   const [reportPage, setReportPage] = useState(1);
 
-  const debouncedRepresentativeName = useDebounce(reportFilters.representativeName, 500);
+  const debouncedRepresentativeName = useDebounce(
+    reportFilters.representativeName,
+    500,
+  );
 
-  const { data: salesReport, isLoading: isReportLoading, isError: isReportError } = useSalesReport(
+  const {
+    data: salesReport,
+    isLoading: isReportLoading,
+    isError: isReportError,
+  } = useSalesReport(
     debouncedRepresentativeName || undefined,
     reportFilters.startDate || undefined,
     reportFilters.endDate || undefined,
@@ -36,13 +47,24 @@ export default function RepresentativesPage() {
     20,
   );
 
-  // Reset page on filter change
-  useEffect(() => {
-    setReportPage(1);
-  }, [debouncedRepresentativeName, reportFilters.startDate, reportFilters.endDate]);
+  const { data: commissionSummary, isLoading: isCommissionSummaryLoading } =
+    useCommissionSummary();
+
+  // Representative commission mutations
+  const markCommissionPaid = useMarkRepresentativeCommissionPaid();
+  const cancelCommission = useCancelRepresentativeCommission();
+
+  const handleMarkCommissionPaid = (orderId: string) => {
+    markCommissionPaid.mutate(orderId);
+  };
+
+  const handleCancelCommission = (orderId: string) => {
+    cancelCommission.mutate(orderId);
+  };
 
   const handleFiltersChange = (filters: typeof reportFilters) => {
     setReportFilters(filters);
+    setReportPage(1);
   };
 
   return (
@@ -55,7 +77,9 @@ export default function RepresentativesPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Representantes</h1>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                Representantes
+              </h1>
               {total !== null && activeTab === "representatives" && (
                 <Badge variant="secondary" className="text-xs font-medium">
                   {total} {total === 1 ? "cadastrado" : "cadastrados"}
@@ -80,14 +104,20 @@ export default function RepresentativesPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="representatives" className="gap-1.5">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Representantes</span>
+        <TabsList className="w-full grid grid-cols-2 h-auto sm:w-auto sm:grid-cols-none sm:inline-flex p-1">
+          <TabsTrigger value="representatives" className="gap-1.5 h-10 sm:h-9 text-sm">
+            <Users className="h-4 w-4 shrink-0" />
+            <span>Representantes</span>
           </TabsTrigger>
-          <TabsTrigger value="sales-report" className="gap-1.5">
-            <BarChart3 className="h-4 w-4" />
+          <TabsTrigger value="sales-report" className="gap-1.5 h-10 sm:h-9 text-sm">
+            <BarChart3 className="h-4 w-4 shrink-0" />
+            <span className="sm:hidden">Rel. de Vendas</span>
             <span className="hidden sm:inline">Relatório de Vendas</span>
+            {salesReport?.summary.totalOrders !== undefined && (
+              <Badge variant="secondary" className="ml-1 text-xs font-medium">
+                {salesReport.summary.totalOrders}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -96,7 +126,10 @@ export default function RepresentativesPage() {
         </TabsContent>
 
         <TabsContent value="sales-report" className="space-y-4">
-          <SalesReportFilters filters={reportFilters} onFiltersChange={handleFiltersChange} />
+          <SalesReportFilters
+            filters={reportFilters}
+            onFiltersChange={handleFiltersChange}
+          />
           <SalesReportSummary
             summary={
               salesReport?.summary ?? {
@@ -108,7 +141,18 @@ export default function RepresentativesPage() {
               }
             }
             isLoading={isReportLoading}
-          />
+          >
+            <CommissionSummaryCard
+              summary={
+                commissionSummary ?? {
+                  totalCommissions: 0,
+                  pendingCommissions: 0,
+                  paidCommissions: 0,
+                }
+              }
+              isLoading={isCommissionSummaryLoading}
+            />
+          </SalesReportSummary>
           <SalesReportTable
             orders={salesReport?.orders ?? []}
             isLoading={isReportLoading}
@@ -116,6 +160,10 @@ export default function RepresentativesPage() {
             page={reportPage}
             totalPages={salesReport?.totalPages ?? 1}
             onPageChange={setReportPage}
+            onMarkCommissionPaid={handleMarkCommissionPaid}
+            onCancelCommission={handleCancelCommission}
+            isMarkPending={markCommissionPaid.isPending}
+            isCancelPending={cancelCommission.isPending}
           />
         </TabsContent>
       </Tabs>
