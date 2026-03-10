@@ -1,6 +1,7 @@
 import { OrderDetail, OrderListItem, PaginatedOrders } from "../../domain/entities/order";
 import {
   CreateOrderParams,
+  CreateShipmentResult,
   GetOrdersFilters,
   OrderRepository,
   UpdateOrderStatusParams,
@@ -22,5 +23,13 @@ export class OrderRepositoryImpl implements OrderRepository {
 
   updateStatus(id: string, params: UpdateOrderStatusParams): Promise<void> {
     return ordersApiClient.updateStatus(id, params);
+  }
+
+  createShipment(id: string): Promise<CreateShipmentResult> {
+    return ordersApiClient.createShipment(id);
+  }
+
+  getShipmentLabel(id: string): Promise<{ labelUrl: string }> {
+    return ordersApiClient.getShipmentLabel(id);
   }
 }

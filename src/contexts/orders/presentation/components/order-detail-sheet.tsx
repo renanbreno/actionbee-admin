@@ -19,7 +19,9 @@ import {
   Copy,
   CreditCard,
   Download,
+  ExternalLink,
   Gift,
+  Loader2,
   MapPin,
   Package,
   QrCode,
@@ -27,8 +29,10 @@ import {
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { OrderDetail, OrderStatus } from "../../domain/entities/order";
+import { OrderBonusItem, OrderDetail, OrderStatus } from "../../domain/entities/order";
 import { useOrderDetail } from "../hooks/use-order-detail";
+import { useCreateShipment } from "../hooks/use-create-shipment";
+import { useGetShipmentLabel } from "../hooks/use-get-shipment-label";
 
 const STATUS_CONFIG: Record<
   OrderStatus,
@@ -80,6 +84,12 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
     label: order.status,
     className: "bg-gray-100 text-gray-800 border-gray-200",
   };
+  const { mutate: createShipment, isPending: isCreatingShipment } = useCreateShipment();
+  const { openLabel, isPending: isLoadingLabel } = useGetShipmentLabel();
+  const canCreateShipment =
+    order.status === "CONFIRMED" &&
+    !order.meShipmentId &&
+    order.shippingInfo.carrier !== "ADMIN";
 
   return (
     <div className="space-y-6 pb-6">
@@ -228,7 +238,7 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
             {order.totalAmount > order.discountedAmount && (
               <div className="flex justify-between text-emerald-600">
                 <span>
-                  {order.couponCode ? `Desconto (${order.couponCode})` : "Desconto manual"}
+                  {order.couponCode ? `Desconto (${order.couponCode})` : "Desconto"}
                 </span>
                 <span>-{formatCurrency(order.totalAmount - order.discountedAmount)}</span>
               </div>
@@ -295,6 +305,60 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
         </Section>
       )}
 
+      {/* Melhor Envio */}
+      {order.shippingInfo.carrier !== "ADMIN" && order.shippingInfo.carrier !== "Entrega Local" && (
+        <Section title="Envio">
+          <div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
+            {order.meShipmentId ? (
+              <>
+                <div className="flex items-center gap-2 text-emerald-600">
+                  <Package className="h-4 w-4 shrink-0" />
+                  <span className="font-medium">Etiqueta gerada</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={() => openLabel(order.id)}
+                  disabled={isLoadingLabel}
+                >
+                  {isLoadingLabel ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-4 w-4" />
+                  )}
+                  {isLoadingLabel ? "Carregando..." : "Imprimir etiqueta"}
+                </Button>
+              </>
+            ) : (
+              <>
+                {canCreateShipment ? (
+                  <Button
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={() => createShipment(order.id)}
+                    disabled={isCreatingShipment}
+                  >
+                    {isCreatingShipment ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Truck className="h-4 w-4" />
+                    )}
+                    {isCreatingShipment ? "Gerando etiqueta..." : "Gerar etiqueta Melhor Envio"}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {order.status !== "CONFIRMED"
+                      ? "Pedido precisa estar Confirmado para gerar etiqueta."
+                      : "Etiqueta ainda não gerada."}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </Section>
+      )}
+
       {/* Gifts */}
       {order.gifts.length > 0 && (
         <Section title="Brindes">
@@ -302,12 +366,84 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
             {order.gifts.map((gift, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 rounded-lg border bg-card p-4 text-sm"
+                className="flex items-center justify-between rounded-lg border bg-card p-4 text-sm"
               >
-                <Gift className="h-4 w-4 text-bee-gold" />
-                <span>{gift.giftName}{gift.quantity > 1 ? ` x${gift.quantity}` : ''}</span>
+                <div className="flex items-center gap-2">
+                  <Gift className="h-4 w-4 text-bee-gold shrink-0" />
+                  <span>{gift.giftName}{gift.quantity > 1 ? ` x${gift.quantity}` : ''}</span>
+                </div>
+                {gift.unitCost !== undefined && (
+                  <div className="text-right ml-4 shrink-0">
+                    <p className="text-xs text-muted-foreground">custo un.</p>
+                    <p className="font-medium tabular-nums">{formatCurrency(gift.unitCost)}</p>
+                    {gift.quantity > 1 && (
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        total: {formatCurrency(gift.unitCost * gift.quantity)}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
+            {(() => {
+              const totalGiftCost = order.gifts
+                .filter((g) => g.unitCost !== undefined)
+                .reduce((sum, g) => sum + g.unitCost! * g.quantity, 0);
+              return totalGiftCost > 0 ? (
+                <div className="rounded-lg bg-bee-gold/10 border border-bee-gold/30 p-3 flex justify-between text-sm">
+                  <span className="text-foreground/80 font-medium text-xs">Custo total em brindes</span>
+                  <span className="font-semibold tabular-nums text-xs">{formatCurrency(totalGiftCost)}</span>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        </Section>
+      )}
+
+      {/* Bonus Items */}
+      {order.bonusItems && order.bonusItems.length > 0 && (
+        <Section title="Bonificações">
+          <div className="space-y-2">
+            {order.bonusItems.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded-lg border bg-card p-4 text-sm"
+              >
+                <div className="flex items-start gap-2 flex-1">
+                  <Package className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">{item.productName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.variantName} × {item.quantity}
+                    </p>
+                  </div>
+                </div>
+                {item.unitCost !== undefined && (
+                  <div className="text-right ml-4">
+                    <p className="text-xs text-muted-foreground">custo un.</p>
+                    <p className="font-medium tabular-nums">{formatCurrency(item.unitCost)}</p>
+                    {item.quantity > 1 && (
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        total: {formatCurrency(item.unitCost * item.quantity)}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {(() => {
+              const totalBonusCost = order.bonusItems!
+                .filter((i) => i.unitCost !== undefined)
+                .reduce((sum, i) => sum + i.unitCost! * i.quantity, 0);
+              return totalBonusCost > 0 ? (
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-3 flex justify-between text-sm">
+                  <span className="text-amber-800 dark:text-amber-400 font-medium text-xs">Custo total em bonificações</span>
+                  <span className="font-semibold text-amber-800 dark:text-amber-400 tabular-nums text-xs">
+                    {formatCurrency(totalBonusCost)}
+                  </span>
+                </div>
+              ) : null;
+            })()}
           </div>
         </Section>
       )}

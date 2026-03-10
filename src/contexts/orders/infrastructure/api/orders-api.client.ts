@@ -3,6 +3,7 @@ import { OrderDetail, OrderListItem, PaginatedOrders } from "../../domain/entiti
 import { GetOrdersFiltersDTO } from "../../application/dto/get-orders-filters.dto";
 import { CreateOrderDTO } from "../../application/dto/create-order.dto";
 import { UpdateOrderStatusDTO } from "../../application/dto/update-order-status.dto";
+import { CreateShipmentResult } from "../../domain/repositories/order-repository.interface";
 
 export const ordersApiClient = {
   getAll(filters: GetOrdersFiltersDTO): Promise<PaginatedOrders> {
@@ -33,5 +34,15 @@ export const ordersApiClient = {
       method: "PATCH",
       body: JSON.stringify(data),
     });
+  },
+
+  createShipment(id: string): Promise<CreateShipmentResult> {
+    return apiFetch<CreateShipmentResult>(`/admin/orders/${id}/shipment`, {
+      method: "POST",
+    });
+  },
+
+  getShipmentLabel(id: string): Promise<{ labelUrl: string }> {
+    return apiFetch<{ labelUrl: string }>(`/admin/orders/${id}/shipment/label`);
   },
 };

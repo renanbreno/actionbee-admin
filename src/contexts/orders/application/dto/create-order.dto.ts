@@ -40,9 +40,17 @@ export interface CreateOrderDiscountDTO {
   value: number;
 }
 
+export interface CreateOrderBonusItemDTO {
+  productId: string;
+  variantId: string;
+  quantity: number;
+  unitCost?: number;
+}
+
 export interface CreateOrderDTO {
   customerId: string;
   items: CreateOrderItemDTO[];
+  bonusItems?: CreateOrderBonusItemDTO[];
   payments: CreateOrderPaymentDTO[];
   source: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE" | "REPRESENTATIVE";
   couponCode?: string;

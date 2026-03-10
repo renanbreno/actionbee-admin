@@ -18,9 +18,16 @@ export interface UpdateOrderStatusParams {
   cancellationReason?: string;
 }
 
+export interface CreateShipmentResult {
+  meShipmentId: string;
+  labelUrl: string;
+}
+
 export interface OrderRepository {
   getAll(filters: GetOrdersFilters): Promise<PaginatedOrders>;
   getById(id: string): Promise<OrderDetail>;
   create(params: CreateOrderParams): Promise<OrderListItem>;
   updateStatus(id: string, params: UpdateOrderStatusParams): Promise<void>;
+  createShipment(id: string): Promise<CreateShipmentResult>;
+  getShipmentLabel(id: string): Promise<{ labelUrl: string }>;
 }

@@ -77,17 +77,29 @@ export interface OrderPaymentEntry {
   status: string;
 }
 
+export interface OrderBonusItem {
+  productName: string;
+  variantName: string;
+  quantity: number;
+  unitCost?: number;
+  totalCost?: number;
+}
+
 export interface OrderDetail extends OrderListItem {
   items: OrderDetailItem[];
+  bonusItems?: OrderBonusItem[];
   shippingAddress: OrderShippingAddress;
   shippingInfo: OrderShippingInfo;
   couponCode?: string;
-  gifts: { giftName: string; giftImageUrl?: string; quantity: number }[];
+  gifts: { giftName: string; giftImageUrl?: string; quantity: number; unitCost?: number; totalCost?: number }[];
   statusHistory: { status: string; changedAt: string }[];
   boletoBarcode?: string;
   boletoPdfUrl?: string;
   boletoDueDate?: string;
   payments: OrderPaymentEntry[];
+  meShipmentId?: string;
+  meLabelUrl?: string;
+  meServiceCode?: number;
 }
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

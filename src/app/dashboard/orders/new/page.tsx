@@ -50,6 +50,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -148,6 +149,7 @@ interface ProductVariant {
   isRetailerVariant?: boolean;
   hasFreeShipping?: boolean;
   unitsPerVariant?: number;
+  unitCost?: number;
 }
 
 interface ProductResult {
@@ -157,6 +159,7 @@ interface ProductResult {
 }
 
 interface CartItem {
+  itemKey: string;
   productId: string;
   productName: string;
   variantId: string;
@@ -165,6 +168,7 @@ interface CartItem {
   originalPrice?: number;
   quantity: number;
   priceType?: "COMMON" | "RETAILER" | "DISTRIBUTOR";
+  isGift?: boolean;
 }
 
 type DeliveryType = "PICKUP" | "DELIVERY" | "NONE" | "";
@@ -364,7 +368,7 @@ function CustomerSearch({
   );
 }
 
-function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
+function ProductSearch({ onAddItem, mode = "product" }: { onAddItem: (item: CartItem) => void; mode?: "product" | "gift" }) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductResult | null>(
@@ -398,21 +402,25 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
 
     let unitPrice: number;
     let originalPrice: number | undefined;
-    if (selectedPriceType === "retailer") {
+    let priceType: "COMMON" | "RETAILER" | "DISTRIBUTOR";
+
+    if (mode === "gift") {
+      unitPrice = selectedVariant.unitCost ?? 0;
+      priceType = "COMMON";
+    } else if (selectedPriceType === "retailer") {
       unitPrice = selectedVariant.retailerPrice!;
+      priceType = "RETAILER";
     } else if (selectedPriceType === "distributor") {
       unitPrice = selectedVariant.distributorPrice!;
+      priceType = "DISTRIBUTOR";
     } else {
       unitPrice = selectedVariant.offerPrice ?? selectedVariant.price;
       originalPrice = selectedVariant.offerPrice ? selectedVariant.price : undefined;
+      priceType = "COMMON";
     }
 
-    const priceType =
-      selectedPriceType === "retailer" ? "RETAILER" as const :
-      selectedPriceType === "distributor" ? "DISTRIBUTOR" as const :
-      "COMMON" as const;
-
     onAddItem({
+      itemKey: `${selectedVariant.id}-${mode}`,
       productId: selectedProduct.id,
       productName: selectedProduct.name,
       variantId: selectedVariant.id,
@@ -421,6 +429,7 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
       originalPrice,
       quantity: qty,
       priceType,
+      isGift: mode === "gift",
     });
     setSelectedProduct(null);
     setSelectedVariant(null);
@@ -508,31 +517,35 @@ function ProductSearch({ onAddItem }: { onAddItem: (item: CartItem) => void }) {
                   </div>
 
                   {/* Preços */}
+                  {mode !== "gift" && (
                   <div className="text-right shrink-0">
-                    {hasDiscount && (
-                      <p className="text-xs text-muted-foreground line-through leading-tight">
-                        {formatCurrency(v.price)}
+                    <>
+                      {hasDiscount && (
+                        <p className="text-xs text-muted-foreground line-through leading-tight">
+                          {formatCurrency(v.price)}
+                        </p>
+                      )}
+                      <p className={[
+                        "font-bold text-base leading-tight",
+                        hasDiscount ? "text-green-600" : "",
+                      ].join(" ")}>
+                        {formatCurrency(effectivePrice)}
                       </p>
-                    )}
-                    <p className={[
-                      "font-bold text-base leading-tight",
-                      hasDiscount ? "text-green-600" : "",
-                    ].join(" ")}>
-                      {formatCurrency(effectivePrice)}
-                    </p>
+                    </>
                     {v.unitsPerVariant && v.unitsPerVariant > 1 && (
                       <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
                         {v.unitsPerVariant} unidades
                       </p>
                     )}
                   </div>
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {selectedVariant?.isRetailerVariant && (
+        {mode !== "gift" && selectedVariant?.isRetailerVariant && (
           <div className="space-y-1.5">
             <Label className="text-xs">Tipo de preço</Label>
             <div className="flex flex-wrap gap-2">
@@ -681,6 +694,10 @@ export default function NewOrderPage() {
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerResult | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [bonusItems, setBonusItems] = useState<CartItem[]>([]);
+  const [giftBonusTab, setGiftBonusTab] = useState<"brinde" | "bonus">("brinde");
+  const [giftSearch, setGiftSearch] = useState("");
+  const [giftSearchOpen, setGiftSearchOpen] = useState(false);
   const [payments, setPayments] = useState<PaymentEntry[]>([
     { id: crypto.randomUUID(), method: "", amount: 0, boletoDueDays: 30 },
   ]);
@@ -854,10 +871,10 @@ export default function NewOrderPage() {
 
   const handleAddItem = useCallback((item: CartItem) => {
     setCartItems((prev) => {
-      const existing = prev.find((i) => i.variantId === item.variantId);
+      const existing = prev.find((i) => i.itemKey === item.itemKey);
       if (existing) {
         return prev.map((i) =>
-          i.variantId === item.variantId
+          i.itemKey === item.itemKey
             ? { ...i, quantity: i.quantity + item.quantity }
             : i,
         );
@@ -866,16 +883,39 @@ export default function NewOrderPage() {
     });
   }, []);
 
-  function removeItem(variantId: string) {
-    setCartItems((prev) => prev.filter((i) => i.variantId !== variantId));
+  const handleAddBonusItem = useCallback((item: CartItem) => {
+    setBonusItems((prev) => {
+      const existing = prev.find((i) => i.itemKey === item.itemKey);
+      if (existing) {
+        return prev.map((i) =>
+          i.itemKey === item.itemKey
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i,
+        );
+      }
+      return [...prev, item];
+    });
+  }, []);
+
+  function removeItem(itemKey: string) {
+    setCartItems((prev) => prev.filter((i) => i.itemKey !== itemKey));
   }
 
-  function updateQty(variantId: string, qty: number) {
+  function removeBonusItem(itemKey: string) {
+    setBonusItems((prev) => prev.filter((i) => i.itemKey !== itemKey));
+  }
+
+  function updateQty(itemKey: string, qty: number) {
     if (qty < 1) return;
     setCartItems((prev) =>
-      prev.map((i) =>
-        i.variantId === variantId ? { ...i, quantity: qty } : i,
-      ),
+      prev.map((i) => (i.itemKey === itemKey ? { ...i, quantity: qty } : i)),
+    );
+  }
+
+  function updateBonusQty(itemKey: string, qty: number) {
+    if (qty < 1) return;
+    setBonusItems((prev) =>
+      prev.map((i) => (i.itemKey === itemKey ? { ...i, quantity: qty } : i)),
     );
   }
 
@@ -1003,6 +1043,14 @@ export default function NewOrderPage() {
           originalPrice: i.originalPrice,
           priceType: i.priceType,
         })),
+        bonusItems: bonusItems.length > 0
+          ? bonusItems.map((i) => ({
+              productId: i.productId,
+              variantId: i.variantId,
+              quantity: i.quantity,
+              unitCost: i.unitPrice > 0 ? i.unitPrice : undefined,
+            }))
+          : undefined,
         payments: payments.map((p) => ({
           method: p.method,
           amount: p.amount,
@@ -1312,189 +1360,345 @@ export default function NewOrderPage() {
 
               {step === 2 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                  {/* Coluna esquerda: busca + carrinho */}
+                  {/* Coluna esquerda: produtos */}
                   <div className="space-y-4">
-                  <ProductSearch onAddItem={handleAddItem} />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Produtos
+                    </p>
+                    <ProductSearch onAddItem={handleAddItem} />
 
-                  {cartItems.length > 0 && (
-                    <div className="space-y-2">
-                      <Separator />
-                      {cartItems.map((item) => (
-                        <div
-                          key={item.variantId}
-                          className="rounded-lg border bg-card p-3"
-                        >
-                          <div className="flex items-start gap-2 mb-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium">
-                                {item.productName}
-                              </p>
+                    {cartItems.length > 0 && (
+                      <div className="space-y-2">
+                        <Separator />
+                        {cartItems.map((item) => (
+                          <div
+                            key={item.itemKey}
+                            className="rounded-lg border bg-card p-3"
+                          >
+                            <div className="flex items-start gap-2 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                  <p className="text-sm font-medium">
+                                    {item.productName}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                                onClick={() => removeItem(item.itemKey)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
-                              onClick={() => removeItem(item.variantId)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
 
-                          <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                            <span className="flex-1 min-w-0">
-                              <span className="font-medium">Variante:</span>{" "}
-                              {item.variantName}
-                            </span>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {item.originalPrice && (
-                                <span className="line-through text-xs text-muted-foreground/70">
-                                  {formatCurrency(item.originalPrice)}
+                            <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                              <span className="flex-1 min-w-0">
+                                <span className="font-medium">Variante:</span>{" "}
+                                {item.variantName}
+                              </span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {item.originalPrice && (
+                                  <span className="line-through text-xs text-muted-foreground/70">
+                                    {formatCurrency(item.originalPrice)}
+                                  </span>
+                                )}
+                                <span
+                                  className={
+                                    item.originalPrice
+                                      ? "text-green-600 font-semibold"
+                                      : ""
+                                  }
+                                >
+                                  {formatCurrency(item.unitPrice)} / un.
                                 </span>
-                              )}
-                              <span
-                                className={
-                                  item.originalPrice
-                                    ? "text-green-600 font-semibold"
-                                    : ""
-                                }
-                              >
-                                {formatCurrency(item.unitPrice)} / un.
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() =>
+                                    updateQty(item.itemKey, item.quantity - 1)
+                                  }
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-7 text-center text-sm tabular-nums font-medium">
+                                  {item.quantity}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() =>
+                                    updateQty(item.itemKey, item.quantity + 1)
+                                  }
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <span className="text-sm font-semibold tabular-nums">
+                                {formatCurrency(item.unitPrice * item.quantity)}
                               </span>
                             </div>
                           </div>
+                        ))}
 
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() =>
-                                  updateQty(item.variantId, item.quantity - 1)
-                                }
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="w-7 text-center text-sm tabular-nums font-medium">
-                                {item.quantity}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() =>
-                                  updateQty(item.variantId, item.quantity + 1)
-                                }
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <span className="text-sm font-semibold tabular-nums">
-                              {formatCurrency(item.unitPrice * item.quantity)}
-                            </span>
+                        <div className="rounded-lg bg-muted/50 p-3 text-sm">
+                          <div className="flex justify-between font-semibold">
+                            <span>Subtotal</span>
+                            <span>{formatCurrency(total)}</span>
                           </div>
-                        </div>
-                      ))}
-
-                      <div className="rounded-lg bg-muted/50 p-3 text-sm">
-                        <div className="flex justify-between font-semibold">
-                          <span>Subtotal</span>
-                          <span>{formatCurrency(total)}</span>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {cartItems.length === 0 && (
-                    <div className="text-center py-10 text-muted-foreground text-sm">
-                      Nenhum item adicionado. Busque um produto acima.
-                    </div>
-                  )}
+                    {cartItems.length === 0 && (
+                      <div className="text-center py-10 text-muted-foreground text-sm">
+                        Nenhum produto adicionado. Busque um produto acima.
+                      </div>
+                    )}
                   </div>
 
-                  {/* Coluna direita: brindes */}
-                  {activeGiftTiers.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Brindes{" "}
-                        <span className="font-normal normal-case">
-                          (opcional)
-                        </span>
-                      </p>
-                      <div className="space-y-2">
-                        {activeGiftTiers.map((gift) => {
-                          const isSelected = gift.id in selectedGifts;
-                          return (
-                            <div
-                              key={gift.id}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => toggleGift(gift.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  toggleGift(gift.id);
-                                }
-                              }}
-                              className={[
-                                "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all cursor-pointer",
-                                isSelected
-                                  ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold"
-                                  : "border-border hover:border-muted-foreground/50 hover:bg-muted/40",
-                              ].join(" ")}
-                            >
-                              <GiftImageWithDialog
-                                src={gift.imageUrl}
-                                alt={gift.name}
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold leading-tight">
-                                  {gift.name}
-                                </p>
-                                {gift.description && (
-                                  <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2">
-                                    {gift.description}
-                                  </p>
-                                )}
-                              </div>
-                              {isSelected && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button
-                                    type="button"
-                                    className="h-6 w-6 rounded border flex items-center justify-center text-xs hover:bg-muted"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const qty = selectedGifts[gift.id];
-                                      if (qty <= 1) {
-                                        toggleGift(gift.id);
-                                      } else {
-                                        setGiftQuantity(gift.id, qty - 1);
-                                      }
-                                    }}
-                                  >
-                                    {selectedGifts[gift.id] <= 1 ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                                  </button>
-                                  <span className="text-xs font-semibold w-5 text-center tabular-nums">
-                                    {selectedGifts[gift.id]}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="h-6 w-6 rounded border flex items-center justify-center text-xs hover:bg-muted"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setGiftQuantity(gift.id, selectedGifts[gift.id] + 1);
-                                    }}
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                  {/* Coluna direita: Brinde & Bonificação */}
+                  <div className="space-y-3">
+                    {/* Tab selector */}
+                    <div className="flex rounded-lg border overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setGiftBonusTab("brinde")}
+                        className={[
+                          "flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-all",
+                          giftBonusTab === "brinde"
+                            ? "bg-bee-gold/10 text-bee-gold"
+                            : "hover:bg-muted/50 text-muted-foreground",
+                        ].join(" ")}
+                      >
+                        <Gift className="h-4 w-4" />
+                        Brinde
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGiftBonusTab("bonus")}
+                        className={[
+                          "flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-all border-l",
+                          giftBonusTab === "bonus"
+                            ? "bg-bee-gold/10 text-bee-gold"
+                            : "hover:bg-muted/50 text-muted-foreground",
+                        ].join(" ")}
+                      >
+                        <Package className="h-4 w-4" />
+                        Bonificação
+                      </button>
                     </div>
-                  )}
+
+                    {/* Aba Brinde */}
+                    {giftBonusTab === "brinde" && (
+                      <div className="space-y-3">
+                        {/* Campo de busca */}
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Buscar brinde..."
+                            value={giftSearch}
+                            onChange={(e) => {
+                              setGiftSearch(e.target.value);
+                              setGiftSearchOpen(true);
+                            }}
+                            onFocus={() => setGiftSearchOpen(true)}
+                            onBlur={() => setTimeout(() => setGiftSearchOpen(false), 150)}
+                            className="pl-9"
+                          />
+                          {giftSearchOpen && giftSearch.length >= 1 && (
+                            <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg">
+                              {(() => {
+                                const filtered = activeGiftTiers.filter(
+                                  (g) =>
+                                    !(g.id in selectedGifts) &&
+                                    g.name.toLowerCase().includes(giftSearch.toLowerCase()),
+                                );
+                                if (filtered.length === 0) {
+                                  return (
+                                    <p className="p-3 text-sm text-muted-foreground">
+                                      Nenhum brinde encontrado.
+                                    </p>
+                                  );
+                                }
+                                return filtered.map((gift) => (
+                                  <button
+                                    key={gift.id}
+                                    type="button"
+                                    className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors text-sm"
+                                    onMouseDown={() => {
+                                      toggleGift(gift.id);
+                                      setGiftSearch("");
+                                      setGiftSearchOpen(false);
+                                    }}
+                                  >
+                                    <p className="font-medium">{gift.name}</p>
+                                    {gift.description && (
+                                      <p className="text-xs text-muted-foreground line-clamp-1">
+                                        {gift.description}
+                                      </p>
+                                    )}
+                                  </button>
+                                ));
+                              })()}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Brindes selecionados */}
+                        {Object.keys(selectedGifts).length > 0 && (
+                          <div className="space-y-2">
+                            <Separator />
+                            {Object.entries(selectedGifts).map(([id, qty]) => {
+                              const gift = activeGiftTiers.find((g) => g.id === id);
+                              if (!gift) return null;
+                              return (
+                                <div key={id} className="rounded-lg border bg-card p-3">
+                                  <div className="flex items-start gap-2 mb-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <Gift className="h-3.5 w-3.5 text-bee-gold shrink-0" />
+                                        <p className="text-sm font-medium">{gift.name}</p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                                      onClick={() => toggleGift(id)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+
+                                  {gift.description && (
+                                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                                      <span className="flex-1 min-w-0 line-clamp-2">
+                                        {gift.description}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => {
+                                          if (qty <= 1) toggleGift(id);
+                                          else setGiftQuantity(id, qty - 1);
+                                        }}
+                                      >
+                                        <Minus className="h-3 w-3" />
+                                      </Button>
+                                      <span className="w-7 text-center text-sm tabular-nums font-medium">
+                                        {qty}
+                                      </span>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => setGiftQuantity(id, qty + 1)}
+                                      >
+                                        <Plus className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {Object.keys(selectedGifts).length === 0 && (
+                          <div className="text-center py-8 text-muted-foreground text-sm">
+                            Nenhum brinde selecionado.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Aba Bonificação */}
+                    {giftBonusTab === "bonus" && (
+                      <div className="space-y-3">
+                        <ProductSearch onAddItem={handleAddBonusItem} mode="gift" />
+                        {bonusItems.length > 0 && (
+                          <div className="space-y-2">
+                            <Separator />
+                            {bonusItems.map((item) => (
+                              <div
+                                key={item.itemKey}
+                                className="rounded-lg border bg-card p-3"
+                              >
+                                <div className="flex items-start gap-2 mb-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <Gift className="h-3.5 w-3.5 text-bee-gold shrink-0" />
+                                      <p className="text-sm font-medium">{item.productName}</p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                                    onClick={() => removeBonusItem(item.itemKey)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+
+                                <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                                  <span className="flex-1 min-w-0">
+                                    <span className="font-medium">Variante:</span>{" "}
+                                    {item.variantName}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => updateBonusQty(item.itemKey, item.quantity - 1)}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="w-7 text-center text-sm tabular-nums font-medium">
+                                      {item.quantity}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => updateBonusQty(item.itemKey, item.quantity + 1)}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {bonusItems.length === 0 && (
+                          <div className="text-center py-8 text-muted-foreground text-sm">
+                            Nenhuma bonificação adicionada.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1539,7 +1743,7 @@ export default function NewOrderPage() {
                             <div className="space-y-2">
                               {cartItems.map((item) => (
                                 <div
-                                  key={item.variantId}
+                                  key={item.itemKey}
                                   className="flex items-start justify-between text-sm gap-2"
                                 >
                                   <div className="min-w-0 flex-1">
@@ -1670,13 +1874,13 @@ export default function NewOrderPage() {
                               </div>
                             </>
                           )}
-                          {/* Gifts */}
-                          {Object.keys(selectedGifts).length > 0 && (
+                          {/* Brindes & Bonificações */}
+                          {(Object.keys(selectedGifts).length > 0 || bonusItems.length > 0) && (
                             <>
                               <Separator />
                               <div className="space-y-1.5">
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                  Brindes ({Object.keys(selectedGifts).length})
+                                  Brindes & Bonificações
                                 </p>
                                 <div className="flex flex-wrap gap-1">
                                   {Object.entries(selectedGifts)
@@ -1696,6 +1900,17 @@ export default function NewOrderPage() {
                                         </span>
                                       </div>
                                     ))}
+                                  {bonusItems.map((item) => (
+                                    <div
+                                      key={item.itemKey}
+                                      className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-xs"
+                                    >
+                                      <Package className="h-3 w-3 text-amber-600" />
+                                      <span className="truncate max-w-25">
+                                        {item.productName}{item.quantity > 1 ? ` x${item.quantity}` : ''}
+                                      </span>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             </>
@@ -2400,7 +2615,7 @@ export default function NewOrderPage() {
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {cartItems.map((item) => (
                       <div
-                        key={item.variantId}
+                        key={item.itemKey}
                         className="flex items-start justify-between text-sm gap-2"
                       >
                         <div className="min-w-0 flex-1">
@@ -2535,13 +2750,13 @@ export default function NewOrderPage() {
                 </>
               )}
 
-              {/* Selected Gifts */}
-              {Object.keys(selectedGifts).length > 0 && (
+              {/* Brindes & Bonificações */}
+              {(Object.keys(selectedGifts).length > 0 || bonusItems.length > 0) && (
                 <>
                   <Separator />
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Brindes ({Object.keys(selectedGifts).length})
+                      Brindes & Bonificações
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {Object.entries(selectedGifts)
@@ -2561,6 +2776,17 @@ export default function NewOrderPage() {
                             </span>
                           </div>
                         ))}
+                      {bonusItems.map((item) => (
+                        <div
+                          key={item.itemKey}
+                          className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-xs"
+                        >
+                          <Package className="h-3 w-3 text-amber-600" />
+                          <span className="truncate max-w-25">
+                            {item.productName}{item.quantity > 1 ? ` x${item.quantity}` : ''}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </>
