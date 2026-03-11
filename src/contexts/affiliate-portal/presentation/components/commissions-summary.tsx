@@ -1,13 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { CommissionReport, CommissionOrder } from '@/contexts/commissions/domain/entities/commission';
-import { TrendingUp, Clock, CheckCircle, DollarSign } from 'lucide-react';
+import { TrendingUp, Clock, CheckCircle, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 function formatBRL(value: number) {
   const parts = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).formatToParts(value);
   const currency = parts.find((p) => p.type === 'currency')?.value || 'R$';
   const rest = parts.filter((p) => p.type !== 'currency').map((p) => p.value).join('').trim();
-  
+
   return (
     <span className="inline-flex items-baseline gap-0.5">
       <span className="text-[0.65em] font-normal text-muted-foreground">{currency}</span>
@@ -41,12 +43,60 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export function CommissionsSummary({ data }: { data: CommissionReport }) {
-  const { summary, orders } = data;
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
+
+function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+  return (
+    <div className="flex items-center justify-center gap-3 py-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="h-8 w-8 p-0"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <span className="text-sm text-muted-foreground">
+        Página <span className="font-medium">{currentPage}</span> de <span className="font-medium">{totalPages}</span>
+      </span>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="h-8 w-8 p-0"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+export function CommissionsSummary({ data, onPageChange, currentPage, limit }: {
+  data: CommissionReport;
+  onPageChange?: (page: number) => void;
+  currentPage?: number;
+  limit?: number;
+}) {
+  const { summary, orders, total, totalPages } = data;
+  const [localPage, setLocalPage] = useState(currentPage || 1);
+
+  // Se não receber onPageChange via props, usa estado local
+  // Isso permite o componente funcionar tanto com controle interno quanto externo
+  const currentPageValue = currentPage ?? localPage;
+  const handlePageChange = onPageChange ?? setLocalPage;
+
+  // Se totalPages for undefined, calcula a partir do total e limit
+  const calculatedTotalPages = totalPages ?? Math.ceil(total / (limit || 20));
 
   return (
     <div className="space-y-6">
-      {/* Summary cards */}
+      {/* Summary cards - sempre mostram valores totais do summary */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="group rounded-2xl border bg-card p-4 space-y-3 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5 bg-bee-gold w-16 h-16 rounded-bl-full rounded-tr-xl -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500" />
@@ -93,7 +143,7 @@ export function CommissionsSummary({ data }: { data: CommissionReport }) {
           <h3 className="text-sm font-semibold">Pedidos com comissão</h3>
         </div>
 
-        {orders.length === 0 ? (
+        {total === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum pedido encontrado.</p>
         ) : (
           <>
@@ -113,7 +163,7 @@ export function CommissionsSummary({ data }: { data: CommissionReport }) {
                   {orders.map((order: CommissionOrder) => (
                     <tr key={order.orderId} className="hover:bg-muted/40 transition-colors">
                       <td className="px-4 py-3 font-mono text-xs">{order.orderNumber}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{order.customerName}</td>
+                      <td className="px-4 py-3 text-muted-foreground max-w-[200px] truncate" title={order.customerName}>{order.customerName}</td>
                       <td className="px-4 py-3">{formatBRL(order.discountedAmount)}</td>
                       <td className="px-4 py-3 font-semibold text-foreground">
                         {order.commissionAmount != null ? formatBRL(order.commissionAmount) : '—'}
@@ -134,12 +184,12 @@ export function CommissionsSummary({ data }: { data: CommissionReport }) {
                   order.commissionStatus === 'PAID' ? 'border-l-4 border-l-green-500' :
                   order.commissionStatus === 'PENDING' ? 'border-l-4 border-l-yellow-400' : ''
                 }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-full">#{order.orderNumber}</span>
-                      <p className="text-sm font-semibold">{order.customerName}</p>
+                  <div className="space-y-2">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-full inline-block">#{order.orderNumber}</span>
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <p className="text-sm font-semibold truncate flex-1" title={order.customerName}>{order.customerName}</p>
+                      <StatusBadge status={order.commissionStatus ?? 'PENDING'} />
                     </div>
-                    <StatusBadge status={order.commissionStatus ?? 'PENDING'} />
                   </div>
                   <div className="pt-2 flex items-center justify-between text-sm border-t border-dashed">
                     <div className="flex flex-col">
@@ -156,9 +206,19 @@ export function CommissionsSummary({ data }: { data: CommissionReport }) {
                 </div>
               ))}
             </div>
+
           </>
         )}
       </div>
+
+      {/* Pagination - mostrado fora da tabela, apenas se tiver mais de uma página */}
+      {calculatedTotalPages > 1 && (
+        <Pagination
+          currentPage={currentPageValue}
+          totalPages={calculatedTotalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
 }

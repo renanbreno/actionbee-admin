@@ -62,14 +62,23 @@ function AffiliateDashboardContent() {
   const { user } = useAffiliateAuthContext();
   const [activeTab, setActiveTab] = useState<Tab>('commissions');
   const [period, setPeriod] = useState<Period>('month');
+  const [commissionsPage, setCommissionsPage] = useState(1);
+  const [shipmentsPage, setShipmentsPage] = useState(1);
   const logoutMutation = useAffiliateLogout();
   const router = useRouter();
   const affiliatePath = useAffiliatePath();
 
   const dateFilter = getPeriodDates(period);
 
-  const { data: commissionsData, isLoading: loadingCommissions } = useMyCommissions(1, 20, dateFilter);
-  const { data: shipments, isLoading: loadingShipments } = useMyShipments(dateFilter);
+  const { data: commissionsData, isLoading: loadingCommissions } = useMyCommissions(commissionsPage, 20, dateFilter);
+  const { data: shipments, isLoading: loadingShipments } = useMyShipments(shipmentsPage, 20, dateFilter);
+
+  // Reset to page 1 when period changes
+  const handlePeriodChange = (newPeriod: Period) => {
+    setPeriod(newPeriod);
+    setCommissionsPage(1);
+    setShipmentsPage(1);
+  };
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -118,7 +127,7 @@ function AffiliateDashboardContent() {
           {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
             <button
               key={p}
-              onClick={() => setPeriod(p)}
+              onClick={() => handlePeriodChange(p)}
               className={`snap-start whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-300 ${
                 period === p
                   ? 'bg-bee-gold text-black shadow-sm scale-100'
@@ -168,7 +177,12 @@ function AffiliateDashboardContent() {
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-bee-gold/20 border-t-bee-gold" />
               </div>
             ) : commissionsData ? (
-              <CommissionsSummary data={commissionsData} />
+              <CommissionsSummary
+                data={commissionsData}
+                currentPage={commissionsPage}
+                limit={20}
+                onPageChange={setCommissionsPage}
+              />
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">Erro ao carregar comissões.</p>
             )}
@@ -182,7 +196,12 @@ function AffiliateDashboardContent() {
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-bee-gold/20 border-t-bee-gold" />
               </div>
             ) : shipments ? (
-              <ShipmentsList shipments={shipments} />
+              <ShipmentsList
+                data={shipments}
+                currentPage={shipmentsPage}
+                limit={20}
+                onPageChange={setShipmentsPage}
+              />
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">Erro ao carregar bonificações.</p>
             )}

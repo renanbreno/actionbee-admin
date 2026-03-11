@@ -45,3 +45,11 @@ export interface MonthlyReport {
   summary: MonthlyReportSummary;
   affiliates: MonthlyReportAffiliate[];
 }
+
+export interface ShipmentReport {
+  shipments: AffiliateShipment[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
