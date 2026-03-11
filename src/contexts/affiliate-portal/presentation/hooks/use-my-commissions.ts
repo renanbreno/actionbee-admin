@@ -16,6 +16,5 @@ export function useMyCommissions(
       startDate: dateFilter?.startDate,
       endDate: dateFilter?.endDate,
     }),
-    staleTime: 2 * 60 * 1000,
   });
 }

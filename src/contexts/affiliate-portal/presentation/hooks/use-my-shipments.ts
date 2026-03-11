@@ -7,6 +7,5 @@ export function useMyShipments(dateFilter?: { startDate?: string; endDate?: stri
   return useQuery({
     queryKey: ['affiliate-portal', 'shipments', dateFilter?.startDate, dateFilter?.endDate],
     queryFn: () => getMyShipmentsUseCase.execute(dateFilter),
-    staleTime: 2 * 60 * 1000,
   });
 }
