@@ -3,6 +3,7 @@ import { OrderDetail, OrderListItem, PaginatedOrders } from "../../domain/entiti
 import { GetOrdersFiltersDTO } from "../../application/dto/get-orders-filters.dto";
 import { CreateOrderDTO } from "../../application/dto/create-order.dto";
 import { UpdateOrderStatusDTO } from "../../application/dto/update-order-status.dto";
+import { UpdateOrderPaymentStatusDTO } from "../../application/dto/update-order-payment-status.dto";
 import { CreateShipmentResult } from "../../domain/repositories/order-repository.interface";
 
 export const ordersApiClient = {
@@ -31,6 +32,13 @@ export const ordersApiClient = {
 
   updateStatus(id: string, data: UpdateOrderStatusDTO): Promise<void> {
     return apiFetch<void>(`/admin/orders/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  updatePaymentStatus(id: string, data: UpdateOrderPaymentStatusDTO): Promise<void> {
+    return apiFetch<void>(`/admin/orders/${id}/payment-status`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });

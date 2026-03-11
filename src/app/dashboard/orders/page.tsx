@@ -11,6 +11,7 @@ import { OrderFilters } from "@/contexts/orders/presentation/components/order-fi
 import { OrdersTable } from "@/contexts/orders/presentation/components/orders-table";
 import { OrderDetailSheet } from "@/contexts/orders/presentation/components/order-detail-sheet";
 import { UpdateOrderStatusDialog } from "@/contexts/orders/presentation/components/update-order-status-dialog";
+import { UpdateOrderPaymentStatusDialog } from "@/contexts/orders/presentation/components/update-order-payment-status-dialog";
 import { useDebounce } from "@/shared/hooks/use-debounce";
 import type { OrderListItem } from "@/contexts/orders/domain/entities/order";
 
@@ -49,6 +50,11 @@ export default function OrdersPage() {
     order: OrderListItem | null;
   }>({ open: false, order: null });
 
+  const [updatePaymentStatusDialog, setUpdatePaymentStatusDialog] = useState<{
+    open: boolean;
+    order: OrderListItem | null;
+  }>({ open: false, order: null });
+
   const { data, isLoading, isError, refetch, isFetching } = useOrders({
     page,
     limit: 10,
@@ -76,6 +82,10 @@ export default function OrdersPage() {
       open: true,
       order: { ...order },
     });
+  }
+
+  function handleUpdatePaymentStatus(order: OrderListItem) {
+    setUpdatePaymentStatusDialog({ open: true, order });
   }
 
   const total = data?.total ?? 0;
@@ -149,6 +159,7 @@ export default function OrdersPage() {
         isError={isError}
         onViewDetail={handleViewDetail}
         onUpdateStatus={handleUpdateStatus}
+        onUpdatePaymentStatus={handleUpdatePaymentStatus}
         onCancel={handleCancel}
       />
 
@@ -165,6 +176,15 @@ export default function OrdersPage() {
         open={updateStatusDialog.open}
         onOpenChange={(open) =>
           setUpdateStatusDialog((s) => ({ ...s, open, order: open ? s.order : null }))
+        }
+      />
+
+      {/* Update Payment Status Dialog */}
+      <UpdateOrderPaymentStatusDialog
+        order={updatePaymentStatusDialog.order}
+        open={updatePaymentStatusDialog.open}
+        onOpenChange={(open) =>
+          setUpdatePaymentStatusDialog((s) => ({ ...s, open, order: open ? s.order : null }))
         }
       />
 

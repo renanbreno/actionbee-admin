@@ -34,6 +34,7 @@ import {
   Ticket,
   User,
   XCircle,
+  DollarSign,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { OrderListItem, OrderStatus } from "../../domain/entities/order";
@@ -120,11 +121,13 @@ function OrderActions({
   order,
   onViewDetail,
   onUpdateStatus,
+  onUpdatePaymentStatus,
   onCancel,
 }: {
   order: OrderListItem;
   onViewDetail: (order: OrderListItem) => void;
   onUpdateStatus: (order: OrderListItem) => void;
+  onUpdatePaymentStatus: (order: OrderListItem) => void;
   onCancel: (order: OrderListItem) => void;
 }) {
   const isTerminal = TERMINAL_STATUSES.includes(order.status);
@@ -141,6 +144,10 @@ function OrderActions({
         <DropdownMenuItem onClick={() => onViewDetail(order)}>
           <Eye className="mr-2 h-3.5 w-3.5" />
           Ver detalhes
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onUpdatePaymentStatus(order)}>
+          <DollarSign className="mr-2 h-3.5 w-3.5" />
+          Atualizar pagamento
         </DropdownMenuItem>
         {!isTerminal && (
           <DropdownMenuItem onClick={() => onUpdateStatus(order)}>
@@ -169,11 +176,13 @@ function OrderCard({
   order,
   onViewDetail,
   onUpdateStatus,
+  onUpdatePaymentStatus,
   onCancel,
 }: {
   order: OrderListItem;
   onViewDetail: (order: OrderListItem) => void;
   onUpdateStatus: (order: OrderListItem) => void;
+  onUpdatePaymentStatus: (order: OrderListItem) => void;
   onCancel: (order: OrderListItem) => void;
 }) {
   return (
@@ -190,6 +199,7 @@ function OrderCard({
               order={order}
               onViewDetail={onViewDetail}
               onUpdateStatus={onUpdateStatus}
+              onUpdatePaymentStatus={onUpdatePaymentStatus}
               onCancel={onCancel}
             />
           </div>
@@ -242,11 +252,13 @@ function OrderRow({
   order,
   onViewDetail,
   onUpdateStatus,
+  onUpdatePaymentStatus,
   onCancel,
 }: {
   order: OrderListItem;
   onViewDetail: (order: OrderListItem) => void;
   onUpdateStatus: (order: OrderListItem) => void;
+  onUpdatePaymentStatus: (order: OrderListItem) => void;
   onCancel: (order: OrderListItem) => void;
 }) {
   return (
@@ -292,6 +304,7 @@ function OrderRow({
           order={order}
           onViewDetail={onViewDetail}
           onUpdateStatus={onUpdateStatus}
+          onUpdatePaymentStatus={onUpdatePaymentStatus}
           onCancel={onCancel}
         />
       </TableCell>
@@ -416,6 +429,7 @@ interface OrdersTableProps {
   isError: boolean;
   onViewDetail: (order: OrderListItem) => void;
   onUpdateStatus: (order: OrderListItem) => void;
+  onUpdatePaymentStatus: (order: OrderListItem) => void;
   onCancel: (order: OrderListItem) => void;
 }
 
@@ -428,6 +442,7 @@ export function OrdersTable({
   isError,
   onViewDetail,
   onUpdateStatus,
+  onUpdatePaymentStatus,
   onCancel,
 }: OrdersTableProps) {
   if (isLoading) return <TableSkeleton />;
@@ -446,6 +461,7 @@ export function OrdersTable({
           order={order}
           onViewDetail={onViewDetail}
           onUpdateStatus={onUpdateStatus}
+          onUpdatePaymentStatus={onUpdatePaymentStatus}
           onCancel={onCancel}
         />
       ))}
@@ -487,6 +503,7 @@ export function OrdersTable({
               order={order}
               onViewDetail={onViewDetail}
               onUpdateStatus={onUpdateStatus}
+              onUpdatePaymentStatus={onUpdatePaymentStatus}
               onCancel={onCancel}
             />
           ))}

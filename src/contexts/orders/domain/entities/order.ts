@@ -5,6 +5,14 @@ export type OrderStatus =
   | "DELIVERED"
   | "CANCELLED";
 
+export type PaymentStatus =
+  | "WAITING"
+  | "IN_ANALYSIS"
+  | "AUTHORIZED"
+  | "PAID"
+  | "DECLINED"
+  | "CANCELED";
+
 export type PaymentMethod =
   | "CASH"
   | "PIX"
@@ -23,7 +31,7 @@ export interface OrderListItem {
   discountedAmount: number;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
-  paymentStatus?: string;
+  paymentStatus?: PaymentStatus;
   createdAt: string;
   itemsCount: number;
   couponCode?: string;
