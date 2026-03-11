@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/shared/providers/query-provider";
@@ -10,10 +11,50 @@ const montserrat = Montserrat({
   weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
-export const metadata: Metadata = {
-  title: "ActionBee Admin",
-  description: "Admin panel for ActionBee ecommerce",
+const METADATA_BY_DOMAIN: Record<string, Metadata> = {
+  // Adicione aqui os domínios e seus respectivos metadados
+  admin: {
+    title: "ActionBee Admin",
+    description: "Admin panel for ActionBee ecommerce",
+    icons: {
+      icon: "/icon.png",
+    },
+  },
+  affiliate: {
+    title: "ActionBee Afiliados",
+    description: "Portal de afiliados da ActionBee",
+    icons: {
+      icon: "/icon.png",
+    },
+  },
 };
+
+const DOMAIN_CONFIG: Record<string, keyof typeof METADATA_BY_DOMAIN> = {
+  // Configure aqui qual domínio aponta para qual tipo de aplicação
+  // Exemplo: "admin.actionbee.com.br": "admin", "afiliados.actionbee.com.br": "affiliate"
+  // Em localhost, usamos o caminho da URL para determinar
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers();
+  const host = headersList.get("host") || "";
+
+  // Detecta se está na rota /affiliate pelo referer ou caminho inicial
+  const referer = headersList.get("referer") || "";
+  const isAffiliateRoute = referer.includes("/affiliate");
+
+  // Em dev/local, usamos o caminho para determinar
+  // Em produção, você deve configurar os domínios reais em DOMAIN_CONFIG
+  let metadataKey: keyof typeof METADATA_BY_DOMAIN = "admin";
+
+  if (DOMAIN_CONFIG[host]) {
+    metadataKey = DOMAIN_CONFIG[host];
+  } else if (isAffiliateRoute || host.includes("afiliado") || host.includes("affiliate")) {
+    metadataKey = "affiliate";
+  }
+
+  return METADATA_BY_DOMAIN[metadataKey] || METADATA_BY_DOMAIN.admin;
+}
 
 export default function RootLayout({
   children,
