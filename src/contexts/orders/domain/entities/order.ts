@@ -101,6 +101,7 @@ export interface OrderDetail extends OrderListItem {
   meShipmentId?: string;
   meLabelUrl?: string;
   meServiceCode?: number;
+  paymentLink?: string;
 }
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

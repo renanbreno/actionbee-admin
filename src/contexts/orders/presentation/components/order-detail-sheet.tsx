@@ -475,6 +475,42 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
         </Section>
       )}
 
+      {/* Checkout Payment Link (PIX, Credit Card, Debit Card) */}
+      {order.paymentLink && (
+        <Section title="Link de Pagamento">
+          <div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ExternalLink className="h-4 w-4 shrink-0" />
+              <span className="font-medium text-foreground">Link de Pagamento</span>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">Compartilhe este link com o cliente - ele poderá escolher entre PIX, Cartão de Crédito ou Cartão de Débito</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 min-w-0 break-all rounded bg-muted px-2 py-1.5 text-xs font-mono">
+                  {order.paymentLink}
+                </code>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => navigator.clipboard.writeText(order.paymentLink!)}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => window.open(order.paymentLink, "_blank")}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
+
       {/* Boleto */}
       {(order.boletoBarcode || order.boletoPdfUrl) && (
         <Section title="Boleto">
