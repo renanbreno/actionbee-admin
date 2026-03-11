@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -40,6 +41,24 @@ import { OrderStatusBadge } from "@/shared/presentation/components/order-status-
 
 const TERMINAL_STATUSES: OrderStatus[] = ["DELIVERED", "CANCELLED"];
 
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  WAITING: "Aguardando pagamento",
+  IN_ANALYSIS: "Em análise",
+  AUTHORIZED: "Autorizado",
+  PAID: "Pago",
+  DECLINED: "Recusado",
+  CANCELED: "Cancelado",
+};
+
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  WAITING: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  IN_ANALYSIS: "bg-blue-100 text-blue-800 border-blue-300",
+  AUTHORIZED: "bg-teal-100 text-teal-800 border-teal-300",
+  PAID: "bg-green-100 text-green-800 border-green-300",
+  DECLINED: "bg-red-100 text-red-800 border-red-300",
+  CANCELED: "bg-gray-100 text-gray-600 border-gray-300",
+};
+
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CASH: "Dinheiro",
   PIX: "Pix",
@@ -67,13 +86,20 @@ function PaymentMethodIcon({ method }: { method: string }) {
   );
 }
 
-function PaymentMethodLabel({ method }: { method: string }) {
+function PaymentMethodLabel({ method, paymentStatus }: { method: string; paymentStatus?: string }) {
   const methods = method.split(",").map((m) => m.trim()).filter(Boolean);
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex items-center gap-1.5 flex-wrap">
       {methods.map((m) => (
         <PaymentMethodIcon key={m} method={m} />
       ))}
+      {paymentStatus && (
+        <Badge
+          className={`text-[10px] px-1.5 py-0 border ${PAYMENT_STATUS_COLORS[paymentStatus] ?? "bg-gray-100 text-gray-600 border-gray-300"}`}
+        >
+          {PAYMENT_STATUS_LABELS[paymentStatus] ?? paymentStatus}
+        </Badge>
+      )}
     </span>
   );
 }
@@ -192,7 +218,7 @@ function OrderCard({
           <div>
             <p className="text-muted-foreground text-xs">Pagamento</p>
             <p className="font-medium">
-              <PaymentMethodLabel method={order.paymentMethod} />
+              <PaymentMethodLabel method={order.paymentMethod} paymentStatus={order.paymentStatus} />
             </p>
           </div>
           <div>
@@ -250,7 +276,7 @@ function OrderRow({
         </div>
       </TableCell>
       <TableCell>
-        <PaymentMethodLabel method={order.paymentMethod} />
+        <PaymentMethodLabel method={order.paymentMethod} paymentStatus={order.paymentStatus} />
       </TableCell>
       <TableCell>
         <OrderStatusBadge status={order.status} />

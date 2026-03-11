@@ -23,6 +23,7 @@ export interface OrderListItem {
   discountedAmount: number;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
+  paymentStatus?: string;
   createdAt: string;
   itemsCount: number;
   couponCode?: string;

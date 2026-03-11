@@ -34,6 +34,24 @@ import { useOrderDetail } from "../hooks/use-order-detail";
 import { useCreateShipment } from "../hooks/use-create-shipment";
 import { useGetShipmentLabel } from "../hooks/use-get-shipment-label";
 
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  WAITING: "Aguardando pagamento",
+  IN_ANALYSIS: "Em análise",
+  AUTHORIZED: "Autorizado",
+  PAID: "Pago",
+  DECLINED: "Recusado",
+  CANCELED: "Cancelado",
+};
+
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  WAITING: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  IN_ANALYSIS: "bg-blue-100 text-blue-800 border-blue-300",
+  AUTHORIZED: "bg-teal-100 text-teal-800 border-teal-300",
+  PAID: "bg-green-100 text-green-800 border-green-300",
+  DECLINED: "bg-red-100 text-red-800 border-red-300",
+  CANCELED: "bg-gray-100 text-gray-600 border-gray-300",
+};
+
 const STATUS_CONFIG: Record<
   OrderStatus,
   { label: string; className: string }
@@ -134,6 +152,15 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
       {/* Pagamento */}
       {order.paymentMethod && (
         <Section title="Pagamento">
+          {order.paymentStatus && (
+            <div className="mb-2">
+              <Badge
+                className={`text-xs border ${PAYMENT_STATUS_COLORS[order.paymentStatus] ?? "bg-gray-100 text-gray-600 border-gray-300"}`}
+              >
+                {PAYMENT_STATUS_LABELS[order.paymentStatus] ?? order.paymentStatus}
+              </Badge>
+            </div>
+          )}
           <div className="rounded-lg border bg-card p-4 space-y-2 text-sm">
             {order.payments && order.payments.length > 0
               ? order.payments.map((payment, i) => {
