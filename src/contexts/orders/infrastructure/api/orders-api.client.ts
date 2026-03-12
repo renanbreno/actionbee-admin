@@ -2,6 +2,7 @@ import { apiFetch } from "@/shared/infrastructure/api/api-client";
 import { OrderDetail, OrderListItem, PaginatedOrders } from "../../domain/entities/order";
 import { GetOrdersFiltersDTO } from "../../application/dto/get-orders-filters.dto";
 import { CreateOrderDTO } from "../../application/dto/create-order.dto";
+import { UpdateOrderDTO } from "../../application/dto/update-order.dto";
 import { UpdateOrderStatusDTO } from "../../application/dto/update-order-status.dto";
 import { UpdateOrderPaymentStatusDTO } from "../../application/dto/update-order-payment-status.dto";
 import { CreateShipmentResult } from "../../domain/repositories/order-repository.interface";
@@ -26,6 +27,13 @@ export const ordersApiClient = {
   create(data: CreateOrderDTO): Promise<OrderListItem> {
     return apiFetch<OrderListItem>("/admin/orders", {
       method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  update(id: string, data: UpdateOrderDTO): Promise<OrderListItem> {
+    return apiFetch<OrderListItem>(`/admin/orders/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   },

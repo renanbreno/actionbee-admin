@@ -45,17 +45,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
 import { useDebounce } from "@/shared/hooks/use-debounce";
@@ -208,74 +216,8 @@ interface PaymentEntry {
   boletoDueDays: 30 | 60;
 }
 
-const STEPS = [
-  { id: 1, label: "Identificação", icon: User },
-  { id: 2, label: "Itens & Brindes", icon: Package },
-  { id: 3, label: "Pagamento", icon: CreditCard },
-];
-
-const STEP_META = [
-  { title: "Identificação", description: "Selecione a origem e o cliente para o pedido" },
-  {
-    title: "Itens & Brindes",
-    description: "Adicione produtos e brindes ao pedido",
-  },
-  {
-    title: "Pagamento & Entrega",
-    description: "Finalize as informações do pedido",
-  },
-];
-
 function formatCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
-}
-
-function StepIndicator({ current }: { current: number }) {
-  return (
-    <div className="flex items-start w-full">
-      {STEPS.map((step, idx) => {
-        const isCompleted = current > step.id;
-        const isActive = current === step.id;
-        const Icon = step.icon;
-        return (
-          <Fragment key={step.id}>
-            <div className="flex flex-col items-center gap-1.5 shrink-0">
-              <div
-                className={[
-                  "h-9 w-9 rounded-full flex items-center justify-center border-2 transition-all duration-200",
-                  isCompleted
-                    ? "bg-bee-gold border-bee-gold text-black"
-                    : isActive
-                      ? "border-bee-gold text-bee-gold bg-bee-gold/10"
-                      : "border-muted text-muted-foreground",
-                ].join(" ")}
-              >
-                {isCompleted ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-              </div>
-              <span
-                className={[
-                  "text-[10px] sm:text-xs font-medium",
-                  isActive
-                    ? "text-foreground font-semibold"
-                    : "text-muted-foreground",
-                ].join(" ")}
-              >
-                {step.label}
-              </span>
-            </div>
-            {idx < STEPS.length - 1 && (
-              <div
-                className={[
-                  "flex-1 h-0.5 mt-4.5 mx-1.5 transition-all duration-300",
-                  current > step.id ? "bg-bee-gold" : "bg-muted",
-                ].join(" ")}
-              />
-            )}
-          </Fragment>
-        );
-      })}
-    </div>
-  );
 }
 
 function CustomerSearch({
@@ -689,7 +631,6 @@ function ProductSearch({ onAddItem, mode = "product" }: { onAddItem: (item: Cart
 
 export default function NewOrderPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
 
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerResult | null>(null);
@@ -698,9 +639,7 @@ export default function NewOrderPage() {
   const [giftBonusTab, setGiftBonusTab] = useState<"brinde" | "bonus">("brinde");
   const [giftSearch, setGiftSearch] = useState("");
   const [giftSearchOpen, setGiftSearchOpen] = useState(false);
-  const [payments, setPayments] = useState<PaymentEntry[]>([
-    { id: crypto.randomUUID(), method: "", amount: 0, boletoDueDays: 30 },
-  ]);
+  const [payments, setPayments] = useState<PaymentEntry[]>([]);
   const [orderSource, setOrderSource] = useState<
     "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | ""
   >("");
@@ -736,6 +675,11 @@ export default function NewOrderPage() {
     useState<ShippingOption | null>(null);
   const [useManualShipping, setUseManualShipping] = useState(false);
   const [addressAutoFilled, setAddressAutoFilled] = useState(false);
+
+  // Layout states for collapsibles
+  const [isIdentificationOpen, setIsIdentificationOpen] = useState(true);
+  const [isProductsOpen, setIsProductsOpen] = useState(true);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(true);
 
   const createOrderMutation = useCreateOrder();
   const addressLookup = useAddressLookup();
@@ -946,10 +890,11 @@ export default function NewOrderPage() {
   const paymentsSum = payments.reduce((sum, p) => sum + p.amount, 0);
   const paymentsMatch = Math.abs(paymentsSum - orderTotal) <= 0.01;
 
-  function addPayment() {
+  function addPayment(method = "") {
+    const remaining = Math.max(0, orderTotal - paymentsSum);
     setPayments((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), method: "", amount: 0, boletoDueDays: 30 },
+      { id: crypto.randomUUID(), method, amount: prev.length === 0 && remaining === 0 ? orderTotal : remaining, boletoDueDays: 30 },
     ]);
   }
 
@@ -988,46 +933,23 @@ export default function NewOrderPage() {
   }, []);
 
   function canProceed(): boolean {
-    switch (step) {
-      case 1: {
-        if (!orderSource || !selectedCustomer) return false;
-        if (isRepresentativeSource && !selectedRepresentative) return false;
-        return true;
-      }
-      case 2:
-        return cartItems.length > 0;
-      case 3: {
-        if (!effectiveDeliveryType) return false;
-        if (payments.length === 0) return false;
-        const allPaymentsValid = payments.every(
-          (p) => p.method && p.amount > 0,
-        );
-        if (!allPaymentsValid || !paymentsMatch) return false;
-        if (discountExceedsTotal) return false;
-        if (effectiveDeliveryType !== "DELIVERY") return true;
-        return (
-          !!effectiveAddress.street &&
-          !!effectiveAddress.number &&
-          !!shippingInfo.carrier &&
-          !!shippingInfo.service
-        );
-      }
-      default:
-        return false;
-    }
-  }
-
-  function handleNext() {
-    if (step < STEPS.length) {
-      setStep((s) => s + 1);
-    } else {
-      handleSubmit();
-    }
-  }
-
-  function handleBack() {
-    if (step > 1) setStep((s) => s - 1);
-    else router.back();
+    if (!orderSource || !selectedCustomer) return false;
+    if (isRepresentativeSource && !selectedRepresentative) return false;
+    if (cartItems.length === 0) return false;
+    if (!effectiveDeliveryType) return false;
+    if (payments.length === 0) return false;
+    const allPaymentsValid = payments.every(
+      (p) => p.method && p.amount > 0,
+    );
+    if (!allPaymentsValid || !paymentsMatch) return false;
+    if (discountExceedsTotal) return false;
+    if (effectiveDeliveryType !== "DELIVERY") return true;
+    return (
+      !!effectiveAddress.street &&
+      !!effectiveAddress.number &&
+      !!shippingInfo.carrier &&
+      !!shippingInfo.service
+    );
   }
 
   function handleSubmit() {
@@ -1118,27 +1040,16 @@ export default function NewOrderPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div>
-            <StepIndicator current={step} />
-          </div>
-
-          <Card>
-            <CardHeader className="pb-3 border-b">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Etapa {step} de {STEPS.length}
-              </p>
-              <CardTitle className="text-lg mt-0.5">
-                {STEP_META[step - 1].title}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {STEP_META[step - 1].description}
-              </p>
-            </CardHeader>
-
-            <CardContent>
-              {step === 1 && (
-                <div className="space-y-5">
+        <div className="lg:col-span-2 space-y-6">
+          {/* IDENTIFICATION CARD */}
+          <CollapsibleCard
+            className="w-full"
+            title="Identificação"
+            description="Selecione a origem e o cliente para o pedido"
+            open={isIdentificationOpen}
+            onOpenChange={setIsIdentificationOpen}
+          >
+            <div className="space-y-5">
                   {/* Order source selection */}
                   <div className="space-y-1.5">
                     <Label>Origem do Pedido *</Label>
@@ -1356,10 +1267,17 @@ export default function NewOrderPage() {
                     </div>
                   )}
                 </div>
-              )}
+          </CollapsibleCard>
 
-              {step === 2 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* PRODUCTS CARD */}
+        <CollapsibleCard
+          className="w-full"
+          title="Itens & Brindes"
+          description="Adicione produtos e brindes ao pedido"
+          open={isProductsOpen}
+          onOpenChange={setIsProductsOpen}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                   {/* Coluna esquerda: produtos */}
                   <div className="space-y-4">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -1699,12 +1617,18 @@ export default function NewOrderPage() {
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+              </div>
+          </CollapsibleCard>
 
-              {/* ── Mobile Step 3: Payment & Shipping ── */}
-              {step === 3 && (
-                <div className="space-y-5">
+      {/* PAYMENT & SHIPPING CARD */}
+      <CollapsibleCard
+        className="w-full"
+        title="Pagamento & Entrega"
+        description="Finalize as informações do pedido"
+        open={isPaymentOpen}
+        onOpenChange={setIsPaymentOpen}
+      >
+        <div className="space-y-5">
                   {/* Mobile-only order summary collapsible */}
                   <div className="lg:hidden">
                     <Collapsible defaultOpen={false}>
@@ -1922,118 +1846,166 @@ export default function NewOrderPage() {
                   </div>
 
                   {/* Payments */}
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <Label>Formas de Pagamento *</Label>
-                    <div className="space-y-2">
-                      {payments.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className="flex flex-row gap-2 rounded-xl border p-3"
-                        >
-                          {/* Method select */}
-                          <Select
-                            value={entry.method}
-                            onValueChange={(val) =>
-                              updatePayment(entry.id, { method: val })
-                            }
-                          >
-                            <SelectTrigger className="w-36 shrink-0">
-                              <SelectValue placeholder="Método" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
-                                const Icon = m.icon;
-                                return (
-                                  <SelectItem key={m.value} value={m.value}>
-                                    <span className="flex items-center gap-2">
-                                      <Icon className="h-4 w-4" />
-                                      {m.label}
-                                    </span>
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-
-                          {/* Amount input */}
-                          <div className="flex-1">
-                            <CurrencyInput
-                              value={entry.amount}
-                              onChange={(val) =>
-                                updatePayment(entry.id, { amount: val })
-                              }
-                            />
-                          </div>
-
-                          {/* Boleto due days */}
-                          {entry.method === "BOLETO" && (
-                            <Select
-                              value={String(entry.boletoDueDays)}
-                              onValueChange={(val) =>
-                                updatePayment(entry.id, {
-                                  boletoDueDays: Number(val) as 30 | 60,
-                                })
-                              }
+                    
+                    {payments.length === 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
+                          const Icon = m.icon;
+                          return (
+                            <button
+                              key={m.value}
+                              type="button"
+                              onClick={() => addPayment(m.value)}
+                              className="flex flex-col items-center justify-center gap-2 group rounded-xl border border-border p-4 text-sm font-medium transition-all hover:border-bee-gold hover:bg-bee-gold/5"
                             >
-                              <SelectTrigger className="sm:w-32 shrink-0">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="30">30 dias</SelectItem>
-                                <SelectItem value="60">60 dias</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
+                              <div className="p-2 rounded-full bg-muted group-hover:bg-bee-gold/10 transition-colors">
+                                <Icon className="h-5 w-5 text-muted-foreground group-hover:text-bee-gold" />
+                              </div>
+                              <span className="text-center">{m.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Lista de Pagamentos Ativos (Estilo Tabela/ListGroup) */}
+                        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                          {payments.map((entry) => {
+                            const methodDef = PAYMENT_METHODS_FOR_PAYMENTS.find(
+                              (m) => m.value === entry.method
+                            );
+                            const Icon = methodDef?.icon || CreditCard;
 
-                          {/* Remove button */}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-destructive"
-                            disabled={payments.length === 1}
-                            onClick={() => removePayment(entry.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                            return (
+                              <div
+                                key={entry.id}
+                                className="group flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:px-4 sm:py-3 border-b border-border/50 last:border-0 transition-colors hover:bg-muted/30"
+                              >
+                                {/* Left Side: Icon + Method Select */}
+                                <div className="flex flex-1 items-center gap-3">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/40 text-muted-foreground group-hover:text-foreground group-hover:bg-background transition-colors">
+                                    <Icon className="h-4 w-4" />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-semibold">{methodDef?.label || "Selecione..."}</span>
+                                    {entry.method === "BOLETO" && (
+                                      <div className="mt-0.5 flex items-center gap-1.5">
+                                        <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento:</span>
+                                        <Select
+                                          value={String(entry.boletoDueDays)}
+                                          onValueChange={(val) =>
+                                            updatePayment(entry.id, {
+                                              boletoDueDays: Number(val) as 30 | 60,
+                                            })
+                                          }
+                                        >
+                                          <SelectTrigger className="h-5 w-[70px] rounded border-0 bg-transparent p-0 text-[11px] text-muted-foreground shadow-none hover:text-foreground transition-colors focus:ring-0 [&>svg]:ml-0.5">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="30">30 dias</SelectItem>
+                                            <SelectItem value="60">60 dias</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Right Side: Amount + Actions */}
+                                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-between sm:justify-end">
+                                  <div className="relative w-[140px]">
+                                    <CurrencyInput
+                                      value={entry.amount}
+                                      onChange={(val) =>
+                                        updatePayment(entry.id, { amount: val })
+                                      }
+                                      className="h-9 w-full sm:w-[140px] text-right"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:text-muted-foreground"
+                                    onClick={() => removePayment(entry.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
 
-                    {/* Add payment + sum feedback */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 self-start"
-                        onClick={addPayment}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Adicionar forma de pagamento
-                      </Button>
-                      {cartItems.length > 0 && (
-                        <div
-                          className={[
-                            "ml-auto text-sm tabular-nums font-medium",
-                            paymentsMatch ? "text-green-600" : "text-destructive",
-                          ].join(" ")}
-                        >
-                          {formatCurrency(paymentsSum)}
-                          {" / "}
-                          {formatCurrency(orderTotal)}
-                          {!paymentsMatch && (
-                            <span className="text-xs ml-1">
-                              (diferença:{" "}
-                              {formatCurrency(
-                                Math.abs(paymentsSum - orderTotal),
+                        {/* Visual Feedback and Add Next Payment */}
+                        {(cartItems.length > 0 || orderTotal > 0) && (
+                          <div className="space-y-3 mt-4 p-4 rounded-lg bg-muted/30 border border-muted">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {orderTotal > paymentsSum ? (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1.5 self-start bg-background"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      Adicionar pagamento ({formatCurrency(orderTotal - paymentsSum)})
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start" className="w-[200px]">
+                                    {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
+                                      const MIcon = m.icon;
+                                      return (
+                                        <DropdownMenuItem 
+                                          key={m.value} 
+                                          onSelect={() => addPayment(m.value)}
+                                          className="cursor-pointer"
+                                        >
+                                          <MIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                          {m.label}
+                                        </DropdownMenuItem>
+                                      );
+                                    })}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : (
+                                <div className="text-sm font-medium text-green-600 flex items-center gap-1.5">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Total do pedido atingido
+                                </div>
                               )}
-                              )
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                              
+                              <div className="text-sm tabular-nums font-medium text-right flex flex-col items-end">
+                                <span>
+                                  {formatCurrency(paymentsSum)} / {formatCurrency(orderTotal)}
+                                </span>
+                                {paymentsSum > orderTotal && (
+                                  <span className="text-xs text-destructive">
+                                    Excede o total em {formatCurrency(paymentsSum - orderTotal)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Visual Progress Bar */}
+                            <div className="w-full h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full transition-all duration-300",
+                                  paymentsMatch ? "bg-green-500" : paymentsSum > orderTotal ? "bg-destructive" : "bg-bee-gold"
+                                )}
+                                style={{ width: `${Math.min(100, (paymentsSum / (orderTotal || 1)) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Coupon */}
@@ -2518,30 +2490,24 @@ export default function NewOrderPage() {
                     />
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+          </CollapsibleCard>
 
-          {/* Mobile Navigation */}
+        {/* Mobile Navigation */}
           <div className="flex gap-3 lg:hidden">
             <Button
               variant="outline"
               className="flex-1 hover:bg-muted hover:text-foreground hover:border-muted-foreground/20"
-              onClick={handleBack}
+              onClick={() => router.back()}
               disabled={createOrderMutation.isPending}
             >
-              {step > 1 ? "Voltar" : "Cancelar"}
+              Cancelar
             </Button>
             <Button
               className="flex-1 shadow-md"
               disabled={!canProceed() || createOrderMutation.isPending}
-              onClick={handleNext}
+              onClick={handleSubmit}
             >
-              {createOrderMutation.isPending
-                ? "Criando..."
-                : step === STEPS.length
-                  ? "Criar Pedido"
-                  : "Próximo"}
+              {createOrderMutation.isPending ? "Criando..." : "Criar Pedido"}
             </Button>
           </div>
         </div>
@@ -2798,21 +2764,17 @@ export default function NewOrderPage() {
                   <Button
                     variant="outline"
                     className="flex-1 hover:bg-muted hover:text-foreground hover:border-muted-foreground/20"
-                    onClick={handleBack}
+                    onClick={() => router.back()}
                     disabled={createOrderMutation.isPending}
                   >
-                    {step > 1 ? "Voltar" : "Cancelar"}
+                    Cancelar
                   </Button>
                   <Button
                     className="flex-1 shadow-md"
                     disabled={!canProceed() || createOrderMutation.isPending}
-                    onClick={handleNext}
+                    onClick={handleSubmit}
                   >
-                    {createOrderMutation.isPending
-                      ? "Criando..."
-                      : step === STEPS.length
-                        ? "Criar Pedido"
-                        : "Próximo"}
+                    {createOrderMutation.isPending ? "Criando..." : "Criar Pedido"}
                   </Button>
                 </div>
               </div>
