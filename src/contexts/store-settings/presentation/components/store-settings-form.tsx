@@ -108,8 +108,10 @@ export function StoreSettingsForm() {
     reset,
     setValue,
     formState: { errors },
+    trigger,
   } = useForm<StoreSettingsFormValues>({
     resolver: zodResolver(storeSettingsSchema),
+    mode: "onBlur",
     defaultValues: {
       name: "",
       document: "",
@@ -231,8 +233,10 @@ export function StoreSettingsForm() {
             <Input
               id="document"
               placeholder="00.000.000/0000-00"
-              {...register("document")}
-              onChange={(e) => setValue("document", maskDocument(e.target.value))}
+              {...register("document", {
+                onChange: (e) => setValue("document", maskDocument(e.target.value)),
+                onBlur: () => trigger("document"),
+              })}
             />
             <FieldError message={errors.document?.message} />
           </div>

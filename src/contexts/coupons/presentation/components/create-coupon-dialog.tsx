@@ -88,6 +88,7 @@ export function CreateCouponDialog({
     formState: { errors },
   } = useForm<CreateCouponFormInput, unknown, CreateCouponFormValues>({
     resolver: zodResolver(createCouponSchema),
+    mode: "onBlur",
     defaultValues: {
       code: "",
       type: "STORE_WIDE",

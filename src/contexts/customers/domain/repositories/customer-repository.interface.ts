@@ -23,6 +23,8 @@ export interface CreateCustomerDTO {
   cpf?: string;
   cnpj?: string;
   customerType?: CustomerType;
+  stateRegistration?: string;
+  isIeExempt?: boolean;
   address?: {
     street: string;
     neighborhood: string;
@@ -43,6 +45,8 @@ export interface UpdateCustomerDTO {
   cpf?: string;
   cnpj?: string;
   customerType?: CustomerType;
+  stateRegistration?: string;
+  isIeExempt?: boolean;
   address?: {
     street?: string;
     neighborhood?: string;

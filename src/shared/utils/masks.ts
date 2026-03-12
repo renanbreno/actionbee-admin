@@ -138,6 +138,83 @@ export function getDocumentType(value: string): "cpf" | "cnpj" | null {
 }
 
 /**
+ * Aplica máscara de data durante a digitação
+ * Formato: dd/mm/aaaa
+ *
+ * @param value - Valor para mascarar (string com dígitos ou formatado)
+ * @returns Data formatada como dd/mm/aaaa
+ *
+ * @example
+ * maskDate("15052000") → "15/05/2000"
+ * maskDate("15/05/2000") → "15/05/2000"
+ * maskDate("15/05") → "15/05"
+ */
+export function maskDate(value: string): string {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+}
+
+/**
+ * Formata data para exibição como dd/mm/aaaa
+ *
+ * @param value - Data no formato ISO (YYYY-MM-DD) ou Date
+ * @returns Data formatada como dd/mm/aaaa
+ *
+ * @example
+ * formatDate("2000-05-15") → "15/05/2000"
+ * formatDate(new Date("2000-05-15")) → "15/05/2000"
+ */
+export function formatDate(value: string | Date | null | undefined): string {
+  if (!value) return "";
+
+  let date: Date;
+  if (typeof value === "string") {
+    date = new Date(value);
+  } else {
+    date = value;
+  }
+
+  if (isNaN(date.getTime())) return "";
+
+  // Usa métodos UTC para evitar problemas de timezone
+  const day = date.getUTCDate().toString().padStart(2, "0");
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+  const year = date.getUTCFullYear();
+
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * Converte data do formato dd/mm/aaaa para ISO (YYYY-MM-DD)
+ *
+ * @param value - Data no formato dd/mm/aaaa
+ * @returns Data no formato ISO ou null se inválida
+ *
+ * @example
+ * unmaskDate("15/05/2000") → "2000-05-15"
+ * unmaskDate("") → null
+ */
+export function unmaskDate(value: string): string | null {
+  if (!value) return null;
+
+  const parts = value.split("/");
+  if (parts.length !== 3) return null;
+
+  const [day, month, year] = parts;
+
+  // Valida se tem 8 dígitos no total (2 dia + 2 mês + 4 ano)
+  if (day.length !== 2 || month.length !== 2 || year.length !== 4) return null;
+
+  // Valida se são apenas números
+  if (!/^\d+$/.test(day + month + year)) return null;
+
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Aplica máscara de moeda (BRL) durante a digitação
  * Formato: R$ 0,00
  *

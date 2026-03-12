@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateCPF, validateEmail } from "@/shared/utils/validations";
 
 const urlValidator = z.string().refine(
   (val) => {
@@ -15,19 +16,18 @@ const urlValidator = z.string().refine(
 
 const socialMediaSchema = z.array(urlValidator);
 
-// Custom email validation that always returns a string error message
 const emailValidator = z
   .string()
   .min(1, "O e-mail é obrigatório")
-  .refine(
-    (val) => {
-      // More comprehensive email regex
-      const emailRegex =
-        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-      return emailRegex.test(val);
-    },
-    { message: "Informe um e-mail válido" }
-  );
+  .refine(validateEmail, { message: "Informe um e-mail válido" });
+
+// Validador de email opcional - valida apenas se houver valor
+const optionalEmailValidator = z
+  .string()
+  .optional()
+  .refine((val) => !val || validateEmail(val), {
+    message: "Informe um e-mail válido",
+  });
 
 const categoryIdSchema = z
   .string()
@@ -43,7 +43,18 @@ const baseAffiliateSchema = z.object({
     .max(100, "O nome deve ter no máximo 100 caracteres"),
   email: emailValidator,
   phone: z.string().optional(),
-  cpf: z.string().optional(),
+  cpf: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value || value.trim() === "") return true;
+      const cleaned = value.replace(/\D/g, "");
+      // Só valida se tiver 11 dígitos
+      if (cleaned.length === 11) {
+        return validateCPF(value);
+      }
+      return true; // Não rejeitar se estiver incompleto
+    }, { message: "CPF inválido" }),
   socialMedia: socialMediaSchema,
   commissionRate: z
     .number({ message: "Informe a taxa de comissão" })
@@ -61,14 +72,40 @@ export const createAffiliateSchema = baseAffiliateSchema.extend({
     .transform((v) => (v && v.trim() ? v : undefined)),
 });
 
-// Update schema - all fields optional, with optional couponId
-export const updateAffiliateSchema = baseAffiliateSchema.extend({
+// Update schema - campos específicos com validação adequada
+export const updateAffiliateSchema = z.object({
+  name: z
+    .string()
+    .min(3, "O nome deve ter pelo menos 3 caracteres")
+    .max(100, "O nome deve ter no máximo 100 caracteres")
+    .optional(),
+  email: optionalEmailValidator,
+  phone: z.string().optional(),
+  cpf: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value || value.trim() === "") return true;
+      const cleaned = value.replace(/\D/g, "");
+      if (cleaned.length === 11) {
+        return validateCPF(value);
+      }
+      return true;
+    }, { message: "CPF inválido" })
+    .optional(),
+  socialMedia: socialMediaSchema.optional(),
+  commissionRate: z
+    .number()
+    .min(0, "A taxa deve ser maior ou igual a 0")
+    .max(100, "A taxa deve ser menor ou igual a 100")
+    .optional(),
+  categoryId: categoryIdSchema,
   couponId: z
     .string()
     .optional()
     .or(z.literal(""))
     .transform((v) => (v && v.trim() ? v : undefined)),
-}).partial();
+});
 
 export type CreateAffiliateFormValues = z.infer<typeof createAffiliateSchema>;
 export type CreateAffiliateFormInput = z.input<typeof createAffiliateSchema>;

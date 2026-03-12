@@ -82,8 +82,10 @@ export function AffiliateFormDialog({
     reset,
     watch,
     formState: { errors },
+    trigger,
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(isEditing ? updateAffiliateSchema : createAffiliateSchema),
+    mode: "onBlur",
     defaultValues: {
       name: "",
       email: "",
@@ -329,18 +331,15 @@ export function AffiliateFormDialog({
                   placeholder="Ex: 123.456.789-00"
                   className="w-full"
                   value={cpfDisplay}
-                  onChange={(e) => {
-                    const masked = maskCPF(e.target.value);
-                    setCpfDisplay(masked);
-                    register("cpf").onChange({
-                      target: { value: masked, name: "cpf" },
-                    });
-                  }}
-                  onBlur={() => {
-                    register("cpf").onBlur({
-                      target: { value: cpfDisplay, name: "cpf" },
-                    });
-                  }}
+                  {...register("cpf", {
+                    onChange: (e) => {
+                      const masked = maskCPF(e.target.value);
+                      setCpfDisplay(masked);
+                    },
+                    onBlur: () => {
+                      trigger("cpf");
+                    },
+                  })}
                 />
                 {errors.cpf && (
                   <p className="text-destructive text-sm">

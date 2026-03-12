@@ -66,8 +66,10 @@ export function RepresentativeFormDialog({
     watch,
     setValue,
     formState: { errors },
+    trigger,
   } = useForm<FormValues>({
     resolver: zodResolver(isEditing ? updateRepresentativeSchema : createRepresentativeSchema),
+    mode: "onBlur",
     defaultValues: { name: "", email: "", phone: "", document: "", commissionRate: undefined },
   });
 
@@ -204,8 +206,10 @@ export function RepresentativeFormDialog({
                     id="rep-document"
                     placeholder={documentType === "cnpj" ? "12.345.678/0001-90" : "123.456.789-00"}
                     className="pl-9"
-                    {...register("document")}
-                    onChange={(e) => setValue("document", maskDocument(e.target.value))}
+                    {...register("document", {
+                      onChange: (e) => setValue("document", maskDocument(e.target.value)),
+                      onBlur: () => trigger("document"),
+                    })}
                   />
                 </div>
                 {errors.document && (

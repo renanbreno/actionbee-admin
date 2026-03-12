@@ -3,6 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { validateEmail } from '@/shared/utils/validations';
 import { Mail, ArrowLeft, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,9 @@ import { Label } from '@/components/ui/label';
 import { useAffiliateForgotPassword } from '../hooks/use-affiliate-forgot-password';
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().min(1, 'O e-mail é obrigatório').refine(validateEmail, {
+    message: 'Informe um e-mail válido',
+  }),
 });
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
@@ -23,6 +26,7 @@ interface AffiliateForgotPasswordFormProps {
 export function AffiliateForgotPasswordForm({ onBack, onSuccess }: AffiliateForgotPasswordFormProps) {
   const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),
+    mode: "onBlur",
     defaultValues: { email: '' },
   });
 

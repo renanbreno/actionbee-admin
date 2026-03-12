@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Mail, User, Phone, MapPin, FileText } from "lucide-react";
+import { Loader2, Mail, User, Phone, MapPin, FileText, Building2, Calendar } from "lucide-react";
 import { Customer } from "../../domain/entities/customer";
 import {
   createCustomerSchema,
@@ -34,7 +34,7 @@ import {
 import { useCreateCustomer } from "../hooks/use-create-customer";
 import { useUpdateCustomer } from "../hooks/use-update-customer";
 import { useCustomerDetails } from "../hooks/use-customer-details";
-import { maskPhone, unmaskPhone, formatPhone, maskDocument, formatDocument, unmaskDocument, getDocumentType } from "@/shared/utils/masks";
+import { maskPhone, unmaskPhone, formatPhone, maskDocument, formatDocument, unmaskDocument, getDocumentType, maskDate, formatDate, unmaskDate } from "@/shared/utils/masks";
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
 
 type FormValues = CreateCustomerFormValues | UpdateCustomerFormValues;
@@ -99,7 +99,11 @@ export function CustomerFormDialog({
 
   // Deriva o valor inicial do customerType
   const initialCustomerType = useMemo(() => {
-    return fullCustomer?.customerType ?? 'FINAL_CONSUMER';
+    const type = fullCustomer?.customerType;
+    if (type && ['FINAL_CONSUMER', 'RETAILER_RESELLER', 'DISTRIBUTOR_RESELLER'].includes(type)) {
+      return type as 'FINAL_CONSUMER' | 'RETAILER_RESELLER' | 'DISTRIBUTOR_RESELLER';
+    }
+    return 'FINAL_CONSUMER';
   }, [fullCustomer]);
 
   const {
@@ -110,14 +114,19 @@ export function CustomerFormDialog({
     setValue,
     reset,
     control,
+    trigger,
   } = useForm<FormValues>({
       resolver: zodResolver(isEditing ? updateCustomerSchema : createCustomerSchema),
+      mode: "onBlur", // Valida ao sair do campo
       defaultValues: {
         name: "",
         email: "",
         phone: "",
         document: "",
-        customerType: 'FINAL_CONSUMER',
+        customerType: 'FINAL_CONSUMER' as const,
+        stateRegistration: "",
+        isIeExempt: false,
+        birthDate: "",
         address: undefined,
       },
     });
@@ -135,8 +144,13 @@ export function CustomerFormDialog({
         phone: initialPhone,
         document: initialDocument,
         customerType: initialCustomerType,
+        stateRegistration: fullCustomer.stateRegistration ?? "",
+        isIeExempt: fullCustomer.isIeExempt ?? false,
+        birthDate: formatDate(fullCustomer.birthDate),
         address: fullCustomer.address ?? undefined,
       });
+      // Garante que o valor seja definido corretamente no Controller
+      setValue('customerType', initialCustomerType);
     } else {
       reset({
         name: "",
@@ -144,10 +158,13 @@ export function CustomerFormDialog({
         phone: "",
         document: "",
         customerType: 'FINAL_CONSUMER',
+        stateRegistration: "",
+        isIeExempt: false,
+        birthDate: "",
         address: undefined,
       });
     }
-  }, [fullCustomer, initialPhone, initialDocument, initialCustomerType, reset]);
+  }, [fullCustomer, initialPhone, initialDocument, initialCustomerType, reset, setValue]);
 
   const showAddress = watch("address") !== undefined;
 
@@ -191,6 +208,9 @@ export function CustomerFormDialog({
       cpf: docType === "cpf" ? documentDigits : undefined,
       cnpj: docType === "cnpj" ? documentDigits : undefined,
       customerType: data.customerType ?? 'FINAL_CONSUMER',
+      stateRegistration: docType === "cnpj" ? (data.stateRegistration || undefined) : undefined,
+      isIeExempt: docType === "cnpj" ? (data.isIeExempt ?? false) : undefined,
+      birthDate: unmaskDate(data.birthDate ?? "") || undefined,
       ...(showAddress && data.address && { address: data.address }),
     };
 
@@ -227,7 +247,23 @@ export function CustomerFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
-      if (!newOpen) reset();
+      if (newOpen && !customer) {
+        // Resetar formulário ao abrir para criar novo cliente
+        reset({
+          name: "",
+          email: "",
+          phone: "",
+          document: "",
+          customerType: 'FINAL_CONSUMER',
+          stateRegistration: "",
+          isIeExempt: false,
+          birthDate: "",
+          address: undefined,
+        });
+      } else if (!newOpen) {
+        // Resetar ao fechar
+        reset();
+      }
       onOpenChange(newOpen);
     }}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
@@ -288,8 +324,8 @@ export function CustomerFormDialog({
               </div>
             </div>
 
-            {/* Telefone, CPF/CNPJ e Tipo de cliente */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Telefone e CPF/CNPJ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Telefone */}
               <div className="space-y-2">
                 <Label htmlFor="cust-phone" className="text-sm font-medium">
@@ -325,11 +361,15 @@ export function CustomerFormDialog({
                     id="cust-document"
                     placeholder={documentType === "cnpj" ? "Ex: 12.345.678/0001-90" : "Ex: 123.456.789-00"}
                     className="pl-9"
-                    {...register("document")}
-                    onChange={(e) => {
-                      const masked = maskDocument(e.target.value);
-                      setValue("document", masked);
-                    }}
+                    {...register("document", {
+                      onChange: (e) => {
+                        const masked = maskDocument(e.target.value);
+                        setValue("document", masked, { shouldValidate: true });
+                      },
+                      onBlur: () => {
+                        trigger("document");
+                      }
+                    })}
                   />
                 </div>
                 {errors.document && (
@@ -341,34 +381,124 @@ export function CustomerFormDialog({
                     : "Digite +11 dígitos para CNPJ"}
                 </p>
               </div>
+            </div>
 
-              {/* Tipo de cliente - Select com 3 opções */}
+            {/* Data de Nascimento e Tipo de cliente */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+              {/* Data de Nascimento */}
+              <div className="space-y-2">
+                <Label htmlFor="cust-birthDate" className="text-sm font-medium">
+                  Data de Nascimento
+                </Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="cust-birthDate"
+                    type="text"
+                    placeholder="dd/mm/aaaa"
+                    maxLength={10}
+                    className="pl-9"
+                    {...register("birthDate", {
+                      onChange: (e) => {
+                        const masked = maskDate(e.target.value);
+                        setValue("birthDate", masked);
+                      },
+                    })}
+                  />
+                </div>
+                {errors.birthDate && (
+                  <p className="text-destructive text-sm">{getErrorMessage(errors.birthDate)}</p>
+                )}
+              </div>
+
+              {/* Tipo de cliente */}
               <div className="space-y-2">
                 <Label htmlFor="cust-customerType" className="text-sm font-medium">
-                  Tipo
+                  Tipo de cliente
                 </Label>
                 <Controller
                   name="customerType"
                   control={control}
-                  defaultValue="FINAL_CONSUMER"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value ?? 'FINAL_CONSUMER'}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger id="cust-customerType">
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="FINAL_CONSUMER">Consumidor Final</SelectItem>
-                        <SelectItem value="RETAILER_RESELLER">Lojista (Revendedor)</SelectItem>
-                        <SelectItem value="DISTRIBUTOR_RESELLER">Distribuidor (Revendedor)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+                  render={({ field }) => {
+                    const selectValue = field.value || 'FINAL_CONSUMER';
+                    return (
+                      <Select
+                        key={selectValue}
+                        value={selectValue}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger id="cust-customerType" className="w-full">
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="FINAL_CONSUMER">Consumidor Final</SelectItem>
+                          <SelectItem value="RETAILER_RESELLER">Lojista (Revendedor)</SelectItem>
+                          <SelectItem value="DISTRIBUTOR_RESELLER">Distribuidor (Revendedor)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    );
+                  }}
                 />
               </div>
             </div>
+
+            {/* Inscrição Estadual - aparece suavemente quando CNPJ for detectado */}
+            {documentType === "cnpj" && (
+              <div
+                className="space-y-4 p-4 bg-muted/50 rounded-lg border data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 transition-all duration-200"
+              >
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Building2 className="h-4 w-4" />
+                  <span>Dados da Pessoa Jurídica</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Inscrição Estadual */}
+                  <div className="space-y-2">
+                    <Label htmlFor="cust-stateRegistration" className="text-sm font-medium">
+                      Inscrição Estadual
+                    </Label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="cust-stateRegistration"
+                        placeholder="Ex: 123.456.789.123"
+                        className="pl-9"
+                        disabled={watch("isIeExempt")}
+                        {...register("stateRegistration")}
+                      />
+                    </div>
+                    {errors.stateRegistration && (
+                      <p className="text-destructive text-xs">{getErrorMessage(errors.stateRegistration)}</p>
+                    )}
+                  </div>
+
+                  {/* Isento de IE */}
+                  <div className="space-y-2">
+                    <div className="flex items-center h-10 sm:h-auto pt-4 sm:pt-6">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="cust-isIeExempt"
+                          {...register("isIeExempt")}
+                          onCheckedChange={(checked) => {
+                            setValue("isIeExempt", checked);
+                            if (checked) {
+                              setValue("stateRegistration", "");
+                            }
+                          }}
+                        />
+                        <Label htmlFor="cust-isIeExempt" className="text-sm font-medium cursor-pointer">
+                          Isento de IE
+                        </Label>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground hidden sm:block">
+                      Não possui inscrição estadual
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Endereço toggle */}
             <div className="flex items-center justify-between border-t pt-4">
@@ -409,9 +539,9 @@ export function CustomerFormDialog({
                   <span>Endereço</span>
                 </div>
 
-                {/* CEP — primeiro campo */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-2">
+                {/* CEP, Estado e País */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="space-y-2 sm:col-span-1">
                     <Label htmlFor="addr-zipCode" className="text-xs">
                       CEP <span className="text-destructive">*</span>
                     </Label>
@@ -431,16 +561,29 @@ export function CustomerFormDialog({
                       <p className="text-destructive text-xs">{errors.address.zipCode.message}</p>
                     )}
                   </div>
-                </div>
 
-                {/* Rua, Número e Complemento */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="addr-street" className="text-xs">Rua <span className="text-destructive">*</span></Label>
-                    <Input id="addr-street" placeholder="Rua" {...register("address.street")} />
-                    {errors.address?.street && <p className="text-destructive text-xs">{errors.address.street.message}</p>}
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="addr-state" className="text-xs">Estado <span className="text-destructive">*</span></Label>
+                    <Input id="addr-state" placeholder="SP" maxLength={2} {...register("address.state")} />
+                    {errors.address?.state && <p className="text-destructive text-xs">{errors.address.state.message}</p>}
                   </div>
 
+                  <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="addr-country" className="text-xs">País <span className="text-destructive">*</span></Label>
+                    <Input id="addr-country" placeholder="Brasil" {...register("address.country")} />
+                    {errors.address?.country && <p className="text-destructive text-xs">{errors.address.country.message}</p>}
+                  </div>
+                </div>
+
+                {/* Rua */}
+                <div className="space-y-2">
+                  <Label htmlFor="addr-street" className="text-xs">Rua <span className="text-destructive">*</span></Label>
+                  <Input id="addr-street" placeholder="Rua" {...register("address.street")} />
+                  {errors.address?.street && <p className="text-destructive text-xs">{errors.address.street.message}</p>}
+                </div>
+
+                {/* Número e Complemento */}
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="addr-number" className="text-xs">Número <span className="text-destructive">*</span></Label>
                     <Input id="addr-number" placeholder="123" {...register("address.number")} />
@@ -454,7 +597,7 @@ export function CustomerFormDialog({
                 </div>
 
                 {/* Bairro e Cidade */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="addr-neighborhood" className="text-xs">Bairro <span className="text-destructive">*</span></Label>
                     <Input id="addr-neighborhood" placeholder="Centro" {...register("address.neighborhood")} />
@@ -465,21 +608,6 @@ export function CustomerFormDialog({
                     <Label htmlFor="addr-city" className="text-xs">Cidade <span className="text-destructive">*</span></Label>
                     <Input id="addr-city" placeholder="São Paulo" {...register("address.city")} />
                     {errors.address?.city && <p className="text-destructive text-xs">{errors.address.city.message}</p>}
-                  </div>
-                </div>
-
-                {/* Estado e País */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="addr-state" className="text-xs">Estado <span className="text-destructive">*</span></Label>
-                    <Input id="addr-state" placeholder="SP" maxLength={2} {...register("address.state")} />
-                    {errors.address?.state && <p className="text-destructive text-xs">{errors.address.state.message}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="addr-country" className="text-xs">País <span className="text-destructive">*</span></Label>
-                    <Input id="addr-country" placeholder="Brasil" {...register("address.country")} />
-                    {errors.address?.country && <p className="text-destructive text-xs">{errors.address.country.message}</p>}
                   </div>
                 </div>
               </div>

@@ -48,6 +48,9 @@ export interface Customer {
   cpf?: string | null;
   cnpj?: string | null;
   customerType?: CustomerType | null;
+  stateRegistration?: string | null;
+  isIeExempt?: boolean | null;
+  birthDate?: string | null;
   emailVerified: boolean;
   ordersCount?: number;
   address?: CustomerAddress | null;

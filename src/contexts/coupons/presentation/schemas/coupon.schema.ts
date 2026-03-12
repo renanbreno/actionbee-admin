@@ -1,16 +1,10 @@
 import { z } from "zod";
+import { validateEmail } from "@/shared/utils/validations";
 
 const emailValidator = z
   .string()
   .min(1, "O e-mail é obrigatório")
-  .refine(
-    (val) => {
-      const emailRegex =
-        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-      return emailRegex.test(val);
-    },
-    { message: "Informe um e-mail válido" }
-  );
+  .refine(validateEmail, { message: "Informe um e-mail válido" });
 
 const optionalEmailValidator = emailValidator
   .optional()

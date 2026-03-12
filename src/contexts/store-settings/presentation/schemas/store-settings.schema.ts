@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateDocument, validateEmail } from "@/shared/utils/validations";
 
 export const storeSettingsSchema = z.object({
   // Loja
@@ -6,12 +7,19 @@ export const storeSettingsSchema = z.object({
   document: z
     .string()
     .min(1, "CNPJ/CPF é obrigatório")
-    .refine((v) => /^\d{11}$|^\d{14}$/.test(v.replace(/\D/g, "")), "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido"),
+    .refine((value) => {
+      const cleaned = value.replace(/\D/g, "");
+      // Só valida se tiver 11 ou 14 dígitos
+      if (cleaned.length === 11 || cleaned.length === 14) {
+        return validateDocument(value);
+      }
+      return true; // Não rejeitar se estiver incompleto
+    }, { message: "CPF ou CNPJ inválido" }),
   phone: z
     .string()
     .min(1, "Telefone é obrigatório")
     .refine((v) => /^\d{10,11}$/.test(v.replace(/\D/g, "")), "Telefone deve ter 10 ou 11 dígitos"),
-  email: z.string().email("E-mail inválido"),
+  email: z.string().refine(validateEmail, { message: "E-mail inválido" }),
 
   // Endereço
   zipCode: z
