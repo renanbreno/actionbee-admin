@@ -30,6 +30,7 @@ import {
   CreateAffiliateFormValues,
   CreateAffiliateFormInput,
   UpdateAffiliateFormValues,
+  UpdateAffiliateFormInput,
 } from "../schemas/affiliate.schema";
 import { useCreateAffiliate } from "../hooks/use-create-affiliate";
 import { useUpdateAffiliate } from "../hooks/use-update-affiliate";
@@ -48,7 +49,7 @@ import {
 } from "@/shared/utils/masks";
 
 type FormValues = CreateAffiliateFormValues | UpdateAffiliateFormValues;
-type FormInput = CreateAffiliateFormInput | UpdateAffiliateFormValues;
+type FormInput = CreateAffiliateFormInput | UpdateAffiliateFormInput;
 
 interface AffiliateFormDialogProps {
   open: boolean;

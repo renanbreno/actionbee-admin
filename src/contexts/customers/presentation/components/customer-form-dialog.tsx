@@ -29,7 +29,9 @@ import {
   createCustomerSchema,
   updateCustomerSchema,
   CreateCustomerFormValues,
+  CreateCustomerFormInput,
   UpdateCustomerFormValues,
+  UpdateCustomerFormInput,
 } from "../schemas/customer.schema";
 import { useCreateCustomer } from "../hooks/use-create-customer";
 import { useUpdateCustomer } from "../hooks/use-update-customer";
@@ -38,6 +40,7 @@ import { maskPhone, unmaskPhone, formatPhone, maskDocument, formatDocument, unma
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
 
 type FormValues = CreateCustomerFormValues | UpdateCustomerFormValues;
+type FormInput = CreateCustomerFormInput | UpdateCustomerFormInput;
 
 interface ZipCodeResponse {
   zipCode: string;
@@ -115,7 +118,7 @@ export function CustomerFormDialog({
     reset,
     control,
     trigger,
-  } = useForm<FormValues>({
+  } = useForm<FormInput, unknown, FormValues>({
       resolver: zodResolver(isEditing ? updateCustomerSchema : createCustomerSchema),
       mode: "onBlur", // Valida ao sair do campo
       defaultValues: {

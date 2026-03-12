@@ -65,7 +65,7 @@ export const updateCustomerSchema = z.object({
   document: z.string().optional().refine(documentRefinement, {
     message: "CPF ou CNPJ inválido",
   }),
-  customerType: z.enum(['FINAL_CONSUMER', 'RETAILER_RESELLER', 'DISTRIBUTOR_RESELLER']).default('FINAL_CONSUMER'),
+  customerType: z.enum(['FINAL_CONSUMER', 'RETAILER_RESELLER', 'DISTRIBUTOR_RESELLER']).optional(),
   stateRegistration: z.string().optional(),
   isIeExempt: z.boolean().optional(),
   birthDate: z.string().optional(),
@@ -73,4 +73,6 @@ export const updateCustomerSchema = z.object({
 });
 
 export type CreateCustomerFormValues = z.infer<typeof createCustomerSchema>;
+export type CreateCustomerFormInput = z.input<typeof createCustomerSchema>;
 export type UpdateCustomerFormValues = z.infer<typeof updateCustomerSchema>;
+export type UpdateCustomerFormInput = z.input<typeof updateCustomerSchema>;

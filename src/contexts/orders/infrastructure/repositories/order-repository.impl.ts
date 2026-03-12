@@ -4,7 +4,6 @@ import {
   CreateShipmentResult,
   GetOrdersFilters,
   OrderRepository,
-  UpdateOrderParams,
   UpdateOrderPaymentStatusParams,
   UpdateOrderStatusParams,
 } from "../../domain/repositories/order-repository.interface";
@@ -21,10 +20,6 @@ export class OrderRepositoryImpl implements OrderRepository {
 
   create(params: CreateOrderParams): Promise<OrderListItem> {
     return ordersApiClient.create(params);
-  }
-
-  update(id: string, params: UpdateOrderParams): Promise<OrderListItem> {
-    return ordersApiClient.update(id, params);
   }
 
   updateStatus(id: string, params: UpdateOrderStatusParams): Promise<void> {

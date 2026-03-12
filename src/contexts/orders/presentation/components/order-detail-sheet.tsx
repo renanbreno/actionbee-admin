@@ -6,7 +6,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -20,7 +19,6 @@ import {
   Copy,
   CreditCard,
   Download,
-  Edit,
   ExternalLink,
   Gift,
   Loader2,
@@ -619,13 +617,7 @@ interface OrderDetailSheetProps {
 }
 
 export function OrderDetailSheet({ orderId, open, onOpenChange }: OrderDetailSheetProps) {
-  const router = useRouter();
   const { data: order, isLoading, isError } = useOrderDetail(orderId);
-
-  const handleEdit = () => {
-    onOpenChange(false);
-    router.push(`/dashboard/orders/edit/${orderId}`);
-  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -635,17 +627,6 @@ export function OrderDetailSheet({ orderId, open, onOpenChange }: OrderDetailShe
         >
           <SheetHeader className="mb-0 flex flex-row items-center justify-between gap-2">
             <SheetTitle className="text-center flex-1">Detalhe do Pedido</SheetTitle>
-            {order && order.status !== "SHIPPED" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleEdit}
-                className="shrink-0"
-                title="Editar pedido"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
           </SheetHeader>
 
           {isLoading && <DetailSkeleton />}

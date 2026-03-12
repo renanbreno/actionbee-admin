@@ -112,3 +112,4 @@ export const updateAffiliateSchema = z.object({
 export type CreateAffiliateFormValues = z.infer<typeof createAffiliateSchema>;
 export type CreateAffiliateFormInput = z.input<typeof createAffiliateSchema>;
 export type UpdateAffiliateFormValues = z.infer<typeof updateAffiliateSchema>;
+export type UpdateAffiliateFormInput = z.input<typeof updateAffiliateSchema>;

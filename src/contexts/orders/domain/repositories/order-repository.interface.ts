@@ -1,6 +1,5 @@
 import { OrderDetail, OrderListItem, PaginatedOrders } from "../entities/order";
 import { CreateOrderDTO } from "../../application/dto/create-order.dto";
-import { UpdateOrderDTO } from "../../application/dto/update-order.dto";
 import { UpdateOrderPaymentStatusDTO } from "../../application/dto/update-order-payment-status.dto";
 
 export interface GetOrdersFilters {
@@ -13,7 +12,6 @@ export interface GetOrdersFilters {
 }
 
 export type CreateOrderParams = CreateOrderDTO;
-export type UpdateOrderParams = UpdateOrderDTO;
 
 export interface UpdateOrderStatusParams {
   status: string;
@@ -34,7 +32,6 @@ export interface OrderRepository {
   getAll(filters: GetOrdersFilters): Promise<PaginatedOrders>;
   getById(id: string): Promise<OrderDetail>;
   create(params: CreateOrderParams): Promise<OrderListItem>;
-  update(id: string, params: UpdateOrderParams): Promise<OrderListItem>;
   updateStatus(id: string, params: UpdateOrderStatusParams): Promise<void>;
   updatePaymentStatus(id: string, params: UpdateOrderPaymentStatusParams): Promise<void>;
   createShipment(id: string): Promise<CreateShipmentResult>;
