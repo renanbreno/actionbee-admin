@@ -34,8 +34,8 @@ export const createCustomerSchema = z.object({
   email: emailValidator,
   phone: z
     .string()
-    .optional()
-    .refine((val) => !val || val.replace(/\D/g, "").length >= 10, "Telefone inválido"),
+    .min(1, "O telefone é obrigatório")
+    .refine((val) => val.replace(/\D/g, "").length >= 10, "Telefone inválido"),
   document: z.string().optional().refine(documentRefinement, {
     message: "CPF ou CNPJ inválido",
   }),

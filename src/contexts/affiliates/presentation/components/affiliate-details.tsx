@@ -73,7 +73,15 @@ export function AffiliateDetails({
               <span className="font-mono truncate">{formatCPF(affiliate.cpf)}</span>
             </div>
           )}
-          {!affiliate.phone && !affiliate.cpf && (
+          {affiliate.birthDate && (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-muted-foreground font-medium w-12 shrink-0">Nasc:</span>
+              <span className="truncate">
+                {new Date(affiliate.birthDate).toLocaleDateString("pt-BR")}
+              </span>
+            </div>
+          )}
+          {!affiliate.phone && !affiliate.cpf && !affiliate.birthDate && (
             <p className="text-muted-foreground text-xs italic">
               Nenhuma informação de contato adicional
             </p>

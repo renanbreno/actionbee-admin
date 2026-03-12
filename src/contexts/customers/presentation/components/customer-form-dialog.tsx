@@ -329,7 +329,7 @@ export function CustomerFormDialog({
               {/* Telefone */}
               <div className="space-y-2">
                 <Label htmlFor="cust-phone" className="text-sm font-medium">
-                  Telefone
+                  Telefone <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -353,7 +353,7 @@ export function CustomerFormDialog({
               {/* CPF/CNPJ */}
               <div className="space-y-2">
                 <Label htmlFor="cust-document" className="text-sm font-medium">
-                  {documentType === "cnpj" ? "CNPJ" : "CPF"} <span className="text-destructive">*</span>
+                  {documentType === "cnpj" ? "CNPJ" : "CPF"}
                 </Label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />

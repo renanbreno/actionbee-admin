@@ -4,6 +4,7 @@ export interface Affiliate {
   email: string;
   phone?: string;
   cpf?: string;
+  birthDate?: string | null;
   socialMedia?: string[];
   commissionRate: number;
   categoryId?: string | null;

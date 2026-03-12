@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Link as LinkIcon, FolderTree, Loader2, Mail, Tag } from "lucide-react";
+import { Plus, Trash2, Link as LinkIcon, FolderTree, Loader2, Mail, Tag, Calendar } from "lucide-react";
 import { Affiliate } from "../../domain/entities/affiliate";
 import {
   createAffiliateSchema,
@@ -38,10 +38,13 @@ import { useCoupons } from "@/contexts/coupons/presentation/hooks/use-coupons";
 import {
   maskPhone,
   maskCPF,
+  maskDate,
   unmaskPhone,
   unmaskCPF,
+  unmaskDate,
   formatPhone,
   formatCPF,
+  formatDate,
 } from "@/shared/utils/masks";
 
 type FormValues = CreateAffiliateFormValues | UpdateAffiliateFormValues;
@@ -74,6 +77,7 @@ export function AffiliateFormDialog({
 
   const [phoneDisplay, setPhoneDisplay] = useState("");
   const [cpfDisplay, setCpfDisplay] = useState("");
+  const [birthDateDisplay, setBirthDateDisplay] = useState("");
 
   const {
     register,
@@ -91,6 +95,7 @@ export function AffiliateFormDialog({
       email: "",
       phone: "",
       cpf: "",
+      birthDate: "",
       socialMedia: [],
       commissionRate: isEditing ? undefined : 0,
       categoryId: "",
@@ -111,14 +116,17 @@ export function AffiliateFormDialog({
     if (affiliate) {
       const phoneFormatted = affiliate.phone ? formatPhone(affiliate.phone) : "";
       const cpfFormatted = affiliate.cpf ? formatCPF(affiliate.cpf) : "";
+      const birthDateFormatted = formatDate(affiliate.birthDate);
       setPhoneDisplay(phoneFormatted);
       setCpfDisplay(cpfFormatted);
+      setBirthDateDisplay(birthDateFormatted);
       const currentCoupon = couponsData?.coupons.find((c) => c.affiliateId === affiliate.id);
       reset({
         name: affiliate.name,
         email: affiliate.email,
         phone: phoneFormatted,
         cpf: cpfFormatted,
+        birthDate: birthDateFormatted,
         socialMedia: affiliate.socialMedia || [],
         commissionRate: affiliate.commissionRate,
         categoryId: affiliate.categoryId || "",
@@ -127,11 +135,13 @@ export function AffiliateFormDialog({
     } else {
       setPhoneDisplay("");
       setCpfDisplay("");
+      setBirthDateDisplay("");
       reset({
         name: "",
         email: "",
         phone: "",
         cpf: "",
+        birthDate: "",
         socialMedia: [],
         commissionRate: 0,
         categoryId: "",
@@ -147,6 +157,7 @@ export function AffiliateFormDialog({
       email: data.email,
       phone: unmaskPhone(data.phone ?? "") || undefined,
       cpf: unmaskCPF(data.cpf ?? "") || undefined,
+      birthDate: unmaskDate(data.birthDate ?? "") || undefined,
       socialMedia:
         data.socialMedia && data.socialMedia.length > 0
           ? data.socialMedia
@@ -192,6 +203,7 @@ export function AffiliateFormDialog({
     reset();
     setPhoneDisplay("");
     setCpfDisplay("");
+    setBirthDateDisplay("");
     onOpenChange(false);
   };
 
@@ -349,40 +361,71 @@ export function AffiliateFormDialog({
               </div>
             </div>
 
-            {/* Telefone - linha completa */}
-            <div className="space-y-2">
-              <Label htmlFor="af-phone" className="text-sm font-medium">
-                Telefone
-              </Label>
-              <Input
-                id="af-phone"
-                type="tel"
-                placeholder="Ex: (11) 98765-4321"
-                value={phoneDisplay}
-                onChange={(e) => {
-                  const masked = maskPhone(e.target.value);
-                  setPhoneDisplay(masked);
-                  register("phone").onChange({
-                    target: { value: masked, name: "phone" },
-                  });
-                }}
-                onBlur={() => {
-                  register("phone").onBlur({
-                    target: { value: phoneDisplay, name: "phone" },
-                });
-                }}
-              />
-              {errors.phone && (
-                <p className="text-destructive text-sm">
-                  {getErrorMessage(errors.phone)}
-                </p>
-              )}
-              {isEditing && (
-                <p className="text-xs text-muted-foreground">
-                  Alterações na taxa só afetam comissões futuras.
-                </p>
-              )}
+            {/* Telefone e Data de Nascimento - lado a lado */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="af-phone" className="text-sm font-medium">
+                  Telefone
+                </Label>
+                <Input
+                  id="af-phone"
+                  type="tel"
+                  placeholder="Ex: (11) 98765-4321"
+                  value={phoneDisplay}
+                  onChange={(e) => {
+                    const masked = maskPhone(e.target.value);
+                    setPhoneDisplay(masked);
+                    register("phone").onChange({
+                      target: { value: masked, name: "phone" },
+                    });
+                  }}
+                  onBlur={() => {
+                    register("phone").onBlur({
+                      target: { value: phoneDisplay, name: "phone" },
+                    });
+                  }}
+                />
+                {errors.phone && (
+                  <p className="text-destructive text-sm">
+                    {getErrorMessage(errors.phone)}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="af-birthDate" className="text-sm font-medium">
+                  Data de Nascimento
+                </Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="af-birthDate"
+                    type="text"
+                    placeholder="dd/mm/aaaa"
+                    maxLength={10}
+                    className="pl-9"
+                    value={birthDateDisplay}
+                    {...register("birthDate", {
+                      onChange: (e) => {
+                        const masked = maskDate(e.target.value);
+                        setBirthDateDisplay(masked);
+                      },
+                    })}
+                  />
+                </div>
+                {errors.birthDate && (
+                  <p className="text-destructive text-sm">
+                    {getErrorMessage(errors.birthDate)}
+                  </p>
+                )}
+              </div>
             </div>
+
+            {isEditing && (
+              <p className="text-xs text-muted-foreground">
+                Alterações na taxa só afetam comissões futuras.
+              </p>
+            )}
 
             {/* Redes Sociais */}
             <div className="space-y-3">

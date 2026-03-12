@@ -33,7 +33,6 @@ import {
   ExternalLink,
   User,
   Phone,
-  Calendar,
   MoreHorizontal,
   FolderTree,
   Tag,
@@ -198,22 +197,26 @@ function AffiliateCard({
         </div>
 
         {/* Contact info */}
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-          {affiliate.phone && (
+        <div className="space-y-1.5 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 flex-wrap">
+            {affiliate.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                <span>{formatPhone(affiliate.phone)}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {affiliate.cpf && (
+              <div className="flex items-center gap-2">
+                <span className="font-medium">CPF</span>
+                <span>{formatCPF(affiliate.cpf)}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              <span>{formatPhone(affiliate.phone)}</span>
+              <span className="text-xs">Cadastro:</span>
+              <span>{formatDate(affiliate.createdAt)}</span>
             </div>
-          )}
-          {affiliate.cpf && (
-            <div className="flex items-center gap-2">
-              <span className="font-medium">CPF</span>
-              <span>{formatCPF(affiliate.cpf)}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span>{formatDate(affiliate.createdAt)}</span>
           </div>
         </div>
 
@@ -274,7 +277,7 @@ function AffiliateRow({
         <CategoryBadge categoryName={affiliate.categoryName} category={affiliate.category} />
       </TableCell>
       <TableCell>
-        <div className="flex flex-col gap-1 text-sm">
+        <div className="flex flex-col gap-1.5 text-sm">
           {affiliate.phone && (
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Phone className="h-3.5 w-3.5" />
@@ -452,7 +455,7 @@ export function AffiliatesTable() {
           <TableRow className="hover:bg-transparent">
             <TableHead className="w-[220px]">Afiliado</TableHead>
             <TableHead className="w-[150px]">Categoria</TableHead>
-            <TableHead className="w-[180px]">Contato</TableHead>
+            <TableHead className="w-[220px]">Contato</TableHead>
             <TableHead className="w-[100px]">Comissão</TableHead>
             <TableHead className="w-[120px]">Cupom</TableHead>
             <TableHead className="w-[130px]">Redes Sociais</TableHead>

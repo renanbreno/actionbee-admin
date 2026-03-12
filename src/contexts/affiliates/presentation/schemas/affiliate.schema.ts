@@ -55,6 +55,7 @@ const baseAffiliateSchema = z.object({
       }
       return true; // Não rejeitar se estiver incompleto
     }, { message: "CPF inválido" }),
+  birthDate: z.string().optional(),
   socialMedia: socialMediaSchema,
   commissionRate: z
     .number({ message: "Informe a taxa de comissão" })
@@ -93,6 +94,7 @@ export const updateAffiliateSchema = z.object({
       return true;
     }, { message: "CPF inválido" })
     .optional(),
+  birthDate: z.string().optional(),
   socialMedia: socialMediaSchema.optional(),
   commissionRate: z
     .number()
