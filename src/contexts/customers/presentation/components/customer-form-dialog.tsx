@@ -55,6 +55,7 @@ interface CustomerFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customer?: Customer | null;
+  onCreated?: (customer: Customer) => void;
 }
 
 function getErrorMessage(error: FieldError | undefined): string {
@@ -72,6 +73,7 @@ export function CustomerFormDialog({
   open,
   onOpenChange,
   customer,
+  onCreated,
 }: CustomerFormDialogProps) {
   const isEditing = !!customer;
   const createMutation = useCreateCustomer();
@@ -217,12 +219,26 @@ export function CustomerFormDialog({
       ...(showAddress && data.address && { address: data.address }),
     };
 
-    const onSuccess = () => {
+    const onSuccess = (data: Customer) => {
       toast.success(
         isEditing
           ? "Cliente atualizado com sucesso!"
           : "Cliente criado com sucesso!"
       );
+      if (!isEditing) {
+        reset({
+          name: "",
+          email: "",
+          phone: "",
+          document: "",
+          customerType: 'FINAL_CONSUMER',
+          stateRegistration: "",
+          isIeExempt: false,
+          birthDate: "",
+          address: undefined,
+        });
+        onCreated?.(data);
+      }
       onOpenChange(false);
     };
 

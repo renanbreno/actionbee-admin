@@ -28,6 +28,7 @@ import {
   Trash2,
   Truck,
   User,
+  UserPlus,
   X,
   XCircle,
 } from "lucide-react";
@@ -74,6 +75,8 @@ import { useAddressLookup } from "@/shared/presentation/hooks/use-address-lookup
 import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 import { useRepresentatives } from "@/contexts/representatives/presentation/hooks/use-representatives";
 import { useRepresentativeCustomers } from "@/contexts/representatives/presentation/hooks/use-representative-customers";
+import { useAssociateCustomer } from "@/contexts/representatives/presentation/hooks/use-associate-customer";
+import { CustomerFormDialog } from "@/contexts/customers/presentation/components/customer-form-dialog";
 
 interface GiftTier {
   id: string;
@@ -634,6 +637,7 @@ export default function NewOrderPage() {
 
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerResult | null>(null);
+  const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [bonusItems, setBonusItems] = useState<CartItem[]>([]);
   const [giftBonusTab, setGiftBonusTab] = useState<"brinde" | "bonus">("brinde");
@@ -694,6 +698,7 @@ export default function NewOrderPage() {
   const { data: representativeCustomers, isLoading: repCustomersLoading } = useRepresentativeCustomers(
     isRepresentativeSource ? selectedRepresentative?.id ?? null : null,
   );
+  const associateCustomerMutation = useAssociateCustomer();
 
   const { data: customerDetail } = useQuery({
     queryKey: ["customer-detail", selectedCustomer?.id],
@@ -1164,7 +1169,21 @@ export default function NewOrderPage() {
                   {/* Customer selection */}
                   {orderSource && (!isRepresentativeSource || selectedRepresentative) && (
                     <div className="space-y-1.5">
-                      <Label>Cliente *</Label>
+                      <div className="flex items-center justify-between">
+                        <Label>Cliente *</Label>
+                        {!selectedCustomer && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => setIsNewCustomerDialogOpen(true)}
+                          >
+                            <UserPlus className="h-3.5 w-3.5" />
+                            Novo cliente
+                          </Button>
+                        )}
+                      </div>
                       {isRepresentativeSource && selectedRepresentative ? (
                         /* Representative customers - search with filtered dropdown */
                         selectedCustomer ? (
@@ -2782,6 +2801,29 @@ export default function NewOrderPage() {
           </Card>
         </div>
       </div>
+
+      <CustomerFormDialog
+        open={isNewCustomerDialogOpen}
+        onOpenChange={setIsNewCustomerDialogOpen}
+        onCreated={(customer) => {
+          if (isRepresentativeSource && selectedRepresentative) {
+            associateCustomerMutation.mutate(
+              { representativeId: selectedRepresentative.id, customerId: customer.id },
+              {
+                onSuccess: () => {
+                  setSelectedCustomer({ id: customer.id, name: customer.name, email: customer.email });
+                  setAddressOverrides({});
+                  setDeliveryType("");
+                },
+              },
+            );
+          } else {
+            setSelectedCustomer({ id: customer.id, name: customer.name, email: customer.email });
+            setAddressOverrides({});
+            setDeliveryType("");
+          }
+        }}
+      />
     </div>
   );
 }
