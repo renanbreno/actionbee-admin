@@ -77,6 +77,7 @@ import { useAddressLookup } from "@/shared/presentation/hooks/use-address-lookup
 import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 import { useRepresentatives } from "@/contexts/representatives/presentation/hooks/use-representatives";
 import { useRepresentativeCustomers } from "@/contexts/representatives/presentation/hooks/use-representative-customers";
+import { useVendedores } from "@/contexts/vendedores/presentation/hooks/use-vendedores";
 
 interface GiftTier {
   id: string;
@@ -653,7 +654,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
 
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerResult | null>(
-      initialData ? { id: (initialData as any).customerId ?? '', name: initialData.customerName, email: initialData.customerEmail } : null
+      initialData ? { id: initialData.customerId, name: initialData.customerName, email: initialData.customerEmail } : null
     );
   const [cartItems, setCartItems] = useState<CartItem[]>(
     initialData
@@ -703,7 +704,12 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   >(
     initialData?.source ?? ""
   );
-  const [selectedRepresentative, setSelectedRepresentative] = useState<{ id: string; name: string } | null>(null);
+  const [selectedRepresentative, setSelectedRepresentative] = useState<{ id: string; name: string } | null>(
+    initialData?.representativeId ? { id: initialData.representativeId, name: initialData.representativeName ?? '' } : null
+  );
+  const [selectedVendedor, setSelectedVendedor] = useState<{ id: string; name: string } | null>(
+    initialData?.vendedorId ? { id: initialData.vendedorId, name: initialData.vendedorName ?? '' } : null
+  );
   const [couponCode, setCouponCode] = useState(initialData?.couponCode ?? "");
   const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
   const [notes, setNotes] = useState("");
@@ -764,14 +770,20 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   const addressLookup = useAddressLookup();
 
   const isRepresentativeSource = orderSource === "REPRESENTATIVE";
+  const isVendedorSource = orderSource && orderSource !== "REPRESENTATIVE" && orderSource !== "ECOMMERCE";
   const [repSearch, setRepSearch] = useState("");
   const debouncedRepSearch = useDebounce(repSearch, 300);
   const [repCustomerSearch, setRepCustomerSearch] = useState("");
+  const [vendSearch, setVendSearch] = useState("");
+  const debouncedVendSearch = useDebounce(vendSearch, 300);
   const { data: representatives, isLoading: representativesLoading } = useRepresentatives(
     isRepresentativeSource && debouncedRepSearch.length >= 2 ? debouncedRepSearch : undefined,
   );
   const { data: representativeCustomers, isLoading: repCustomersLoading } = useRepresentativeCustomers(
     isRepresentativeSource ? selectedRepresentative?.id ?? null : null,
+  );
+  const { data: vendedores, isLoading: vendedoresLoading } = useVendedores(
+    isVendedorSource && debouncedVendSearch.length >= 2 ? debouncedVendSearch : undefined,
   );
 
   const { data: customerDetail } = useQuery({
@@ -1100,6 +1112,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
         : undefined,
       notes: notes || undefined,
       representativeId: selectedRepresentative?.id || undefined,
+      vendedorId: selectedVendedor?.id || undefined,
     };
     if (mode === 'edit') {
       updateOrderMutation.mutate(payload, { onSuccess: () => router.push("/dashboard/orders") });
@@ -1185,6 +1198,8 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                                   setAddressOverrides({});
                                   setDeliveryType("");
                                 } else {
+                                  setSelectedVendedor(null);
+                                  setVendSearch("");
                                   setSelectedCustomer(null);
                                   setAddressOverrides({});
                                   setDeliveryType("");
@@ -1269,6 +1284,70 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                                 >
                                   <p className="font-medium">{rep.name}</p>
                                   <p className="text-xs text-muted-foreground">{rep.email}</p>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Vendedor selector (only for non-representative, non-ecommerce sources) */}
+                  {isVendedorSource && (
+                    <div className="space-y-1.5">
+                      <Label>Vendedor</Label>
+                      {selectedVendedor ? (
+                        <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <p className="text-sm font-medium">{selectedVendedor.name}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setSelectedVendedor(null);
+                              setVendSearch("");
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar vendedor por nome..."
+                              value={vendSearch}
+                              onChange={(e) => setVendSearch(e.target.value)}
+                              className="pl-9"
+                            />
+                          </div>
+                          {debouncedVendSearch.length >= 2 && (
+                            <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg">
+                              {vendedoresLoading && (
+                                <p className="p-3 text-sm text-muted-foreground">Buscando...</p>
+                              )}
+                              {!vendedoresLoading && (!vendedores || vendedores.length === 0) && (
+                                <p className="p-3 text-sm text-muted-foreground">
+                                  Nenhum vendedor encontrado.
+                                </p>
+                              )}
+                              {vendedores?.map((vend) => (
+                                <button
+                                  key={vend.id}
+                                  type="button"
+                                  className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors text-sm"
+                                  onClick={() => {
+                                    setSelectedVendedor({ id: vend.id, name: vend.name });
+                                    setVendSearch("");
+                                  }}
+                                >
+                                  <p className="font-medium">{vend.name}</p>
+                                  <p className="text-xs text-muted-foreground">{vend.email}</p>
                                 </button>
                               ))}
                             </div>

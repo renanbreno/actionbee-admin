@@ -20,4 +20,5 @@ export interface UpdateOrderDTO {
   gifts?: { giftTierId: string; quantity: number }[];
   notes?: string;
   representativeId?: string;
+  vendedorId?: string;
 }
