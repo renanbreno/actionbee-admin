@@ -712,7 +712,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   );
   const [couponCode, setCouponCode] = useState(initialData?.couponCode ?? "");
   const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [selectedGifts, setSelectedGifts] = useState<Record<string, number>>(
     initialData
       ? Object.fromEntries((initialData.gifts ?? []).map((g) => [g.giftTierId, g.quantity]))
@@ -1110,14 +1110,22 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
       gifts: Object.keys(selectedGifts).length > 0
         ? Object.entries(selectedGifts).map(([giftTierId, quantity]) => ({ giftTierId, quantity }))
         : undefined,
-      notes: notes || undefined,
-      representativeId: selectedRepresentative?.id || undefined,
-      vendedorId: selectedVendedor?.id || undefined,
+      notes: mode === 'edit' ? (notes || null) : (notes || undefined),
+      representativeId: selectedRepresentative?.id ?? null,
+      vendedorId: selectedVendedor?.id ?? null,
     };
     if (mode === 'edit') {
       updateOrderMutation.mutate(payload, { onSuccess: () => router.push("/dashboard/orders") });
     } else {
-      createOrderMutation.mutate(payload, { onSuccess: () => router.push("/dashboard/orders") });
+      createOrderMutation.mutate(
+        {
+          ...payload,
+          representativeId: payload.representativeId ?? undefined,
+          vendedorId: payload.vendedorId ?? undefined,
+          notes: payload.notes ?? undefined,
+        },
+        { onSuccess: () => router.push("/dashboard/orders") },
+      );
     }
   }
 

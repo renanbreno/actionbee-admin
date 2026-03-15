@@ -18,7 +18,7 @@ export interface UpdateOrderDTO {
   shippingAddress?: CreateOrderShippingAddressDTO;
   shippingInfo?: CreateOrderShippingInfoDTO;
   gifts?: { giftTierId: string; quantity: number }[];
-  notes?: string;
-  representativeId?: string;
-  vendedorId?: string;
+  notes?: string | null;
+  representativeId?: string | null;
+  vendedorId?: string | null;
 }
