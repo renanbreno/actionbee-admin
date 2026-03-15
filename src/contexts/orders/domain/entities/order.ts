@@ -21,6 +21,8 @@ export type PaymentMethod =
   | "OTHER"
   | string;
 
+export type OrderSource = "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | "ECOMMERCE";
+
 export interface OrderListItem {
   id: string;
   orderNumber: string;
@@ -37,6 +39,7 @@ export interface OrderListItem {
   couponCode?: string;
   hasOfferItems: boolean;
   hasDiscount: boolean;  // true quando totalAmount > discountedAmount (cupom ou oferta)
+  source?: OrderSource;
 }
 
 export interface PaginatedOrders {

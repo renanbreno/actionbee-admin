@@ -24,6 +24,7 @@ import {
   QrCode,
   Search,
   ShoppingCart,
+  Globe,
   Store,
   Trash2,
   Truck,
@@ -696,10 +697,11 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
         }))
       : []
   );
+  const isEcommerceOrder = initialData?.source === "ECOMMERCE";
   const [orderSource, setOrderSource] = useState<
-    "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | ""
+    "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | "ECOMMERCE" | ""
   >(
-    (initialData?.source as "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | undefined) ?? ""
+    initialData?.source ?? ""
   );
   const [selectedRepresentative, setSelectedRepresentative] = useState<{ id: string; name: string } | null>(null);
   const [couponCode, setCouponCode] = useState(initialData?.couponCode ?? "");
@@ -1161,40 +1163,47 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                   {/* Order source selection */}
                   <div className="space-y-1.5">
                     <Label>Origem do Pedido *</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {ORDER_SOURCES.map((source) => {
-                        const Icon = source.icon;
-                        const isSelected = orderSource === source.value;
-                        return (
-                          <button
-                            key={source.value}
-                            type="button"
-                            onClick={() => {
-                              setOrderSource(source.value);
-                              if (source.value !== "REPRESENTATIVE") {
-                                setSelectedRepresentative(null);
-                                setSelectedCustomer(null);
-                                setAddressOverrides({});
-                                setDeliveryType("");
-                              } else {
-                                setSelectedCustomer(null);
-                                setAddressOverrides({});
-                                setDeliveryType("");
-                              }
-                            }}
-                            className={[
-                              "flex flex-col items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all cursor-pointer",
-                              isSelected
-                                ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
-                                : "border-border hover:border-muted-foreground/50 hover:bg-muted/40 text-foreground",
-                            ].join(" ")}
-                          >
-                            <Icon className="h-5 w-5" />
-                            {source.label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {isEcommerceOrder ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 p-3 text-sm font-medium text-muted-foreground">
+                        <Globe className="h-5 w-5" />
+                        E-commerce
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {ORDER_SOURCES.map((source) => {
+                          const Icon = source.icon;
+                          const isSelected = orderSource === source.value;
+                          return (
+                            <button
+                              key={source.value}
+                              type="button"
+                              onClick={() => {
+                                setOrderSource(source.value);
+                                if (source.value !== "REPRESENTATIVE") {
+                                  setSelectedRepresentative(null);
+                                  setSelectedCustomer(null);
+                                  setAddressOverrides({});
+                                  setDeliveryType("");
+                                } else {
+                                  setSelectedCustomer(null);
+                                  setAddressOverrides({});
+                                  setDeliveryType("");
+                                }
+                              }}
+                              className={[
+                                "flex flex-col items-center gap-2 rounded-xl border p-3 text-sm font-medium transition-all cursor-pointer",
+                                isSelected
+                                  ? "border-bee-gold bg-bee-gold/10 ring-1 ring-bee-gold text-bee-gold"
+                                  : "border-border hover:border-muted-foreground/50 hover:bg-muted/40 text-foreground",
+                              ].join(" ")}
+                            >
+                              <Icon className="h-5 w-5" />
+                              {source.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {/* Representative selector (only when source is REPRESENTATIVE) */}

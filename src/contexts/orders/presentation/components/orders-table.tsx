@@ -27,20 +27,46 @@ import {
   ChevronRight,
   CreditCard,
   Eye,
+  Globe,
+  Instagram,
+  MessageCircle,
   MoreHorizontal,
   Package,
   Pencil,
   QrCode,
   RefreshCw,
+  Store,
   Ticket,
   User,
+  Users,
   XCircle,
   DollarSign,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { OrderListItem, OrderStatus } from "../../domain/entities/order";
+import { OrderListItem, OrderSource, OrderStatus } from "../../domain/entities/order";
 import { OrderStatusBadge } from "@/shared/presentation/components/order-status-badge";
+
+const ORDER_SOURCE_CONFIG: Record<OrderSource, { label: string; Icon: LucideIcon; className: string }> = {
+  WHATSAPP: { label: "WhatsApp", Icon: MessageCircle, className: "bg-green-100 text-green-800 border-green-300" },
+  INSTAGRAM: { label: "Instagram", Icon: Instagram, className: "bg-pink-100 text-pink-800 border-pink-300" },
+  IN_STORE: { label: "Loja", Icon: Store, className: "bg-orange-100 text-orange-800 border-orange-300" },
+  REPRESENTATIVE: { label: "Representante", Icon: Users, className: "bg-purple-100 text-purple-800 border-purple-300" },
+  ECOMMERCE: { label: "E-commerce", Icon: Globe, className: "bg-blue-100 text-blue-800 border-blue-300" },
+};
+
+function OrderSourceBadge({ source }: { source?: OrderSource }) {
+  if (!source) return null;
+  const config = ORDER_SOURCE_CONFIG[source];
+  if (!config) return null;
+  const { label, Icon, className } = config;
+  return (
+    <Badge className={`text-[10px] px-1.5 py-0 border gap-1 ${className}`}>
+      <Icon className="h-2.5 w-2.5" />
+      {label}
+    </Badge>
+  );
+}
 
 const TERMINAL_STATUSES: OrderStatus[] = ["DELIVERED", "CANCELLED"];
 
@@ -197,9 +223,12 @@ function OrderCard({
     <Card className="shadow-sm">
       <CardContent className="space-y-3 p-4">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4 text-muted-foreground" />
-            <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
+            </div>
+            <OrderSourceBadge source={order.source} />
           </div>
           <div className="flex items-center gap-2">
             <OrderStatusBadge status={order.status} />
@@ -272,7 +301,10 @@ function OrderRow({
   return (
     <TableRow className="group">
       <TableCell>
-        <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
+        <div className="flex flex-col gap-1">
+          <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
+          <OrderSourceBadge source={order.source} />
+        </div>
       </TableCell>
       <TableCell>
         <div>
