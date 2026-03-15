@@ -98,6 +98,8 @@ export interface OrderBonusItem {
 export interface OrderDetail extends OrderListItem {
   customerId: string;
   representativeId?: string;
+  vendedorId?: string;
+  vendedorName?: string;
   items: OrderDetailItem[];
   bonusItems?: OrderBonusItem[];
   shippingAddress: OrderShippingAddress;
@@ -113,10 +115,13 @@ export interface OrderDetail extends OrderListItem {
   meLabelUrl?: string;
   meServiceCode?: number;
   paymentLink?: string;
+  notes?: string;
   commissionStatus?: string;
   commissionAmount?: number;
   representativeCommissionStatus?: string;
   representativeCommissionAmount?: number;
+  vendedorCommissionStatus?: string;
+  vendedorCommissionAmount?: number;
 }
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

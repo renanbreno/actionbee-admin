@@ -77,6 +77,7 @@ import { useRepresentatives } from "@/contexts/representatives/presentation/hook
 import { useRepresentativeCustomers } from "@/contexts/representatives/presentation/hooks/use-representative-customers";
 import { useAssociateCustomer } from "@/contexts/representatives/presentation/hooks/use-associate-customer";
 import { CustomerFormDialog } from "@/contexts/customers/presentation/components/customer-form-dialog";
+import { useVendedores } from "@/contexts/vendedores/presentation/hooks/use-vendedores";
 
 interface GiftTier {
   id: string;
@@ -648,6 +649,8 @@ export default function NewOrderPage() {
     "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | ""
   >("");
   const [selectedRepresentative, setSelectedRepresentative] = useState<{ id: string; name: string } | null>(null);
+  const [selectedVendedor, setSelectedVendedor] = useState<{ id: string; name: string } | null>(null);
+  const [vendedorSearch, setVendedorSearch] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
   const [notes, setNotes] = useState("");
@@ -691,6 +694,7 @@ export default function NewOrderPage() {
   const isRepresentativeSource = orderSource === "REPRESENTATIVE";
   const [repSearch, setRepSearch] = useState("");
   const debouncedRepSearch = useDebounce(repSearch, 300);
+  const debouncedVendedorSearch = useDebounce(vendedorSearch, 300);
   const [repCustomerSearch, setRepCustomerSearch] = useState("");
   const { data: representatives, isLoading: representativesLoading } = useRepresentatives(
     isRepresentativeSource && debouncedRepSearch.length >= 2 ? debouncedRepSearch : undefined,
@@ -699,6 +703,9 @@ export default function NewOrderPage() {
     isRepresentativeSource ? selectedRepresentative?.id ?? null : null,
   );
   const associateCustomerMutation = useAssociateCustomer();
+  const { data: vendedores, isLoading: vendedoresLoading } = useVendedores(
+    debouncedVendedorSearch.length >= 2 ? debouncedVendedorSearch : undefined,
+  );
 
   const { data: customerDetail } = useQuery({
     queryKey: ["customer-detail", selectedCustomer?.id],
@@ -1013,6 +1020,7 @@ export default function NewOrderPage() {
           : undefined,
         notes: notes || undefined,
         representativeId: selectedRepresentative?.id || undefined,
+        vendedorId: selectedVendedor?.id || undefined,
       },
       { onSuccess: () => router.push("/dashboard/orders") },
     );
@@ -1074,6 +1082,8 @@ export default function NewOrderPage() {
                                 setAddressOverrides({});
                                 setDeliveryType("");
                               } else {
+                                setSelectedVendedor(null);
+                                setVendedorSearch("");
                                 setSelectedCustomer(null);
                                 setAddressOverrides({});
                                 setDeliveryType("");
@@ -1157,6 +1167,70 @@ export default function NewOrderPage() {
                                 >
                                   <p className="font-medium">{rep.name}</p>
                                   <p className="text-xs text-muted-foreground">{rep.email}</p>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Vendedor selector (optional, not available for representative orders) */}
+                  {orderSource && !isRepresentativeSource && (
+                    <div className="space-y-1.5">
+                      <Label>Vendedor <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                      {selectedVendedor ? (
+                        <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <p className="text-sm font-medium">{selectedVendedor.name}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setSelectedVendedor(null);
+                              setVendedorSearch("");
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar vendedor por nome..."
+                              value={vendedorSearch}
+                              onChange={(e) => setVendedorSearch(e.target.value)}
+                              className="pl-9"
+                            />
+                          </div>
+                          {debouncedVendedorSearch.length >= 2 && (
+                            <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-lg">
+                              {vendedoresLoading && (
+                                <p className="p-3 text-sm text-muted-foreground">Buscando...</p>
+                              )}
+                              {!vendedoresLoading && (!vendedores || vendedores.length === 0) && (
+                                <p className="p-3 text-sm text-muted-foreground">
+                                  Nenhum vendedor encontrado.
+                                </p>
+                              )}
+                              {vendedores?.map((v) => (
+                                <button
+                                  key={v.id}
+                                  type="button"
+                                  className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors text-sm"
+                                  onClick={() => {
+                                    setSelectedVendedor({ id: v.id, name: v.name });
+                                    setVendedorSearch("");
+                                  }}
+                                >
+                                  <p className="font-medium">{v.name}</p>
+                                  <p className="text-xs text-muted-foreground">{v.email}</p>
                                 </button>
                               ))}
                             </div>
@@ -1642,8 +1716,8 @@ export default function NewOrderPage() {
       {/* PAYMENT & SHIPPING CARD */}
       <CollapsibleCard
         className="w-full"
-        title="Pagamento & Entrega"
-        description="Finalize as informações do pedido"
+        title="Entrega & Pagamento"
+        description="Defina a entrega, calcule o frete e registre o pagamento"
         open={isPaymentOpen}
         onOpenChange={setIsPaymentOpen}
       >
@@ -1678,6 +1752,16 @@ export default function NewOrderPage() {
                               <div className="min-w-0">
                                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Representante</p>
                                 <p className="text-sm font-medium truncate">{selectedRepresentative.name}</p>
+                              </div>
+                            </div>
+                          )}
+                          {/* Vendedor info */}
+                          {selectedVendedor && (
+                            <div className="flex items-center gap-2 rounded-lg bg-muted/50 border px-3 py-2">
+                              <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vendedor</p>
+                                <p className="text-sm font-medium truncate">{selectedVendedor.name}</p>
                               </div>
                             </div>
                           )}
@@ -1862,169 +1946,6 @@ export default function NewOrderPage() {
                       </CollapsibleContent>
                     </Collapsible>
                     <Separator className="mt-4" />
-                  </div>
-
-                  {/* Payments */}
-                  <div className="space-y-4">
-                    <Label>Formas de Pagamento *</Label>
-                    
-                    {payments.length === 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
-                          const Icon = m.icon;
-                          return (
-                            <button
-                              key={m.value}
-                              type="button"
-                              onClick={() => addPayment(m.value)}
-                              className="flex flex-col items-center justify-center gap-2 group rounded-xl border border-border p-4 text-sm font-medium transition-all hover:border-bee-gold hover:bg-bee-gold/5"
-                            >
-                              <div className="p-2 rounded-full bg-muted group-hover:bg-bee-gold/10 transition-colors">
-                                <Icon className="h-5 w-5 text-muted-foreground group-hover:text-bee-gold" />
-                              </div>
-                              <span className="text-center">{m.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {/* Lista de Pagamentos Ativos (Estilo Tabela/ListGroup) */}
-                        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-                          {payments.map((entry) => {
-                            const methodDef = PAYMENT_METHODS_FOR_PAYMENTS.find(
-                              (m) => m.value === entry.method
-                            );
-                            const Icon = methodDef?.icon || CreditCard;
-
-                            return (
-                              <div
-                                key={entry.id}
-                                className="group flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:px-4 sm:py-3 border-b border-border/50 last:border-0 transition-colors hover:bg-muted/30"
-                              >
-                                {/* Left Side: Icon + Method Select */}
-                                <div className="flex flex-1 items-center gap-3">
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/40 text-muted-foreground group-hover:text-foreground group-hover:bg-background transition-colors">
-                                    <Icon className="h-4 w-4" />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-semibold">{methodDef?.label || "Selecione..."}</span>
-                                    {entry.method === "BOLETO" && (
-                                      <div className="mt-0.5 flex items-center gap-1.5">
-                                        <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento:</span>
-                                        <Select
-                                          value={String(entry.boletoDueDays)}
-                                          onValueChange={(val) =>
-                                            updatePayment(entry.id, {
-                                              boletoDueDays: Number(val) as 30 | 60,
-                                            })
-                                          }
-                                        >
-                                          <SelectTrigger className="h-5 w-[70px] rounded border-0 bg-transparent p-0 text-[11px] text-muted-foreground shadow-none hover:text-foreground transition-colors focus:ring-0 [&>svg]:ml-0.5">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="30">30 dias</SelectItem>
-                                            <SelectItem value="60">60 dias</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Right Side: Amount + Actions */}
-                                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-between sm:justify-end">
-                                  <div className="relative w-[140px]">
-                                    <CurrencyInput
-                                      value={entry.amount}
-                                      onChange={(val) =>
-                                        updatePayment(entry.id, { amount: val })
-                                      }
-                                      className="h-9 w-full sm:w-[140px] text-right"
-                                    />
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 shrink-0 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:text-muted-foreground"
-                                    onClick={() => removePayment(entry.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Visual Feedback and Add Next Payment */}
-                        {(cartItems.length > 0 || orderTotal > 0) && (
-                          <div className="space-y-3 mt-4 p-4 rounded-lg bg-muted/30 border border-muted">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                              {orderTotal > paymentsSum ? (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1.5 self-start bg-background"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                      Adicionar pagamento ({formatCurrency(orderTotal - paymentsSum)})
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="start" className="w-[200px]">
-                                    {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
-                                      const MIcon = m.icon;
-                                      return (
-                                        <DropdownMenuItem 
-                                          key={m.value} 
-                                          onSelect={() => addPayment(m.value)}
-                                          className="cursor-pointer"
-                                        >
-                                          <MIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                                          {m.label}
-                                        </DropdownMenuItem>
-                                      );
-                                    })}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              ) : (
-                                <div className="text-sm font-medium text-green-600 flex items-center gap-1.5">
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  Total do pedido atingido
-                                </div>
-                              )}
-                              
-                              <div className="text-sm tabular-nums font-medium text-right flex flex-col items-end">
-                                <span>
-                                  {formatCurrency(paymentsSum)} / {formatCurrency(orderTotal)}
-                                </span>
-                                {paymentsSum > orderTotal && (
-                                  <span className="text-xs text-destructive">
-                                    Excede o total em {formatCurrency(paymentsSum - orderTotal)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Visual Progress Bar */}
-                            <div className="w-full h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
-                              <div
-                                className={cn(
-                                  "h-full transition-all duration-300",
-                                  paymentsMatch ? "bg-green-500" : paymentsSum > orderTotal ? "bg-destructive" : "bg-bee-gold"
-                                )}
-                                style={{ width: `${Math.min(100, (paymentsSum / (orderTotal || 1)) * 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Coupon */}
@@ -2492,16 +2413,187 @@ export default function NewOrderPage() {
                     </Collapsible>
                   )}
 
-                  {/* Notes */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="notes">
+                  {/* Divider before payment — last step */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <Separator className="flex-1" />
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Pagamento
+                    </span>
+                    <Separator className="flex-1" />
+                  </div>
+
+                  {/* Payments — last step after shipping is calculated */}
+                  <div className="space-y-4">
+                    <Label>Formas de Pagamento *</Label>
+
+                    {payments.length === 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
+                          const Icon = m.icon;
+                          return (
+                            <button
+                              key={m.value}
+                              type="button"
+                              onClick={() => addPayment(m.value)}
+                              className="flex flex-col items-center justify-center gap-2 group rounded-xl border border-border p-4 text-sm font-medium transition-all hover:border-bee-gold hover:bg-bee-gold/5"
+                            >
+                              <div className="p-2 rounded-full bg-muted group-hover:bg-bee-gold/10 transition-colors">
+                                <Icon className="h-5 w-5 text-muted-foreground group-hover:text-bee-gold" />
+                              </div>
+                              <span className="text-center">{m.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Lista de Pagamentos Ativos (Estilo Tabela/ListGroup) */}
+                        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                          {payments.map((entry) => {
+                            const methodDef = PAYMENT_METHODS_FOR_PAYMENTS.find(
+                              (m) => m.value === entry.method
+                            );
+                            const Icon = methodDef?.icon || CreditCard;
+
+                            return (
+                              <div
+                                key={entry.id}
+                                className="group flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:px-4 sm:py-3 border-b border-border/50 last:border-0 transition-colors hover:bg-muted/30"
+                              >
+                                {/* Left Side: Icon + Method Select */}
+                                <div className="flex flex-1 items-center gap-3">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/40 text-muted-foreground group-hover:text-foreground group-hover:bg-background transition-colors">
+                                    <Icon className="h-4 w-4" />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-semibold">{methodDef?.label || "Selecione..."}</span>
+                                    {entry.method === "BOLETO" && (
+                                      <div className="mt-0.5 flex items-center gap-1.5">
+                                        <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento:</span>
+                                        <Select
+                                          value={String(entry.boletoDueDays)}
+                                          onValueChange={(val) =>
+                                            updatePayment(entry.id, {
+                                              boletoDueDays: Number(val) as 30 | 60,
+                                            })
+                                          }
+                                        >
+                                          <SelectTrigger className="h-5 w-[70px] rounded border-0 bg-transparent p-0 text-[11px] text-muted-foreground shadow-none hover:text-foreground transition-colors focus:ring-0 [&>svg]:ml-0.5">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="30">30 dias</SelectItem>
+                                            <SelectItem value="60">60 dias</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Right Side: Amount + Actions */}
+                                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-between sm:justify-end">
+                                  <div className="relative w-[140px]">
+                                    <CurrencyInput
+                                      value={entry.amount}
+                                      onChange={(val) =>
+                                        updatePayment(entry.id, { amount: val })
+                                      }
+                                      className="h-9 w-full sm:w-[140px] text-right"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:text-muted-foreground"
+                                    onClick={() => removePayment(entry.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Visual Feedback and Add Next Payment */}
+                        {(cartItems.length > 0 || orderTotal > 0) && (
+                          <div className="space-y-3 mt-4 p-4 rounded-lg bg-muted/30 border border-muted">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {orderTotal > paymentsSum ? (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1.5 self-start bg-background"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      Adicionar pagamento ({formatCurrency(orderTotal - paymentsSum)})
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start" className="w-[200px]">
+                                    {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
+                                      const MIcon = m.icon;
+                                      return (
+                                        <DropdownMenuItem
+                                          key={m.value}
+                                          onSelect={() => addPayment(m.value)}
+                                          className="cursor-pointer"
+                                        >
+                                          <MIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                          {m.label}
+                                        </DropdownMenuItem>
+                                      );
+                                    })}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : (
+                                <div className="text-sm font-medium text-green-600 flex items-center gap-1.5">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Total do pedido atingido
+                                </div>
+                              )}
+
+                              <div className="text-sm tabular-nums font-medium text-right flex flex-col items-end">
+                                <span>
+                                  {formatCurrency(paymentsSum)} / {formatCurrency(orderTotal)}
+                                </span>
+                                {paymentsSum > orderTotal && (
+                                  <span className="text-xs text-destructive">
+                                    Excede o total em {formatCurrency(paymentsSum - orderTotal)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Visual Progress Bar */}
+                            <div className="w-full h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full transition-all duration-300",
+                                  paymentsMatch ? "bg-green-500" : paymentsSum > orderTotal ? "bg-destructive" : "bg-bee-gold"
+                                )}
+                                style={{ width: `${Math.min(100, (paymentsSum / (orderTotal || 1)) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notes — mobile only (desktop shows in sidebar) */}
+                  <div className="lg:hidden space-y-1.5">
+                    <Label htmlFor="notes-mobile">
                       Observações{" "}
-                      <span className="text-muted-foreground text-xs">
-                        (opcional)
-                      </span>
+                      <span className="text-muted-foreground text-xs">(opcional)</span>
                     </Label>
                     <Textarea
-                      id="notes"
+                      id="notes-mobile"
                       placeholder="Observações sobre o pedido..."
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
@@ -2585,6 +2677,17 @@ export default function NewOrderPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Representante</p>
                     <p className="text-sm font-medium truncate">{selectedRepresentative.name}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Vendedor Info */}
+              {selectedVendedor && (
+                <div className="flex items-center gap-2 rounded-lg bg-muted/50 border px-3 py-2">
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Vendedor</p>
+                    <p className="text-sm font-medium truncate">{selectedVendedor.name}</p>
                   </div>
                 </div>
               )}
@@ -2776,6 +2879,22 @@ export default function NewOrderPage() {
                   </div>
                 </>
               )}
+
+              {/* Notes — desktop only (mobile shows at end of card) */}
+              <div className="hidden lg:block space-y-1.5">
+                <Separator />
+                <Label htmlFor="notes-desktop" className="block pt-2">
+                  Observações{" "}
+                  <span className="text-muted-foreground text-xs">(opcional)</span>
+                </Label>
+                <Textarea
+                  id="notes-desktop"
+                  placeholder="Observações sobre o pedido..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
 
               {/* Desktop Navigation Buttons */}
               <div className="hidden lg:block pt-2">

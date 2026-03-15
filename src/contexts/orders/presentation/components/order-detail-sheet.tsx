@@ -23,6 +23,7 @@ import {
   Gift,
   Loader2,
   MapPin,
+  MessageSquare,
   Package,
   QrCode,
   Truck,
@@ -143,6 +144,14 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
               <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-muted-foreground">
                 Representante: <span className="font-medium text-foreground">{order.representativeName}</span>
+              </span>
+            </div>
+          )}
+          {order.vendedorName && (
+            <div className="flex items-center gap-2 text-sm">
+              <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                Vendedor: <span className="font-medium text-foreground">{order.vendedorName}</span>
               </span>
             </div>
           )}
@@ -560,6 +569,18 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
                 Baixar Boleto
               </Button>
             )}
+          </div>
+        </Section>
+      )}
+
+      {/* Observações */}
+      {order.notes && (
+        <Section title="Observações">
+          <div className="rounded-lg border bg-card p-4 text-sm">
+            <div className="flex items-start gap-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="whitespace-pre-wrap text-foreground">{order.notes}</p>
+            </div>
           </div>
         </Section>
       )}

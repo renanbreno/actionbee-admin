@@ -57,6 +57,28 @@ export interface TopAffiliateCategory {
   netRevenuePercent: number;
 }
 
+export interface TopVendedor {
+  id: string;
+  name: string;
+  orders: number;
+  grossRevenue: number;
+  netRevenue: number;
+  commissionGenerated: number;
+  commissionPending: number;
+  commissionPaid: number;
+}
+
+export interface DashboardVendedores {
+  totalVendedores: number;
+  totalOrdersWithVendedor: number;
+  totalGrossRevenue: number;
+  totalNetRevenue: number;
+  totalCommissionGenerated: number;
+  totalCommissionPending: number;
+  totalCommissionPaid: number;
+  topVendedores: TopVendedor[];
+}
+
 export interface SalesBySource {
   source: 'WHATSAPP' | 'IN_STORE' | 'INSTAGRAM' | 'ECOMMERCE' | 'REPRESENTATIVE';
   orders: number;
@@ -201,4 +223,5 @@ export interface DashboardMetrics {
   products: DashboardProducts;
   affiliates: DashboardAffiliates;
   channels?: DashboardChannels;
+  vendedores?: DashboardVendedores;
 }

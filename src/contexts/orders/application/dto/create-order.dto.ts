@@ -60,4 +60,5 @@ export interface CreateOrderDTO {
   gifts?: { giftTierId: string; quantity: number }[];
   notes?: string;
   representativeId?: string;
+  vendedorId?: string;
 }

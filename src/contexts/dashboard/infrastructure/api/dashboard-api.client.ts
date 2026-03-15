@@ -110,6 +110,7 @@ export const dashboardApiClient = {
     // Combinar dados
     return {
       ...mainData,
+      vendedores: mainData.vendedores ?? undefined,
       affiliates: {
         ...mainData.affiliates,
         totalAffiliates: affiliateData.summary?.totalAffiliates ?? 0,

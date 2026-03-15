@@ -124,6 +124,11 @@ const menuItems: MenuItem[] = [
     icon: Users,
   },
   {
+    title: "Vendedores",
+    href: "/dashboard/vendedores",
+    icon: Users,
+  },
+  {
     title: "Clientes",
     href: "/dashboard/customers",
     icon: Users,

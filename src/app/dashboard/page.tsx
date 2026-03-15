@@ -8,6 +8,7 @@ import { DashboardSalesSection } from "@/contexts/dashboard/presentation/compone
 import { DashboardCustomersSection } from "@/contexts/dashboard/presentation/components/dashboard-customers-section";
 import { DashboardProductsSection } from "@/contexts/dashboard/presentation/components/dashboard-products-section";
 import { DashboardAffiliatesSection } from "@/contexts/dashboard/presentation/components/dashboard-affiliates-section";
+import { DashboardVendedoresSection } from "@/contexts/dashboard/presentation/components/dashboard-vendedores-section";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -287,6 +288,10 @@ export default function DashboardPage() {
       <Separator />
 
       <DashboardAffiliatesSection data={data?.affiliates} isLoading={isLoading} />
+
+      <Separator />
+
+      <DashboardVendedoresSection data={data?.vendedores} isLoading={isLoading} />
 
       {/* Footer */}
       {data && (
