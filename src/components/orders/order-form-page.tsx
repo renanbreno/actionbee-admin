@@ -1598,6 +1598,16 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                       >
                         <Gift className="h-4 w-4" />
                         Brinde
+                        {Object.keys(selectedGifts).length > 0 && (
+                          <span className={[
+                            "inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-semibold min-w-[1.25rem]",
+                            giftBonusTab === "brinde"
+                              ? "bg-bee-gold text-white"
+                              : "bg-muted-foreground/20 text-muted-foreground",
+                          ].join(" ")}>
+                            {Object.keys(selectedGifts).length}
+                          </span>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -1611,6 +1621,16 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                       >
                         <Package className="h-4 w-4" />
                         Bonificação
+                        {bonusItems.length > 0 && (
+                          <span className={[
+                            "inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-semibold min-w-[1.25rem]",
+                            giftBonusTab === "bonus"
+                              ? "bg-bee-gold text-white"
+                              : "bg-muted-foreground/20 text-muted-foreground",
+                          ].join(" ")}>
+                            {bonusItems.length}
+                          </span>
+                        )}
                       </button>
                     </div>
 
