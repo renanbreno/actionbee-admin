@@ -122,6 +122,7 @@ export interface OrderDetail extends OrderListItem {
   representativeCommissionAmount?: number;
   vendedorCommissionStatus?: string;
   vendedorCommissionAmount?: number;
+  blingId?: string;
 }
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

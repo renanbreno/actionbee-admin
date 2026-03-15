@@ -29,6 +29,7 @@ import {
   Eye,
   MoreHorizontal,
   Package,
+  Pencil,
   QrCode,
   RefreshCw,
   Ticket,
@@ -37,6 +38,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { OrderListItem, OrderStatus } from "../../domain/entities/order";
 import { OrderStatusBadge } from "@/shared/presentation/components/order-status-badge";
 
@@ -144,6 +146,12 @@ function OrderActions({
         <DropdownMenuItem onClick={() => onViewDetail(order)}>
           <Eye className="mr-2 h-3.5 w-3.5" />
           Ver detalhes
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={`/dashboard/orders/${order.id}/edit`}>
+            <Pencil className="mr-2 h-3.5 w-3.5" />
+            Editar pedido
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onUpdatePaymentStatus(order)}>
           <DollarSign className="mr-2 h-3.5 w-3.5" />
