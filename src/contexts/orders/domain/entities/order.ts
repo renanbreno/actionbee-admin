@@ -88,6 +88,8 @@ export interface OrderPaymentEntry {
 }
 
 export interface OrderBonusItem {
+  productId: string;
+  variantId: string;
   productName: string;
   variantName: string;
   quantity: number;
@@ -105,7 +107,7 @@ export interface OrderDetail extends OrderListItem {
   shippingAddress: OrderShippingAddress;
   shippingInfo: OrderShippingInfo;
   couponCode?: string;
-  gifts: { giftName: string; giftImageUrl?: string; quantity: number; unitCost?: number; totalCost?: number }[];
+  gifts: { giftTierId: string; giftName: string; giftImageUrl?: string; quantity: number; unitCost?: number; totalCost?: number }[];
   statusHistory: { status: string; changedAt: string }[];
   boletoBarcode?: string;
   boletoPdfUrl?: string;

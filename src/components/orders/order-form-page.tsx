@@ -673,9 +673,9 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
     initialData
       ? (initialData.bonusItems ?? []).map((item) => ({
           itemKey: `${item.variantName}-bonus`,
-          productId: '',
+          productId: item.productId,
           productName: item.productName,
-          variantId: item.variantName,
+          variantId: item.variantId,
           variantName: item.variantName,
           unitPrice: item.unitCost ?? 0,
           quantity: item.quantity,
@@ -705,7 +705,11 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   const [couponCode, setCouponCode] = useState(initialData?.couponCode ?? "");
   const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
   const [notes, setNotes] = useState("");
-  const [selectedGifts, setSelectedGifts] = useState<Record<string, number>>({});
+  const [selectedGifts, setSelectedGifts] = useState<Record<string, number>>(
+    initialData
+      ? Object.fromEntries((initialData.gifts ?? []).map((g) => [g.giftTierId, g.quantity]))
+      : {}
+  );
   const [deliveryType, setDeliveryType] = useState<DeliveryType>(
     initialData ? (initialData.shippingInfo.price > 0 ? "DELIVERY" : "NONE") : ""
   );

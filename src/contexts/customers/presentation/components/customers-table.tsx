@@ -42,6 +42,7 @@ import {
   FileText,
   ShoppingBag,
   MessageCircle,
+  Gift,
 } from "lucide-react";
 import {
   Customer,
@@ -186,20 +187,32 @@ function LastOrderCell({
 
   if (!lastOrder.items?.length) return trigger;
 
+  const regularItems = lastOrder.items.filter((item) => !item.isBonus);
+  const bonusItems = lastOrder.items.filter((item) => item.isBonus);
+  const hasGifts = (lastOrder.gifts?.length ?? 0) > 0;
+
   return (
     <Popover>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-0">
-        <div className="px-4 py-3 border-b">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Pedido {lastOrder.orderNumber}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {formatDate(lastOrderDate)}
-          </p>
+        <div className="px-4 py-3 border-b flex items-start justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Pedido {lastOrder.orderNumber}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {formatDate(lastOrderDate)}
+            </p>
+          </div>
+          {hasGifts && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 shrink-0">
+              <Gift className="h-3 w-3" />
+              Brinde
+            </span>
+          )}
         </div>
         <ul className="divide-y">
-          {lastOrder.items.map((item, i) => (
+          {regularItems.map((item, i) => (
             <li
               key={i}
               className="flex items-start justify-between gap-3 px-4 py-2.5"
@@ -223,6 +236,37 @@ function LastOrderCell({
             </li>
           ))}
         </ul>
+        {bonusItems.length > 0 && (
+          <>
+            <div className="px-4 py-2 border-t bg-amber-50">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                Bonificação
+              </p>
+            </div>
+            <ul className="divide-y">
+              {bonusItems.map((item, i) => (
+                <li
+                  key={i}
+                  className="flex items-start justify-between gap-3 px-4 py-2.5 bg-amber-50/50"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {item.productName}
+                    </p>
+                    {item.variantName && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {item.variantName}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xs font-medium shrink-0 text-amber-700">
+                    Qtd: {item.quantity}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <div className="px-4 py-2.5 border-t flex justify-between items-center">
           <span className="text-xs text-muted-foreground font-medium">
             Total

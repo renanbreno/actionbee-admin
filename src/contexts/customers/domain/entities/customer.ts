@@ -15,6 +15,12 @@ export interface CustomerLastOrderItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  isBonus?: boolean;
+}
+
+export interface CustomerLastOrderGift {
+  giftName: string;
+  quantity: number;
 }
 
 export interface CustomerLastOrder {
@@ -24,6 +30,7 @@ export interface CustomerLastOrder {
   totalAmount: number;
   createdAt: string;
   items: CustomerLastOrderItem[];
+  gifts: CustomerLastOrderGift[];
 }
 
 export const CustomerType = {
