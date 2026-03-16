@@ -717,7 +717,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   const [orderDate, setOrderDate] = useState<string>(
     initialData?.orderDate
       ? initialData.orderDate.substring(0, 10)
-      : (mode === 'edit' && initialData?.createdAt ? initialData.createdAt.substring(0, 10) : "")
+      : (mode === 'edit' && initialData?.createdAt ? initialData.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10))
   );
   const [selectedGifts, setSelectedGifts] = useState<Record<string, number>>(
     initialData
