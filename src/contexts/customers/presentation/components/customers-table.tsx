@@ -43,6 +43,7 @@ import {
   ShoppingBag,
   MessageCircle,
   Gift,
+  UserCheck,
 } from "lucide-react";
 import {
   Customer,
@@ -58,6 +59,7 @@ import {
 } from "@/components/ui/popover";
 import { useCustomers } from "../hooks/use-customers";
 import { CustomerFormDialog } from "./customer-form-dialog";
+import { AssignRepresentativeDialog } from "./assign-representative-dialog";
 import { formatPhone, formatDocument } from "@/shared/utils/masks";
 import type {
   PurchaseStatus,
@@ -281,7 +283,13 @@ function LastOrderCell({
 }
 
 /* ─── Actions Dropdown ─── */
-function CustomerActions({ onEdit }: { onEdit: () => void }) {
+function CustomerActions({
+  onEdit,
+  onAssignRepresentative,
+}: {
+  onEdit: () => void;
+  onAssignRepresentative: () => void;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -290,10 +298,14 @@ function CustomerActions({ onEdit }: { onEdit: () => void }) {
           <span className="sr-only">Ações</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem onClick={onEdit}>
           <Edit className="mr-2 h-3.5 w-3.5" />
           Editar
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onAssignRepresentative}>
+          <UserCheck className="mr-2 h-3.5 w-3.5" />
+          Vincular Representante
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -304,9 +316,11 @@ function CustomerActions({ onEdit }: { onEdit: () => void }) {
 function CustomerCard({
   customer,
   onEdit,
+  onAssignRepresentative,
 }: {
   customer: Customer;
   onEdit: () => void;
+  onAssignRepresentative: () => void;
 }) {
   const documentNumber = customer.cnpj
     ? formatDocument(customer.cnpj)
@@ -344,7 +358,7 @@ function CustomerCard({
               {customer.email}
             </p>
           </div>
-          <CustomerActions onEdit={onEdit} />
+          <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} />
         </div>
 
         {/* Info */}
@@ -427,9 +441,11 @@ function CustomerCard({
 function CustomerRow({
   customer,
   onEdit,
+  onAssignRepresentative,
 }: {
   customer: Customer;
   onEdit: () => void;
+  onAssignRepresentative: () => void;
 }) {
   const documentNumber = customer.cnpj
     ? formatDocument(customer.cnpj)
@@ -525,7 +541,7 @@ function CustomerRow({
         />
       </TableCell>
       <TableCell className="text-right">
-        <CustomerActions onEdit={onEdit} />
+        <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} />
       </TableCell>
     </TableRow>
   );
@@ -621,6 +637,8 @@ export function CustomersTable({
   const [customerType, setCustomerType] = useState<CustomerTypeFilter>("all");
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [assigningCustomer, setAssigningCustomer] = useState<Customer | null>(null);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const limit = 10;
 
   const { data, isLoading, isError } = useCustomers(
@@ -645,6 +663,11 @@ export function CustomersTable({
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setIsEditDialogOpen(true);
+  };
+
+  const handleAssignRepresentative = (customer: Customer) => {
+    setAssigningCustomer(customer);
+    setIsAssignDialogOpen(true);
   };
 
   /* Debounce search: aguarda 500ms após o último keystroke antes de buscar */
@@ -736,7 +759,12 @@ export function CustomersTable({
       {isError && <ErrorState />}
       {!isLoading && !isError && customers.length === 0 && <EmptyState />}
       {customers.map((c) => (
-        <CustomerCard key={c.id} customer={c} onEdit={() => handleEdit(c)} />
+        <CustomerCard
+          key={c.id}
+          customer={c}
+          onEdit={() => handleEdit(c)}
+          onAssignRepresentative={() => handleAssignRepresentative(c)}
+        />
       ))}
 
       {/* Pagination mobile */}
@@ -805,6 +833,7 @@ export function CustomersTable({
                 key={c.id}
                 customer={c}
                 onEdit={() => handleEdit(c)}
+                onAssignRepresentative={() => handleAssignRepresentative(c)}
               />
             ))}
           </TableBody>
@@ -852,6 +881,11 @@ export function CustomersTable({
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         customer={editingCustomer}
+      />
+      <AssignRepresentativeDialog
+        open={isAssignDialogOpen}
+        onOpenChange={setIsAssignDialogOpen}
+        customer={assigningCustomer}
       />
     </>
   );

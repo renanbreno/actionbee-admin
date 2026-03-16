@@ -65,6 +65,8 @@ export interface Customer {
   updatedAt?: string;
   lastOrderDate?: string | null;
   lastOrder?: CustomerLastOrder | null;
+  representativeId?: string | null;
+  representativeName?: string | null;
 }
 
 export interface PaginatedCustomers {
