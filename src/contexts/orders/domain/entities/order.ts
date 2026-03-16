@@ -121,6 +121,7 @@ export interface OrderDetail extends OrderListItem {
   meServiceCode?: number;
   paymentLink?: string;
   notes?: string;
+  orderDate?: string;
   commissionStatus?: string;
   commissionAmount?: number;
   representativeCommissionStatus?: string;

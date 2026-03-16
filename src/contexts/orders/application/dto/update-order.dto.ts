@@ -21,4 +21,5 @@ export interface UpdateOrderDTO {
   notes?: string | null;
   representativeId?: string | null;
   vendedorId?: string | null;
+  orderDate?: string | null;
 }

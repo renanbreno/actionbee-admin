@@ -61,4 +61,5 @@ export interface CreateOrderDTO {
   notes?: string;
   representativeId?: string;
   vendedorId?: string;
+  orderDate?: string;
 }

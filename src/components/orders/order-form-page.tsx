@@ -78,6 +78,7 @@ import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 import { useRepresentatives } from "@/contexts/representatives/presentation/hooks/use-representatives";
 import { useRepresentativeCustomers } from "@/contexts/representatives/presentation/hooks/use-representative-customers";
 import { useVendedores } from "@/contexts/vendedores/presentation/hooks/use-vendedores";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface GiftTier {
   id: string;
@@ -713,6 +714,11 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   const [couponCode, setCouponCode] = useState(initialData?.couponCode ?? "");
   const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
   const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const [orderDate, setOrderDate] = useState<string>(
+    initialData?.orderDate
+      ? initialData.orderDate.substring(0, 10)
+      : (mode === 'edit' && initialData?.createdAt ? initialData.createdAt.substring(0, 10) : "")
+  );
   const [selectedGifts, setSelectedGifts] = useState<Record<string, number>>(
     initialData
       ? Object.fromEntries((initialData.gifts ?? []).map((g) => [g.giftTierId, g.quantity]))
@@ -1113,6 +1119,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
       notes: mode === 'edit' ? (notes || null) : (notes || undefined),
       representativeId: selectedRepresentative?.id ?? null,
       vendedorId: selectedVendedor?.id ?? null,
+      orderDate: mode === 'edit' ? (orderDate || null) : (orderDate || undefined),
     };
     if (mode === 'edit') {
       updateOrderMutation.mutate(payload, { onSuccess: () => router.push("/dashboard/orders") });
@@ -1123,6 +1130,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
           representativeId: payload.representativeId ?? undefined,
           vendedorId: payload.vendedorId ?? undefined,
           notes: payload.notes ?? undefined,
+          orderDate: payload.orderDate ?? undefined,
         },
         { onSuccess: () => router.push("/dashboard/orders") },
       );
@@ -1470,6 +1478,16 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                       )}
                     </div>
                   )}
+                  {/* Order date */}
+                  <div className="space-y-1.5">
+                    <Label>Data do Pedido</Label>
+                    <DatePicker
+                      value={orderDate}
+                      onChange={setOrderDate}
+                      placeholder="Selecione a data do pedido"
+                      disabled={isShipped || isReadOnly}
+                    />
+                  </div>
                 </div>
           </CollapsibleCard>
           </div>
