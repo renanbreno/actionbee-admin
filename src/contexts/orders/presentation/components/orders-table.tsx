@@ -159,6 +159,7 @@ function OrderActions({
   onCancel: (order: OrderListItem) => void;
 }) {
   const isTerminal = TERMINAL_STATUSES.includes(order.status);
+  const isCancelled = order.status === 'CANCELLED';
 
   return (
     <DropdownMenu>
@@ -173,8 +174,8 @@ function OrderActions({
           <Eye className="mr-2 h-3.5 w-3.5" />
           Ver detalhes
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href={`/dashboard/orders/${order.id}/edit`}>
+        <DropdownMenuItem asChild disabled={isCancelled}>
+          <Link href={isCancelled ? '#' : `/dashboard/orders/${order.id}/edit`}>
             <Pencil className="mr-2 h-3.5 w-3.5" />
             Editar pedido
           </Link>
