@@ -24,11 +24,11 @@ const customerAddressSchema = z.object({
 const documentRefinement = (value: string | undefined) => {
   if (!value) return true; // opcional
   const cleaned = value.replace(/\D/g, "");
-  // Apenas valida se o documento completo for válido
+  if (cleaned.length === 0) return true; // campo vazio
   if (cleaned.length === 11 || cleaned.length === 14) {
     return validateDocument(value);
   }
-  return true; // Não rejeitar se estiver incompleto
+  return false; // Rejeitar documento com tamanho incorreto
 };
 
 // Schema sem senha - para admin criar cliente (senha será configurada pelo próprio cliente via link de ativação)
