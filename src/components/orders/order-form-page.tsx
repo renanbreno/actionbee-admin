@@ -29,6 +29,7 @@ import {
   Trash2,
   Truck,
   User,
+  UserPlus,
   X,
   XCircle,
 } from "lucide-react";
@@ -68,6 +69,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/infrastructure/api/api-client";
 import { useDebounce } from "@/shared/hooks/use-debounce";
+import { CustomerFormDialog } from "@/contexts/customers/presentation/components/customer-form-dialog";
 import { useCreateOrder } from "@/contexts/orders/presentation/hooks/use-create-order";
 import { useUpdateOrder } from "@/contexts/orders/presentation/hooks/use-update-order";
 import type { OrderDetail } from "@/contexts/orders/domain/entities/order";
@@ -77,6 +79,7 @@ import { useAddressLookup } from "@/shared/presentation/hooks/use-address-lookup
 import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 import { useRepresentatives } from "@/contexts/representatives/presentation/hooks/use-representatives";
 import { useRepresentativeCustomers } from "@/contexts/representatives/presentation/hooks/use-representative-customers";
+import { useAssociateCustomer } from "@/contexts/representatives/presentation/hooks/use-associate-customer";
 import { useVendedores } from "@/contexts/vendedores/presentation/hooks/use-vendedores";
 import { DatePicker } from "@/components/ui/date-picker";
 
@@ -728,6 +731,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
     initialData ? (initialData.shippingInfo.price > 0 ? "DELIVERY" : "NONE") : ""
   );
   const [shippingFormOpen, setShippingFormOpen] = useState(false);
+  const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   const [addressOverrides, setAddressOverrides] = useState<
     Partial<
       Record<
@@ -788,6 +792,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   const { data: representativeCustomers, isLoading: repCustomersLoading } = useRepresentativeCustomers(
     isRepresentativeSource ? selectedRepresentative?.id ?? null : null,
   );
+  const associateCustomerMutation = useAssociateCustomer();
   const { data: vendedores, isLoading: vendedoresLoading } = useVendedores(
     isVendedorSource && debouncedVendSearch.length >= 2 ? debouncedVendSearch : undefined,
   );
@@ -1376,7 +1381,21 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                   {/* Customer selection */}
                   {orderSource && (!isRepresentativeSource || selectedRepresentative) && (
                     <div className="space-y-1.5">
-                      <Label>Cliente *</Label>
+                      <div className="flex items-center justify-between">
+                        <Label>Cliente *</Label>
+                        {!selectedCustomer && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => setIsNewCustomerDialogOpen(true)}
+                          >
+                            <UserPlus className="h-3.5 w-3.5" />
+                            Novo cliente
+                          </Button>
+                        )}
+                      </div>
                       {isRepresentativeSource && selectedRepresentative ? (
                         /* Representative customers - search with filtered dropdown */
                         selectedCustomer ? (
@@ -2090,169 +2109,6 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                     <Separator className="mt-4" />
                   </div>
 
-                  {/* Payments */}
-                  <div className="space-y-4">
-                    <Label>Formas de Pagamento *</Label>
-                    
-                    {payments.length === 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
-                          const Icon = m.icon;
-                          return (
-                            <button
-                              key={m.value}
-                              type="button"
-                              onClick={() => addPayment(m.value)}
-                              className="flex flex-col items-center justify-center gap-2 group rounded-xl border border-border p-4 text-sm font-medium transition-all hover:border-bee-gold hover:bg-bee-gold/5"
-                            >
-                              <div className="p-2 rounded-full bg-muted group-hover:bg-bee-gold/10 transition-colors">
-                                <Icon className="h-5 w-5 text-muted-foreground group-hover:text-bee-gold" />
-                              </div>
-                              <span className="text-center">{m.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {/* Lista de Pagamentos Ativos (Estilo Tabela/ListGroup) */}
-                        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-                          {payments.map((entry) => {
-                            const methodDef = PAYMENT_METHODS_FOR_PAYMENTS.find(
-                              (m) => m.value === entry.method
-                            );
-                            const Icon = methodDef?.icon || CreditCard;
-
-                            return (
-                              <div
-                                key={entry.id}
-                                className="group flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:px-4 sm:py-3 border-b border-border/50 last:border-0 transition-colors hover:bg-muted/30"
-                              >
-                                {/* Left Side: Icon + Method Select */}
-                                <div className="flex flex-1 items-center gap-3">
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/40 text-muted-foreground group-hover:text-foreground group-hover:bg-background transition-colors">
-                                    <Icon className="h-4 w-4" />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-semibold">{methodDef?.label || "Selecione..."}</span>
-                                    {entry.method === "BOLETO" && (
-                                      <div className="mt-0.5 flex items-center gap-1.5">
-                                        <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento:</span>
-                                        <Select
-                                          value={String(entry.boletoDueDays)}
-                                          onValueChange={(val) =>
-                                            updatePayment(entry.id, {
-                                              boletoDueDays: Number(val) as 30 | 60,
-                                            })
-                                          }
-                                        >
-                                          <SelectTrigger className="h-5 w-[70px] rounded border-0 bg-transparent p-0 text-[11px] text-muted-foreground shadow-none hover:text-foreground transition-colors focus:ring-0 [&>svg]:ml-0.5">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="30">30 dias</SelectItem>
-                                            <SelectItem value="60">60 dias</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Right Side: Amount + Actions */}
-                                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-between sm:justify-end">
-                                  <div className="relative w-[140px]">
-                                    <CurrencyInput
-                                      value={entry.amount}
-                                      onChange={(val) =>
-                                        updatePayment(entry.id, { amount: val })
-                                      }
-                                      className="h-9 w-full sm:w-[140px] text-right"
-                                    />
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 shrink-0 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:text-muted-foreground"
-                                    onClick={() => removePayment(entry.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Visual Feedback and Add Next Payment */}
-                        {(cartItems.length > 0 || orderTotal > 0) && (
-                          <div className="space-y-3 mt-4 p-4 rounded-lg bg-muted/30 border border-muted">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                              {orderTotal > paymentsSum ? (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1.5 self-start bg-background"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                      Adicionar pagamento ({formatCurrency(orderTotal - paymentsSum)})
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="start" className="w-[200px]">
-                                    {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
-                                      const MIcon = m.icon;
-                                      return (
-                                        <DropdownMenuItem 
-                                          key={m.value} 
-                                          onSelect={() => addPayment(m.value)}
-                                          className="cursor-pointer"
-                                        >
-                                          <MIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                                          {m.label}
-                                        </DropdownMenuItem>
-                                      );
-                                    })}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              ) : (
-                                <div className="text-sm font-medium text-green-600 flex items-center gap-1.5">
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  Total do pedido atingido
-                                </div>
-                              )}
-                              
-                              <div className="text-sm tabular-nums font-medium text-right flex flex-col items-end">
-                                <span>
-                                  {formatCurrency(paymentsSum)} / {formatCurrency(orderTotal)}
-                                </span>
-                                {paymentsSum > orderTotal && (
-                                  <span className="text-xs text-destructive">
-                                    Excede o total em {formatCurrency(paymentsSum - orderTotal)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Visual Progress Bar */}
-                            <div className="w-full h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
-                              <div
-                                className={cn(
-                                  "h-full transition-all duration-300",
-                                  paymentsMatch ? "bg-green-500" : paymentsSum > orderTotal ? "bg-destructive" : "bg-bee-gold"
-                                )}
-                                style={{ width: `${Math.min(100, (paymentsSum / (orderTotal || 1)) * 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Coupon */}
                   <div className="space-y-2">
                     <Label htmlFor="couponCode">
@@ -2718,8 +2574,174 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                     </Collapsible>
                   )}
 
-                  {/* Notes */}
-                  <div className="space-y-1.5">
+                  {/* Divider before payment — last step */}
+                  <Separator className="mt-4" />
+
+                  {/* Payments — last step after shipping is calculated */}
+                  <div className="space-y-4">
+                    <Label>Formas de Pagamento *</Label>
+
+                    {payments.length === 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
+                          const Icon = m.icon;
+                          return (
+                            <button
+                              key={m.value}
+                              type="button"
+                              onClick={() => addPayment(m.value)}
+                              className="flex flex-col items-center justify-center gap-2 group rounded-xl border border-border p-4 text-sm font-medium transition-all hover:border-bee-gold hover:bg-bee-gold/5"
+                            >
+                              <div className="p-2 rounded-full bg-muted group-hover:bg-bee-gold/10 transition-colors">
+                                <Icon className="h-5 w-5 text-muted-foreground group-hover:text-bee-gold" />
+                              </div>
+                              <span className="text-center">{m.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Lista de Pagamentos Ativos (Estilo Tabela/ListGroup) */}
+                        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                          {payments.map((entry) => {
+                            const methodDef = PAYMENT_METHODS_FOR_PAYMENTS.find(
+                              (m) => m.value === entry.method
+                            );
+                            const Icon = methodDef?.icon || CreditCard;
+
+                            return (
+                              <div
+                                key={entry.id}
+                                className="group flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:px-4 sm:py-3 border-b border-border/50 last:border-0 transition-colors hover:bg-muted/30"
+                              >
+                                {/* Left Side: Icon + Method Select */}
+                                <div className="flex flex-1 items-center gap-3">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/40 text-muted-foreground group-hover:text-foreground group-hover:bg-background transition-colors">
+                                    <Icon className="h-4 w-4" />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-semibold">{methodDef?.label || "Selecione..."}</span>
+                                    {entry.method === "BOLETO" && (
+                                      <div className="mt-0.5 flex items-center gap-1.5">
+                                        <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento:</span>
+                                        <Select
+                                          value={String(entry.boletoDueDays)}
+                                          onValueChange={(val) =>
+                                            updatePayment(entry.id, {
+                                              boletoDueDays: Number(val) as 30 | 60,
+                                            })
+                                          }
+                                        >
+                                          <SelectTrigger className="h-5 w-[70px] rounded border-0 bg-transparent p-0 text-[11px] text-muted-foreground shadow-none hover:text-foreground transition-colors focus:ring-0 [&>svg]:ml-0.5">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="30">30 dias</SelectItem>
+                                            <SelectItem value="60">60 dias</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Right Side: Amount + Actions */}
+                                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-between sm:justify-end">
+                                  <div className="relative w-[140px]">
+                                    <CurrencyInput
+                                      value={entry.amount}
+                                      onChange={(val) =>
+                                        updatePayment(entry.id, { amount: val })
+                                      }
+                                      className="h-9 w-full sm:w-[140px] text-right"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:text-muted-foreground"
+                                    onClick={() => removePayment(entry.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Visual Feedback and Add Next Payment */}
+                        {(cartItems.length > 0 || orderTotal > 0) && (
+                          <div className="space-y-3 mt-4 p-4 rounded-lg bg-muted/30 border border-muted">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {orderTotal > paymentsSum ? (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1.5 self-start bg-background"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      Adicionar pagamento ({formatCurrency(orderTotal - paymentsSum)})
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start" className="w-[200px]">
+                                    {PAYMENT_METHODS_FOR_PAYMENTS.map((m) => {
+                                      const MIcon = m.icon;
+                                      return (
+                                        <DropdownMenuItem
+                                          key={m.value}
+                                          onSelect={() => addPayment(m.value)}
+                                          className="cursor-pointer"
+                                        >
+                                          <MIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                          {m.label}
+                                        </DropdownMenuItem>
+                                      );
+                                    })}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : (
+                                <div className="text-sm font-medium text-green-600 flex items-center gap-1.5">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Total do pedido atingido
+                                </div>
+                              )}
+
+                              <div className="text-sm tabular-nums font-medium text-right flex flex-col items-end">
+                                <span>
+                                  {formatCurrency(paymentsSum)} / {formatCurrency(orderTotal)}
+                                </span>
+                                {paymentsSum > orderTotal && (
+                                  <span className="text-xs text-destructive">
+                                    Excede o total em {formatCurrency(paymentsSum - orderTotal)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Visual Progress Bar */}
+                            <div className="w-full h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full transition-all duration-300",
+                                  paymentsMatch ? "bg-green-500" : paymentsSum > orderTotal ? "bg-destructive" : "bg-bee-gold"
+                                )}
+                                style={{ width: `${Math.min(100, (paymentsSum / (orderTotal || 1)) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notes — mobile only (desktop shows in sidebar) */}
+                  <div className="lg:hidden space-y-1.5">
                     <Label htmlFor="notes">
                       Observações{" "}
                       <span className="text-muted-foreground text-xs">
@@ -3005,6 +3027,22 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                 </>
               )}
 
+              {/* Notes — desktop only (mobile shows at end of card) */}
+              <div className="hidden lg:block space-y-1.5">
+                <Separator />
+                <Label htmlFor="notes-desktop" className="block pt-2">
+                  Observações{" "}
+                  <span className="text-muted-foreground text-xs">(opcional)</span>
+                </Label>
+                <Textarea
+                  id="notes-desktop"
+                  placeholder="Observações sobre o pedido..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
               {/* Desktop Navigation Buttons */}
               <div className="hidden lg:block pt-2">
                 <div className="flex gap-2">
@@ -3031,6 +3069,30 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
           </Card>
         </div>
       </div>
+
+      {/* Customer Dialog */}
+      <CustomerFormDialog
+        open={isNewCustomerDialogOpen}
+        onOpenChange={setIsNewCustomerDialogOpen}
+        onCreated={(customer) => {
+          if (isRepresentativeSource && selectedRepresentative) {
+            associateCustomerMutation.mutate(
+              { representativeId: selectedRepresentative.id, customerId: customer.id },
+              {
+                onSuccess: () => {
+                  setSelectedCustomer({ id: customer.id, name: customer.name, email: customer.email ?? "" });
+                  setAddressOverrides({});
+                  setDeliveryType("");
+                },
+              },
+            );
+          } else {
+            setSelectedCustomer({ id: customer.id, name: customer.name, email: customer.email ?? "" });
+            setAddressOverrides({});
+            setDeliveryType("");
+          }
+        }}
+      />
     </div>
   );
 }
