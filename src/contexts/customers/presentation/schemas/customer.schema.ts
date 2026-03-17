@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { validateDocument, validateEmail } from "@/shared/utils/validations";
 
-const emailValidator = z
+// Validador de email opcional - valida apenas se houver valor
+const optionalEmailValidator = z
   .string()
-  .min(1, "O e-mail é obrigatório")
-  .refine(validateEmail, { message: "Informe um e-mail válido" });
+  .optional()
+  .refine((val) => !val || validateEmail(val), {
+    message: "Informe um e-mail válido",
+  });
 
 const customerAddressSchema = z.object({
   street: z.string().min(1, "Rua é obrigatória"),
@@ -31,7 +34,7 @@ const documentRefinement = (value: string | undefined) => {
 // Schema sem senha - para admin criar cliente (senha será configurada pelo próprio cliente via link de ativação)
 export const createCustomerSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres").max(100, "O nome deve ter no máximo 100 caracteres"),
-  email: emailValidator,
+  email: optionalEmailValidator,
   phone: z
     .string()
     .min(1, "O telefone é obrigatório")
@@ -45,14 +48,6 @@ export const createCustomerSchema = z.object({
   birthDate: z.string().optional(),
   address: customerAddressSchema.optional(),
 });
-
-// Validador de email opcional - valida apenas se houver valor
-const optionalEmailValidator = z
-  .string()
-  .optional()
-  .refine((val) => !val || validateEmail(val), {
-    message: "Informe um e-mail válido",
-  });
 
 // Schema sem senha - admin não altera senha do cliente
 export const updateCustomerSchema = z.object({

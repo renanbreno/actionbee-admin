@@ -208,7 +208,7 @@ export function CustomerFormDialog({
 
     const payload = {
       name: data.name,
-      email: data.email,
+      email: data.email || undefined,
       phone: unmaskPhone(data.phone ?? "") || undefined,
       cpf: docType === "cpf" ? documentDigits : undefined,
       cnpj: docType === "cnpj" ? documentDigits : undefined,
@@ -325,7 +325,7 @@ export function CustomerFormDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="cust-email" className="text-sm font-medium">
-                  E-mail <span className="text-destructive">*</span>
+                  E-mail
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
