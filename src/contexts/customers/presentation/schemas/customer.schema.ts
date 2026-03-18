@@ -16,7 +16,10 @@ const customerAddressSchema = z.object({
   neighborhood: z.string().min(1, "Bairro é obrigatório"),
   city: z.string().min(1, "Cidade é obrigatória"),
   state: z.string().min(2, "Estado deve ter 2 caracteres").max(2, "Estado deve ter 2 caracteres"),
-  zipCode: z.string().min(8, "CEP inválido").max(9, "CEP inválido"),
+  zipCode: z.string().refine(
+    (val) => val.replace(/\D/g, "").length === 8,
+    "CEP inválido"
+  ),
   country: z.string().min(1, "País é obrigatório"),
 });
 
