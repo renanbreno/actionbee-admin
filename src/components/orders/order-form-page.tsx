@@ -774,6 +774,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   const [isIdentificationOpen, setIsIdentificationOpen] = useState(true);
   const [isProductsOpen, setIsProductsOpen] = useState(true);
   const [isPaymentOpen, setIsPaymentOpen] = useState(true);
+  const [generatePaymentLink, setGeneratePaymentLink] = useState(true);
 
   const createOrderMutation = useCreateOrder();
   const updateOrderMutation = useUpdateOrder(orderId ?? '');
@@ -1125,6 +1126,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
       representativeId: selectedRepresentative?.id ?? null,
       vendedorId: selectedVendedor?.id ?? null,
       orderDate: mode === 'edit' ? (orderDate || null) : (orderDate || undefined),
+      generatePaymentLink,
     };
     if (mode === 'edit') {
       updateOrderMutation.mutate(payload, { onSuccess: () => router.push("/dashboard/orders") });
@@ -2579,7 +2581,24 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
 
                   {/* Payments — last step after shipping is calculated */}
                   <div className="space-y-4">
-                    <Label>Formas de Pagamento *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Formas de Pagamento *</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="generatePaymentLink"
+                          checked={generatePaymentLink}
+                          onChange={(e) => setGeneratePaymentLink(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-bee-gold focus:ring-bee-gold/50 cursor-pointer"
+                        />
+                        <label
+                          htmlFor="generatePaymentLink"
+                          className="text-sm text-muted-foreground cursor-pointer select-none"
+                        >
+                          Gerar link de pagamento
+                        </label>
+                      </div>
+                    </div>
 
                     {payments.length === 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

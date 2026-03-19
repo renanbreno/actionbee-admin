@@ -62,4 +62,5 @@ export interface CreateOrderDTO {
   representativeId?: string;
   vendedorId?: string;
   orderDate?: string;
+  generatePaymentLink?: boolean;
 }
