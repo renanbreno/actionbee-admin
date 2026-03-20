@@ -35,6 +35,7 @@ export interface OrderListItem {
   paymentMethod: PaymentMethod;
   paymentStatus?: PaymentStatus;
   createdAt: string;
+  orderDate?: string;
   itemsCount: number;
   couponCode?: string;
   hasOfferItems: boolean;

@@ -277,7 +277,7 @@ function OrderCard({
             <p className="text-muted-foreground text-xs">Data</p>
             <p className="font-medium flex items-center gap-1">
               <CalendarDays className="h-3 w-3" />
-              {formatDate(order.createdAt)}
+              {formatDate(order.orderDate ?? order.createdAt)}
             </p>
           </div>
         </div>
@@ -337,7 +337,7 @@ function OrderRow({
       <TableCell>
         <div className="flex items-center gap-1.5 text-sm">
           <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-          {formatDate(order.createdAt)}
+          {formatDate(order.orderDate ?? order.createdAt)}
         </div>
       </TableCell>
       <TableCell className="text-right">
