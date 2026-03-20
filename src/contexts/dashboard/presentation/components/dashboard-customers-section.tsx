@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import {
   Users,
   UserX,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import {
   DashboardCustomers,
@@ -13,7 +10,6 @@ import {
 } from "../../domain/entities/dashboard";
 import { DashboardMetricCard } from "./dashboard-metric-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 
 const COLLAPSED_COUNT = 5;
 
@@ -28,8 +24,6 @@ function TopCustomersTable({
   customers: TopCustomer[];
   isLoading: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   if (isLoading) {
     return (
       <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -49,32 +43,12 @@ function TopCustomersTable({
     );
   }
 
-  const hasMore = customers.length > COLLAPSED_COUNT;
-  const visible = expanded ? customers : customers.slice(0, COLLAPSED_COUNT);
+  const visible = customers.slice(0, COLLAPSED_COUNT);
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-semibold">Top Clientes</p>
-        {hasMore && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto py-0.5 px-2 text-xs text-muted-foreground gap-1"
-            onClick={() => setExpanded((v) => !v)}
-          >
-            {expanded ? (
-              <>
-                <ChevronUp className="h-3 w-3" /> Ver menos
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-3 w-3" /> Ver todos (
-                {customers.length})
-              </>
-            )}
-          </Button>
-        )}
+        <p className="text-sm font-semibold">Top 5 Clientes</p>
       </div>
       {customers.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">

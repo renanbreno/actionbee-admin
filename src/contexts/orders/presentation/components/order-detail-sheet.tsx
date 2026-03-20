@@ -69,12 +69,11 @@ function formatCurrency(value: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("pt-BR", {
+  const [year, month, day] = dateStr.substring(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 }
 
@@ -129,7 +128,7 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CalendarDays className="h-3.5 w-3.5" />
-            {formatDate(order.createdAt)}
+            {formatDate(order.orderDate ?? order.createdAt)}
           </div>
           <Separator />
           <div className="flex items-center gap-2 text-sm">

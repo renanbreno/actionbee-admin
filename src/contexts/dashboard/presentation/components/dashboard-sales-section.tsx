@@ -174,7 +174,10 @@ function SalesBySourceCard({
     );
   }
 
-  const sorted = [...salesBySource].sort((a, b) => b.orders - a.orders);
+  const totalGross = salesBySource.reduce((sum, s) => sum + s.grossRevenue, 0);
+  const sorted = [...salesBySource]
+    .map((s) => ({ ...s, percentage: totalGross > 0 ? (s.grossRevenue / totalGross) * 100 : 0 }))
+    .sort((a, b) => b.grossRevenue - a.grossRevenue);
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -416,13 +419,14 @@ function ChannelCard({ channels, isLoading }: { channels: DashboardChannels | un
   }
 
   const totalOrders = (channels?.b2bDirect.totalOrders ?? 0) + (channels?.b2cDirect.totalOrders ?? 0) + (channels?.representatives.totalOrders ?? 0);
+  const totalGrossRevenue = (channels?.b2bDirect.grossRevenue ?? 0) + (channels?.b2cDirect.grossRevenue ?? 0) + (channels?.representatives.grossRevenue ?? 0);
 
   const chartData = (["b2bDirect", "b2cDirect", "representatives"] as const).map((key) => {
     const ch = key === "b2bDirect" ? channels?.b2bDirect : key === "b2cDirect" ? channels?.b2cDirect : channels?.representatives;
     return {
       key,
       orders: ch?.totalOrders ?? 0,
-      percentage: totalOrders > 0 ? ((ch?.totalOrders ?? 0) / totalOrders) * 100 : 0,
+      percentage: totalGrossRevenue > 0 ? ((ch?.grossRevenue ?? 0) / totalGrossRevenue) * 100 : 0,
       grossRevenue: ch?.grossRevenue ?? 0,
       netRevenue: ch?.netRevenue ?? 0,
       pendingCommission: key === "representatives" ? (channels?.representatives?.pendingCommission ?? 0) : undefined,
