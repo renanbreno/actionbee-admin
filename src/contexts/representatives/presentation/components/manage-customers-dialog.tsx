@@ -175,8 +175,8 @@ export function ManageCustomersDialog({
   const filteredCustomers = search
     ? availableCustomers.filter(
         c =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.email.toLowerCase().includes(search.toLowerCase())
+          c.name?.toLowerCase().includes(search.toLowerCase()) ||
+          c.email?.toLowerCase().includes(search.toLowerCase())
       )
     : [];
 

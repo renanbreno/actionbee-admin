@@ -43,8 +43,8 @@ export function AssignRepresentativeDialog({
   const filtered = search
     ? representatives.filter(
         (r) =>
-          r.name.toLowerCase().includes(search.toLowerCase()) ||
-          r.email.toLowerCase().includes(search.toLowerCase()),
+          r.name?.toLowerCase().includes(search.toLowerCase()) ||
+          r.email?.toLowerCase().includes(search.toLowerCase()),
       )
     : representatives;
 
