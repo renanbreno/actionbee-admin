@@ -80,6 +80,15 @@ export const productsApiClient = {
     });
   },
 
+  uploadStoryImage(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append("image", file);
+    return apiFetch<{ url: string }>("/admin/products/upload-story-image", {
+      method: "POST",
+      body: formData,
+    });
+  },
+
   deleteImage(productId: string, imageId: string): Promise<void> {
     return apiFetch<void>(`/admin/products/${productId}/images/${imageId}`, {
       method: "DELETE",

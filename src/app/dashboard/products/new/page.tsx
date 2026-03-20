@@ -34,6 +34,7 @@ export default function NewProductPage() {
       isActive: values.isActive,
       showOnEcommerce: values.showOnEcommerce,
       categoryId: values.categoryId ?? undefined,
+      storySections: (values.storySections ?? []).map((s, i) => ({ ...s, order: i })),
       variants: values.variants.map((v) => ({
         name: v.name,
         sku: v.sku,

@@ -98,6 +98,7 @@ export default function EditProductPage() {
         hasFreeShipping: v.hasFreeShipping ?? false,
         isRetailerVariant: v.isRetailerVariant ?? false,
       })),
+      storySections: (values.storySections ?? []).map((s, i) => ({ ...s, order: i })),
       ...(shouldSendImages && { images: keptImages }),
     };
 

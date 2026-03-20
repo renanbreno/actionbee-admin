@@ -1,3 +1,5 @@
+import { StorySection } from "./story-section";
+
 export interface ProductImage {
   id: string;
   url: string;
@@ -59,6 +61,7 @@ export interface Product {
   stockUnits?: number;
   variants: ProductVariant[];
   images: ProductImage[];
+  storySections?: StorySection[];
   relatedProducts?: RelatedProduct[];
   nutritionalTableImage?: string | null;
   createdAt: string;

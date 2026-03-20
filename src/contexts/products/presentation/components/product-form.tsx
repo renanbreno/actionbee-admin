@@ -7,7 +7,7 @@ import {
   FormProvider,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Package, Settings, Info, ImageIcon, Layers } from "lucide-react";
+import { Package, Settings, Info, ImageIcon, Layers, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ import {
 } from "../schemas/product.schema";
 import { VariantFields } from "./variant-fields";
 import { ImageUploadField } from "./image-upload-field";
+import { StoryBuilder } from "./story-builder/story-builder";
 import { normalizeRichText } from "@/shared/utils/masks";
 import { CurrencyInput } from "@/shared/presentation/components/currency-input";
 
@@ -112,6 +113,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
           isRetailerVariant: false,
         },
       ],
+      storySections: [],
       imageFiles: [],
       nutritionalTableImageFile: null,
       existingImages: [],
@@ -149,6 +151,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       hasFreeShipping: v.hasFreeShipping ?? false,
       isRetailerVariant: v.isRetailerVariant ?? v.retailerPrice != null,
     })),
+    storySections: product.storySections ?? [],
     imageFiles: [],
     nutritionalTableImageFile: null,
     existingImages: product.images ?? [],
@@ -476,6 +479,11 @@ export function ProductForm({
             {/* Seção: Variantes */}
             <Section title="Variantes" icon={Layers}>
               <VariantFields />
+            </Section>
+
+            {/* Seção: Story do Produto */}
+            <Section title="Story do Produto" icon={BookOpen}>
+              <StoryBuilder />
             </Section>
           </div>
         </div>

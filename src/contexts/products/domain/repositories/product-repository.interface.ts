@@ -1,4 +1,5 @@
 import { PaginatedProducts, Product, RelatedProduct } from "../entities/product";
+import { StorySection } from "../entities/story-section";
 
 export interface ProductVariantDTO {
   name: string;
@@ -26,6 +27,7 @@ export interface CreateProductDTO {
   isActive?: boolean;
   showOnEcommerce?: boolean;
   categoryId?: string | null;
+  storySections?: StorySection[];
   variants: ProductVariantDTO[];
 }
 
@@ -38,6 +40,7 @@ export interface UpdateProductDTO {
   isActive?: boolean;
   showOnEcommerce?: boolean;
   categoryId?: string | null;
+  storySections?: StorySection[];
   variants?: ProductVariantDTO[];
   images?: { url: string; order?: number }[];
 }
