@@ -1905,7 +1905,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                             <span className="font-medium">
                               {cartItems.length}{" "}
                               {cartItems.length === 1 ? "item" : "itens"} ·{" "}
-                              {formatCurrency(finalTotal)}
+                              {formatCurrency(orderTotal)}
                             </span>
                             {(discountAmount > 0 || manualDiscountAmount > 0) && (
                               <span className="text-green-600 text-xs shrink-0">
@@ -2002,10 +2002,18 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                                     </span>
                                   </div>
                                 )}
+                                {shippingPrice > 0 && (
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Frete</span>
+                                    <span className="font-medium">
+                                      + {formatCurrency(shippingPrice)}
+                                    </span>
+                                  </div>
+                                )}
                                 <div className="flex justify-between font-bold">
                                   <span>Total</span>
                                   <span className="text-bee-gold">
-                                    {formatCurrency(finalTotal)}
+                                    {formatCurrency(orderTotal)}
                                   </span>
                                 </div>
                               </div>
@@ -2055,11 +2063,9 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                                   Entrega
                                 </span>
                                 <span className="font-medium">
-                                  {
-                                    DELIVERY_TYPES.find(
-                                      (t) => t.value === effectiveDeliveryType,
-                                    )?.label
-                                  }
+                                  {effectiveDeliveryType === "DELIVERY" && shippingInfo.carrier
+                                    ? `${shippingInfo.carrier}${shippingInfo.service ? ` - ${shippingInfo.service}` : ""}`
+                                    : DELIVERY_TYPES.find((t) => t.value === effectiveDeliveryType)?.label}
                                 </span>
                               </div>
                             </>
@@ -2941,11 +2947,19 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                       </span>
                     </div>
                   )}
+                  {shippingPrice > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Frete</span>
+                      <span className="font-medium">
+                        + {formatCurrency(shippingPrice)}
+                      </span>
+                    </div>
+                  )}
                   <Separator />
                   <div className="flex justify-between text-base font-bold">
                     <span>Total</span>
                     <span className="text-bee-gold">
-                      {formatCurrency(finalTotal)}
+                      {formatCurrency(orderTotal)}
                     </span>
                   </div>
                 </div>
@@ -2996,11 +3010,9 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                       Entrega
                     </span>
                     <span className="text-sm font-medium">
-                      {
-                        DELIVERY_TYPES.find(
-                          (t) => t.value === effectiveDeliveryType,
-                        )?.label
-                      }
+                      {effectiveDeliveryType === "DELIVERY" && shippingInfo.carrier
+                        ? `${shippingInfo.carrier}${shippingInfo.service ? ` - ${shippingInfo.service}` : ""}`
+                        : DELIVERY_TYPES.find((t) => t.value === effectiveDeliveryType)?.label}
                     </span>
                   </div>
                 </>
