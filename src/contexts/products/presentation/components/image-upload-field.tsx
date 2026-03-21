@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { X, Upload, RotateCcw, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ProductImage } from "../../domain/entities/product";
+import { compressImages } from "@/shared/utils/compress-image";
 
 interface ImageUploadFieldProps {
   label: string;
@@ -30,16 +31,25 @@ export function ImageUploadField({
 }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [deletingImageIds, setDeletingImageIds] = useState<Set<string>>(new Set());
+  const [isCompressing, setIsCompressing] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
-    if (multiple) {
-      const combined = [...files, ...selected].slice(0, maxFiles);
-      onFilesChange(combined);
-    } else {
-      onFilesChange(selected.slice(0, 1));
-    }
     if (inputRef.current) inputRef.current.value = "";
+    if (selected.length === 0) return;
+
+    setIsCompressing(true);
+    try {
+      const compressed = await compressImages(selected);
+      if (multiple) {
+        const combined = [...files, ...compressed].slice(0, maxFiles);
+        onFilesChange(combined);
+      } else {
+        onFilesChange(compressed.slice(0, 1));
+      }
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const removeNewFile = (index: number) => {
@@ -200,11 +210,21 @@ export function ImageUploadField({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="w-24 h-24 rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-bee-gold hover:bg-bee-gold/5 transition-colors flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-bee-gold shrink-0"
+                disabled={isCompressing}
+                className="w-24 h-24 rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-bee-gold hover:bg-bee-gold/5 transition-colors flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-bee-gold shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Adicionar imagem"
               >
-                <Upload className="h-5 w-5" />
-                <span className="text-[10px] font-medium">Adicionar</span>
+                {isCompressing ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="text-[10px] font-medium">Otimizando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-5 w-5" />
+                    <span className="text-[10px] font-medium">Adicionar</span>
+                  </>
+                )}
               </button>
             </>
           )}
@@ -225,12 +245,22 @@ export function ImageUploadField({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-bee-gold hover:bg-bee-gold/5 transition-colors text-sm text-muted-foreground hover:text-foreground w-full justify-center sm:w-auto sm:justify-start"
+            disabled={isCompressing}
+            className="flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-bee-gold hover:bg-bee-gold/5 transition-colors text-sm text-muted-foreground hover:text-foreground w-full justify-center sm:w-auto sm:justify-start disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Upload className="h-4 w-4 shrink-0" />
-            {multiple
-              ? `Adicionar imagens (máx. ${maxFiles})`
-              : "Selecionar imagem"}
+            {isCompressing ? (
+              <>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                Otimizando imagens...
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 shrink-0" />
+                {multiple
+                  ? `Adicionar imagens (máx. ${maxFiles})`
+                  : "Selecionar imagem"}
+              </>
+            )}
           </button>
         </>
       )}

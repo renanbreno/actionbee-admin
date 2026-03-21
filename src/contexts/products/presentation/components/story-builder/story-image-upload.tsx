@@ -5,6 +5,7 @@ import { Upload, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { productsApiClient } from "@/contexts/products/infrastructure/api/products-api.client";
 import { toast } from "sonner";
+import { compressImage } from "@/shared/utils/compress-image";
 
 interface StoryImageUploadProps {
   value?: string;
@@ -22,7 +23,8 @@ export function StoryImageUpload({ value, onChange, label }: StoryImageUploadPro
 
     setIsUploading(true);
     try {
-      const result = await productsApiClient.uploadStoryImage(file);
+      const compressed = await compressImage(file);
+      const result = await productsApiClient.uploadStoryImage(compressed);
       onChange(result.url);
     } catch {
       toast.error("Erro ao fazer upload da imagem.");
