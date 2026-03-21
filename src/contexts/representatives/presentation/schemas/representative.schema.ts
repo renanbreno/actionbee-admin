@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validateDocument, validateEmail } from "@/shared/utils/validations";
+import { validateDocument, validateEmail, validatePhone } from "@/shared/utils/validations";
 
 const emailValidator = z
   .string()
@@ -30,7 +30,7 @@ const baseRepresentativeSchema = z.object({
     .min(3, "O nome deve ter pelo menos 3 caracteres")
     .max(100, "O nome deve ter no máximo 100 caracteres"),
   email: emailValidator,
-  phone: z.string().min(1, "O telefone é obrigatório"),
+  phone: z.string().min(1, "O telefone é obrigatório").refine(validatePhone, "Telefone inválido"),
   document: z
     .string()
     .min(1, "O CPF ou CNPJ é obrigatório")
@@ -52,7 +52,7 @@ export const updateRepresentativeSchema = z.object({
     .max(100, "O nome deve ter no máximo 100 caracteres")
     .optional(),
   email: optionalEmailValidator,
-  phone: z.string().min(1, "O telefone é obrigatório").optional(),
+  phone: z.string().optional().refine(validatePhone, "Telefone inválido"),
   document: z
     .string()
     .min(1, "O CPF ou CNPJ é obrigatório")

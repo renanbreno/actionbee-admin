@@ -24,4 +24,8 @@ export class CustomerRepositoryImpl implements CustomerRepository {
   async update(id: string, data: UpdateCustomerDTO): Promise<Customer> {
     return customersApiClient.update(id, data);
   }
+
+  async delete(id: string): Promise<void> {
+    return customersApiClient.delete(id);
+  }
 }

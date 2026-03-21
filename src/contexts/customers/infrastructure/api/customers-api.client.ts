@@ -45,4 +45,10 @@ export const customersApiClient = {
       body: JSON.stringify(data),
     });
   },
+
+  delete: async (id: string): Promise<void> => {
+    return apiFetch<void>(`/admin/customers/${id}`, {
+      method: "DELETE",
+    });
+  },
 };

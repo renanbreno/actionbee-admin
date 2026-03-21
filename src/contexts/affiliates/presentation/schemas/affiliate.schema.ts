@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validateCPF, validateEmail } from "@/shared/utils/validations";
+import { validateCPF, validateEmail, validateBirthDate, validatePhone } from "@/shared/utils/validations";
 
 const urlValidator = z.string().refine(
   (val) => {
@@ -42,7 +42,7 @@ const baseAffiliateSchema = z.object({
     .min(3, "O nome deve ter pelo menos 3 caracteres")
     .max(100, "O nome deve ter no máximo 100 caracteres"),
   email: emailValidator,
-  phone: z.string().optional(),
+  phone: z.string().optional().refine(validatePhone, "Telefone inválido"),
   cpf: z
     .string()
     .optional()
@@ -55,7 +55,7 @@ const baseAffiliateSchema = z.object({
       }
       return true; // Não rejeitar se estiver incompleto
     }, { message: "CPF inválido" }),
-  birthDate: z.string().optional(),
+  birthDate: z.string().optional().refine(validateBirthDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
   socialMedia: socialMediaSchema,
   commissionRate: z
     .number({ message: "Informe a taxa de comissão" })
@@ -81,7 +81,7 @@ export const updateAffiliateSchema = z.object({
     .max(100, "O nome deve ter no máximo 100 caracteres")
     .optional(),
   email: optionalEmailValidator,
-  phone: z.string().optional(),
+  phone: z.string().optional().refine(validatePhone, "Telefone inválido"),
   cpf: z
     .string()
     .optional()
@@ -94,7 +94,7 @@ export const updateAffiliateSchema = z.object({
       return true;
     }, { message: "CPF inválido" })
     .optional(),
-  birthDate: z.string().optional(),
+  birthDate: z.string().optional().refine(validateBirthDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
   socialMedia: socialMediaSchema.optional(),
   commissionRate: z
     .number()

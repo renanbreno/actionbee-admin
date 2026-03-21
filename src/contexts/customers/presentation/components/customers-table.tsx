@@ -14,6 +14,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,6 +45,7 @@ import {
   MessageCircle,
   Gift,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import {
   Customer,
@@ -60,6 +62,7 @@ import {
 import { useCustomers } from "../hooks/use-customers";
 import { CustomerFormDialog } from "./customer-form-dialog";
 import { AssignRepresentativeDialog } from "./assign-representative-dialog";
+import { DeleteCustomerDialog } from "./delete-customer-dialog";
 import { formatPhone, formatDocument } from "@/shared/utils/masks";
 import type {
   PurchaseStatus,
@@ -286,9 +289,11 @@ function LastOrderCell({
 function CustomerActions({
   onEdit,
   onAssignRepresentative,
+  onDelete,
 }: {
   onEdit: () => void;
   onAssignRepresentative: () => void;
+  onDelete: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -307,6 +312,11 @@ function CustomerActions({
           <UserCheck className="mr-2 h-3.5 w-3.5" />
           Vincular Representante
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+          <Trash2 className="mr-2 h-3.5 w-3.5" />
+          Excluir
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -317,10 +327,12 @@ function CustomerCard({
   customer,
   onEdit,
   onAssignRepresentative,
+  onDelete,
 }: {
   customer: Customer;
   onEdit: () => void;
   onAssignRepresentative: () => void;
+  onDelete: () => void;
 }) {
   const documentNumber = customer.cnpj
     ? formatDocument(customer.cnpj)
@@ -358,7 +370,7 @@ function CustomerCard({
               {customer.email}
             </p>
           </div>
-          <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} />
+          <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} onDelete={onDelete} />
         </div>
 
         {/* Info */}
@@ -442,10 +454,12 @@ function CustomerRow({
   customer,
   onEdit,
   onAssignRepresentative,
+  onDelete,
 }: {
   customer: Customer;
   onEdit: () => void;
   onAssignRepresentative: () => void;
+  onDelete: () => void;
 }) {
   const documentNumber = customer.cnpj
     ? formatDocument(customer.cnpj)
@@ -541,7 +555,7 @@ function CustomerRow({
         />
       </TableCell>
       <TableCell className="text-right">
-        <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} />
+        <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} onDelete={onDelete} />
       </TableCell>
     </TableRow>
   );
@@ -639,6 +653,8 @@ export function CustomersTable({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [assigningCustomer, setAssigningCustomer] = useState<Customer | null>(null);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const limit = 10;
 
   const { data, isLoading, isError } = useCustomers(
@@ -668,6 +684,11 @@ export function CustomersTable({
   const handleAssignRepresentative = (customer: Customer) => {
     setAssigningCustomer(customer);
     setIsAssignDialogOpen(true);
+  };
+
+  const handleDelete = (customer: Customer) => {
+    setDeletingCustomer(customer);
+    setIsDeleteDialogOpen(true);
   };
 
   /* Debounce search: aguarda 500ms após o último keystroke antes de buscar */
@@ -764,6 +785,7 @@ export function CustomersTable({
           customer={c}
           onEdit={() => handleEdit(c)}
           onAssignRepresentative={() => handleAssignRepresentative(c)}
+          onDelete={() => handleDelete(c)}
         />
       ))}
 
@@ -834,6 +856,7 @@ export function CustomersTable({
                 customer={c}
                 onEdit={() => handleEdit(c)}
                 onAssignRepresentative={() => handleAssignRepresentative(c)}
+                onDelete={() => handleDelete(c)}
               />
             ))}
           </TableBody>
@@ -887,6 +910,13 @@ export function CustomersTable({
         onOpenChange={setIsAssignDialogOpen}
         customer={assigningCustomer}
       />
+      {deletingCustomer && (
+        <DeleteCustomerDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          customer={deletingCustomer}
+        />
+      )}
     </>
   );
 }

@@ -14,6 +14,7 @@ export interface CustomerRepository {
   getById(id: string): Promise<Customer>;
   create(data: CreateCustomerDTO): Promise<Customer>;
   update(id: string, data: UpdateCustomerDTO): Promise<Customer>;
+  delete(id: string): Promise<void>;
 }
 
 export interface CreateCustomerDTO {
@@ -39,14 +40,15 @@ export interface CreateCustomerDTO {
 
 export interface UpdateCustomerDTO {
   name?: string;
-  email?: string;
+  email?: string | null;
   password?: string;
   phone?: string;
-  cpf?: string;
-  cnpj?: string;
+  cpf?: string | null;
+  cnpj?: string | null;
   customerType?: CustomerType;
-  stateRegistration?: string;
-  isIeExempt?: boolean;
+  stateRegistration?: string | null;
+  isIeExempt?: boolean | null;
+  birthDate?: string | null;
   address?: {
     street?: string;
     neighborhood?: string;

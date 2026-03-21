@@ -206,16 +206,19 @@ export function CustomerFormDialog({
     const documentDigits = unmaskDocument(data.document ?? "");
     const docType = getDocumentType(data.document ?? "");
 
+    const unmaskedBirthDate = unmaskDate(data.birthDate ?? "");
+    const unmaskedPhone = unmaskPhone(data.phone ?? "");
+
     const payload = {
       name: data.name,
-      email: data.email || undefined,
-      phone: unmaskPhone(data.phone ?? "") || undefined,
-      cpf: docType === "cpf" ? documentDigits : undefined,
-      cnpj: docType === "cnpj" ? documentDigits : undefined,
+      email: data.email || (isEditing ? null : undefined),
+      phone: unmaskedPhone || undefined,
+      cpf: docType === "cpf" ? documentDigits : (isEditing ? null : undefined),
+      cnpj: docType === "cnpj" ? documentDigits : (isEditing ? null : undefined),
       customerType: data.customerType ?? 'FINAL_CONSUMER',
-      stateRegistration: docType === "cnpj" ? (data.stateRegistration || undefined) : undefined,
-      isIeExempt: docType === "cnpj" ? (data.isIeExempt ?? false) : undefined,
-      birthDate: unmaskDate(data.birthDate ?? "") || undefined,
+      stateRegistration: docType === "cnpj" ? (data.stateRegistration || undefined) : (isEditing ? null : undefined),
+      isIeExempt: docType === "cnpj" ? (data.isIeExempt ?? false) : (isEditing ? null : undefined),
+      birthDate: unmaskedBirthDate || (isEditing ? null : undefined),
       ...(showAddress && data.address && { address: data.address }),
     };
 

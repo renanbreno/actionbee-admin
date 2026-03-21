@@ -27,13 +27,20 @@ export function formatCNPJ(value: string): string {
 export function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, "");
   if (digits.length <= 2) return digits;
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  // Verifica se é telefone de 8 ou 9 dígitos (com DDD)
-  const hasNineDigits = digits.length === 11 || digits.length === 10;
-  if (hasNineDigits) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+
+  const ddd = digits.slice(0, 2);
+  const number = digits.slice(2);
+  const isCelular = number.startsWith("9");
+
+  if (isCelular) {
+    // Celular: (XX) 9XXXX-XXXX
+    if (number.length <= 5) return `(${ddd}) ${number}`;
+    return `(${ddd}) ${number.slice(0, 5)}-${number.slice(5, 9)}`;
+  } else {
+    // Fixo: (XX) XXXX-XXXX
+    if (number.length <= 4) return `(${ddd}) ${number}`;
+    return `(${ddd}) ${number.slice(0, 4)}-${number.slice(4, 8)}`;
   }
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6, 10)}`;
 }
 
 /**

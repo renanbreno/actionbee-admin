@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validateDocument, validateEmail } from "@/shared/utils/validations";
+import { validateDocument, validateEmail, validateBirthDate, validatePhone } from "@/shared/utils/validations";
 
 // Validador de email opcional - valida apenas se houver valor
 const optionalEmailValidator = z
@@ -41,14 +41,14 @@ export const createCustomerSchema = z.object({
   phone: z
     .string()
     .min(1, "O telefone é obrigatório")
-    .refine((val) => val.replace(/\D/g, "").length >= 10, "Telefone inválido"),
+    .refine(validatePhone, "Telefone inválido"),
   document: z.string().optional().refine(documentRefinement, {
     message: "CPF ou CNPJ inválido",
   }),
   customerType: z.enum(['FINAL_CONSUMER', 'RETAILER_RESELLER', 'DISTRIBUTOR_RESELLER']).default('FINAL_CONSUMER'),
   stateRegistration: z.string().optional(),
   isIeExempt: z.boolean().optional().default(false),
-  birthDate: z.string().optional(),
+  birthDate: z.string().optional().refine(validateBirthDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
   address: customerAddressSchema.optional(),
 });
 
@@ -59,14 +59,14 @@ export const updateCustomerSchema = z.object({
   phone: z
     .string()
     .optional()
-    .refine((val) => !val || val.replace(/\D/g, "").length >= 10, "Telefone inválido"),
+    .refine(validatePhone, "Telefone inválido"),
   document: z.string().optional().refine(documentRefinement, {
     message: "CPF ou CNPJ inválido",
   }),
   customerType: z.enum(['FINAL_CONSUMER', 'RETAILER_RESELLER', 'DISTRIBUTOR_RESELLER']).optional(),
   stateRegistration: z.string().optional(),
   isIeExempt: z.boolean().optional(),
-  birthDate: z.string().optional(),
+  birthDate: z.string().optional().refine(validateBirthDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
   address: customerAddressSchema.partial().optional(),
 });
 
