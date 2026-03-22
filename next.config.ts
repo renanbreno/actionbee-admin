@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Ensure stable builds
+  productionBrowserSourceMaps: false,
+  // Disable powered by header
+  poweredByHeader: false,
 };
 
 export default nextConfig;
