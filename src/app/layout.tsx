@@ -11,20 +11,36 @@ const montserrat = Montserrat({
   weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
+const isProduction = process.env.NODE_ENV === "production";
+const iconUrl = isProduction ? "https://actionbee.com.br/icon.png" : "/icon.png";
+const appleIconUrl = isProduction ? "https://actionbee.com.br/apple-icon.png" : "/apple-icon.png";
+
 const METADATA_BY_DOMAIN: Record<string, Metadata> = {
   // Adicione aqui os domínios e seus respectivos metadados
   admin: {
     title: "ActionBee Admin",
     description: "Admin panel for ActionBee ecommerce",
     icons: {
-      icon: "/icon.png",
+      icon: [
+        { url: iconUrl, sizes: "32x32", type: "image/png" },
+        { url: appleIconUrl, sizes: "180x180", type: "image/png" },
+      ],
+      apple: [
+        { url: appleIconUrl, sizes: "180x180", type: "image/png" },
+      ],
     },
   },
   affiliate: {
     title: "ActionBee Afiliados",
     description: "Portal de afiliados da ActionBee",
     icons: {
-      icon: "/icon.png",
+      icon: [
+        { url: iconUrl, sizes: "32x32", type: "image/png" },
+        { url: appleIconUrl, sizes: "180x180", type: "image/png" },
+      ],
+      apple: [
+        { url: appleIconUrl, sizes: "180x180", type: "image/png" },
+      ],
     },
   },
 };
