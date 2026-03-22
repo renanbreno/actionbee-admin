@@ -264,12 +264,17 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
               <span className="text-muted-foreground">Subtotal</span>
               <span>{formatCurrency(order.totalAmount)}</span>
             </div>
-            {order.shippingInfo.price > 0 && (
+            {order.shippingInfo.price > 0 ? (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Frete</span>
                 <span>{formatCurrency(order.shippingInfo.price)}</span>
               </div>
-            )}
+            ) : order.shippingInfo.carrier ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Frete</span>
+                <span className="text-emerald-600 font-medium">Grátis</span>
+              </div>
+            ) : null}
             {order.totalAmount > order.discountedAmount && (
               <div className="flex justify-between text-emerald-600">
                 <span>
@@ -281,7 +286,7 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
             <Separator />
             <div className="flex justify-between font-semibold text-base">
               <span>Total</span>
-              <span className="text-bee-gold">{formatCurrency(order.discountedAmount)}</span>
+              <span className="text-bee-gold">{formatCurrency(order.discountedAmount + order.shippingInfo.price)}</span>
             </div>
           </div>
         </div>

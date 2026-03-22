@@ -256,12 +256,7 @@ function OrderCard({
               {order.couponCode && (
                 <Ticket className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
               )}
-              <div>
-                <p className="font-semibold text-bee-gold">{formatCurrency(order.discountedAmount)}</p>
-                {order.totalAmount !== order.discountedAmount && (
-                  <p className="text-xs text-muted-foreground line-through">{formatCurrency(order.totalAmount)}</p>
-                )}
-              </div>
+              <p className="font-semibold text-bee-gold">{formatCurrency(order.totalAmount + (order.shippingPrice ?? 0))}</p>
             </div>
           </div>
           <div>
@@ -319,14 +314,7 @@ function OrderRow({
           {order.couponCode && (
             <Ticket className="h-4 w-4 text-emerald-600" />
           )}
-          <div>
-            <p className="font-semibold text-bee-gold">{formatCurrency(order.discountedAmount)}</p>
-            {order.totalAmount !== order.discountedAmount && (
-              <p className="text-xs text-muted-foreground line-through">
-                {formatCurrency(order.totalAmount)}
-              </p>
-            )}
-          </div>
+          <p className="font-semibold text-bee-gold">{formatCurrency(order.totalAmount + (order.shippingPrice ?? 0))}</p>
         </div>
       </TableCell>
       <TableCell>

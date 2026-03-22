@@ -31,6 +31,7 @@ export interface OrderListItem {
   representativeName?: string;
   totalAmount: number;
   discountedAmount: number;
+  shippingPrice: number;
   status: OrderStatus;
   paymentMethod: PaymentMethod;
   paymentStatus?: PaymentStatus;
@@ -101,6 +102,11 @@ export interface OrderBonusItem {
   totalCost?: number;
 }
 
+export interface OrderDiscount {
+  type: "ABSOLUTE" | "PERCENTAGE";
+  value: number;
+}
+
 export interface OrderDetail extends OrderListItem {
   customerId: string;
   representativeId?: string;
@@ -111,6 +117,7 @@ export interface OrderDetail extends OrderListItem {
   shippingAddress: OrderShippingAddress;
   shippingInfo: OrderShippingInfo;
   couponCode?: string;
+  discount?: OrderDiscount;
   gifts: { giftTierId: string; giftName: string; giftImageUrl?: string; quantity: number; unitCost?: number; totalCost?: number }[];
   statusHistory: { status: string; changedAt: string }[];
   boletoBarcode?: string;

@@ -238,7 +238,7 @@ function OrderCard({
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Total</p>
-            <p className="font-semibold text-bee-gold">{formatCurrency(order.discountedAmount)}</p>
+            <p className="font-semibold text-bee-gold">{formatCurrency(order.totalAmount + (order.shippingPrice ?? 0))}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Desconto</p>
@@ -311,7 +311,7 @@ function OrderRow({
         {order.paymentMethod ? <PaymentMethodLabel method={order.paymentMethod} /> : "—"}
       </TableCell>
       <TableCell className="text-sm font-semibold text-bee-gold">
-        {formatCurrency(order.discountedAmount)}
+        {formatCurrency(order.totalAmount + (order.shippingPrice ?? 0))}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {order.totalAmount > order.discountedAmount

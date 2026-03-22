@@ -715,7 +715,13 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
     initialData?.vendedorId ? { id: initialData.vendedorId, name: initialData.vendedorName ?? '' } : null
   );
   const [couponCode, setCouponCode] = useState(initialData?.couponCode ?? "");
-  const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(null);
+  const [discount, setDiscount] = useState<{ type: "ABSOLUTE" | "PERCENTAGE"; value: number } | null>(
+    initialData?.discount && initialData.discount.value > 0
+      ? initialData.discount
+      : initialData && initialData.totalAmount > initialData.discountedAmount && !initialData.couponCode
+        ? { type: "ABSOLUTE" as const, value: Math.round((initialData.totalAmount - initialData.discountedAmount) * 100) / 100 }
+        : null
+  );
   const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [orderDate, setOrderDate] = useState<string>(
     initialData?.orderDate
