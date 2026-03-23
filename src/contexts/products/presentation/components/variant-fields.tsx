@@ -348,10 +348,10 @@ function VariantRow({
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Peso (kg)</Label>
+              <Label className="text-xs">Peso (g)</Label>
               <Input
                 type="number"
-                step="0.001"
+                step="1"
                 min="0"
                 placeholder="0"
                 {...register(`variants.${index}.weight`, {
