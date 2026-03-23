@@ -41,6 +41,7 @@ import {
   Users,
   XCircle,
   DollarSign,
+  ShoppingCart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -53,6 +54,7 @@ const ORDER_SOURCE_CONFIG: Record<OrderSource, { label: string; Icon: LucideIcon
   IN_STORE: { label: "Loja", Icon: Store, className: "bg-orange-100 text-orange-800 border-orange-300" },
   REPRESENTATIVE: { label: "Representante", Icon: Users, className: "bg-purple-100 text-purple-800 border-purple-300" },
   ECOMMERCE: { label: "E-commerce", Icon: Globe, className: "bg-blue-100 text-blue-800 border-blue-300" },
+  MERCADO_LIVRE: { label: "Mercado Livre", Icon: ShoppingCart, className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
 };
 
 function OrderSourceBadge({ source }: { source?: OrderSource }) {

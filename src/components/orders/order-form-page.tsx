@@ -206,6 +206,7 @@ const ORDER_SOURCES = [
   { value: "IN_STORE" as const, label: "Loja Física", icon: Store },
   { value: "INSTAGRAM" as const, label: "Instagram", icon: Instagram },
   { value: "REPRESENTATIVE" as const, label: "Representante", icon: Briefcase },
+  { value: "MERCADO_LIVRE" as const, label: "Mercado Livre", icon: ShoppingCart },
 ];
 
 const PAYMENT_METHODS = [
@@ -704,7 +705,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   );
   const isEcommerceOrder = initialData?.source === "ECOMMERCE";
   const [orderSource, setOrderSource] = useState<
-    "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | "ECOMMERCE" | ""
+    "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | "ECOMMERCE" | "MERCADO_LIVRE" | ""
   >(
     initialData?.source ?? ""
   );
@@ -1211,7 +1212,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                         E-commerce
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                         {ORDER_SOURCES.map((source) => {
                           const Icon = source.icon;
                           const isSelected = orderSource === source.value;

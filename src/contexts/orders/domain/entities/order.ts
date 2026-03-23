@@ -21,7 +21,7 @@ export type PaymentMethod =
   | "OTHER"
   | string;
 
-export type OrderSource = "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | "ECOMMERCE";
+export type OrderSource = "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "REPRESENTATIVE" | "ECOMMERCE" | "MERCADO_LIVRE";
 
 export interface OrderListItem {
   id: string;

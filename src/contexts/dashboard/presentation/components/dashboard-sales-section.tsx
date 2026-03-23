@@ -122,6 +122,7 @@ const SOURCE_CONFIG: Record<string, { label: string; color: string }> = {
   INSTAGRAM:      { label: "Instagram",    color: "#ec4899" },
   ECOMMERCE:      { label: "E-commerce",   color: "#6366f1" },
   REPRESENTATIVE: { label: "Representante", color: "#f97316" },
+  MERCADO_LIVRE:  { label: "Mercado Livre", color: "#EAB308" },
 };
 
 function SourceTooltip({

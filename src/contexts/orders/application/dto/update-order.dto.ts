@@ -12,7 +12,7 @@ export interface UpdateOrderDTO {
   items?: CreateOrderItemDTO[];
   bonusItems?: CreateOrderBonusItemDTO[];
   payments?: CreateOrderPaymentDTO[];
-  source?: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE" | "REPRESENTATIVE";
+  source?: "WHATSAPP" | "IN_STORE" | "INSTAGRAM" | "ECOMMERCE" | "REPRESENTATIVE" | "MERCADO_LIVRE";
   couponCode?: string;
   discount?: CreateOrderDiscountDTO;
   shippingAddress?: CreateOrderShippingAddressDTO;
