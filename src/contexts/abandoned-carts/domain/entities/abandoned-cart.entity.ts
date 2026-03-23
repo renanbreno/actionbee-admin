@@ -1,5 +1,14 @@
 export type CheckoutStep = "CART" | "CHECKOUT" | "PAYMENT";
 
+export interface CartItem {
+  name: string;
+  price: number;
+  quantity: number;
+  variantName?: string;
+  productId?: string;
+  variantId?: string;
+}
+
 export interface AbandonedCart {
   id: string;
   customerId: string;
@@ -8,6 +17,7 @@ export interface AbandonedCart {
   customerPhone: string | null;
   cartValue: number | null;
   itemsCount: number;
+  items: CartItem[];
   checkoutStep: CheckoutStep;
   abandonedAt: string;
   notificationCount: number;
