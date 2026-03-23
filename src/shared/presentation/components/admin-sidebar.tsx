@@ -87,8 +87,17 @@ const menuItems: MenuItem[] = [
   },
   {
     title: "Pedidos",
-    href: "/dashboard/orders",
     icon: ShoppingCart,
+    submenu: [
+      {
+        title: "Lista de Pedidos",
+        href: "/dashboard/orders",
+      },
+      {
+        title: "Carrinhos Abandonados",
+        href: "/dashboard/abandoned-carts",
+      },
+    ],
   },
   {
     title: "Cupons",
