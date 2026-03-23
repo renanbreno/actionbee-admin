@@ -37,6 +37,14 @@ import { useCreateShipment } from "../hooks/use-create-shipment";
 import type { ProductVariant } from "@/contexts/products/domain/entities/product";
 import type { GiftTier } from "@/contexts/gift-tiers/domain/entities/gift-tier";
 
+// Helper to get current month in local timezone (not UTC)
+const getCurrentMonth = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+};
+
 interface CreateShipmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,7 +64,7 @@ export function CreateShipmentDialog({
   const createShipment = useCreateShipment();
   const { data: affiliates = [] } = useAffiliates();
 
-  const defaultMonth = new Date().toISOString().slice(0, 7);
+  const defaultMonth = getCurrentMonth();
 
   const form = useForm<CreateShipmentFormValues>({
     resolver: zodResolver(createShipmentSchema),
@@ -150,10 +158,27 @@ export function CreateShipmentDialog({
     debouncedProductSearch,
   );
 
-  const activeVariants = useMemo(
-    () => selectedProductVariants.filter((v) => v.isActive !== false),
-    [selectedProductVariants],
-  );
+  const activeVariants = useMemo(() => {
+    // Filtrar variantes ativas que não são de revendedor
+    const eligibleVariants = selectedProductVariants.filter(
+      (v) => v.isActive !== false && v.isRetailerVariant !== true,
+    );
+
+    // Se nenhuma variante elegível, retornar array vazio
+    if (eligibleVariants.length === 0) {
+      return [];
+    }
+
+    // Encontrar a variante com MENOR unitsPerVariant
+    const lowestUnitsVariant = eligibleVariants.reduce((min, current) => {
+      const minUnits = min.unitsPerVariant ?? Infinity;
+      const currentUnits = current.unitsPerVariant ?? Infinity;
+      return currentUnits < minUnits ? current : min;
+    });
+
+    // Retornar apenas a variante com menor quantidade de unidades
+    return [lowestUnitsVariant];
+  }, [selectedProductVariants]);
 
   const handleSelectProduct = (product: {
     id: string;
@@ -166,6 +191,15 @@ export function CreateShipmentDialog({
     setProductSearch("");
     setShowProductDropdown(false);
   };
+
+  // Auto-adicionar a variante quando o produto é selecionado
+  useEffect(() => {
+    if (activeVariants.length === 1) {
+      const variant = activeVariants[0];
+      handleAddVariant(variant);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeVariants]);
 
   const handleAddVariant = (variant: ProductVariant) => {
     const alreadyAdded = items.some((i) => i.variantId === variant.id);
@@ -180,6 +214,7 @@ export function CreateShipmentDialog({
       unitCost: variant.unitCost ?? 0,
       unitsPerVariant: variant.unitsPerVariant,
       unitAcronym: variant.unit?.acronym ?? variant.unit?.name,
+      unitName: variant.unit?.name,
     });
     resetProductSelection();
   };
@@ -456,7 +491,7 @@ export function CreateShipmentDialog({
                 }`}
               >
                 <Package className="h-3.5 w-3.5" />
-                Produto com variante
+                Produto
               </button>
               <button
                 type="button"
@@ -577,7 +612,7 @@ export function CreateShipmentDialog({
                           <div className="absolute z-50 right-0 mt-1 rounded-lg border bg-card shadow-sm px-3 py-2.5 min-w-60">
                             <p className="text-xs text-muted-foreground">
                               {selectedProductId
-                                ? "Nenhuma variante ativa."
+                                ? "Nenhuma variante disponível."
                                 : "Carregando variantes..."}
                             </p>
                           </div>
@@ -686,8 +721,7 @@ export function CreateShipmentDialog({
                                 </div>
                                 {!isGift && (
                                   <span className="text-xs text-muted-foreground">
-                                    {field.unitsPerVariant}{" "}
-                                    {field.unitAcronym ?? "un"}
+                                    1 {field.unitName ?? field.unitAcronym ?? "un"} ({field.unitsPerVariant} un)
                                   </span>
                                 )}
                               </div>
@@ -771,7 +805,7 @@ export function CreateShipmentDialog({
                             </div>
                             {!isGift && (
                               <span className="text-xs text-muted-foreground mt-0.5">
-                                {field.unitsPerVariant} {field.unitAcronym ?? "un"}
+                                1 {field.unitName ?? field.unitAcronym ?? "un"} ({field.unitsPerVariant} un)
                               </span>
                             )}
                           </div>

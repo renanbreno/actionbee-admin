@@ -17,8 +17,16 @@ import { useMonthlyReport } from "@/contexts/affiliate-shipments/presentation/ho
 import { MonthlyReportTable } from "@/contexts/affiliate-shipments/presentation/components/monthly-report-table";
 import { CreateShipmentDialog } from "@/contexts/affiliate-shipments/presentation/components/create-shipment-dialog";
 
+// Helper to get current month in local timezone (not UTC)
+const getCurrentMonth = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+};
+
 export default function BonificacoesPage() {
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(getCurrentMonth());
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { data: report, isLoading } = useMonthlyReport(month);
 

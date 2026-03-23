@@ -95,7 +95,11 @@ export default function AffiliateShipmentsPage() {
           <CardTitle>Histórico de Bonificações</CardTitle>
           <CardDescription>
             {month
-              ? `Envios de ${new Date(`${month}-01`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`
+              ? (() => {
+                  const [year, monthNum] = month.split("-").map(Number);
+                  const date = new Date(year, monthNum - 1, 1);
+                  return `Envios de ${date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`;
+                })()
               : "Todos os envios do afiliado"}
           </CardDescription>
         </CardHeader>

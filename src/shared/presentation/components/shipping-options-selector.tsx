@@ -225,12 +225,12 @@ export function ShippingOptionsSelector({
               <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 dark:bg-green-950/40 dark:border-green-900">
                 <Gift className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                 <p className="text-sm text-green-700 dark:text-green-400">
-                  Falta{" "}
+                  Faltam{" "}
                   <span className="font-semibold">
                     R${" "}
                     {(data.freeShippingMinValue - data.cartSubtotal).toFixed(2)}
                   </span>{" "}
-                  para aplicar{" "}
+                  para o cliente ganhar{" "}
                   <span className="font-semibold">frete grátis</span>!
                 </p>
               </div>
@@ -240,7 +240,7 @@ export function ShippingOptionsSelector({
             <div className="flex items-center gap-2 p-3 rounded-lg bg-green-100 border border-green-300 dark:bg-green-900/60 dark:border-green-700">
               <Gift className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
               <p className="text-sm text-green-700 dark:text-green-400 font-medium">
-                Parabéns! Você ganhou frete grátis nesta compra!
+                Frete grátis aplicado para o cliente nesta compra!
               </p>
             </div>
           )}

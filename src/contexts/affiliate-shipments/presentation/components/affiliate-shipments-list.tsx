@@ -86,7 +86,9 @@ function ShipmentCard({
     });
   };
 
-  const refDate = new Date(`${shipment.referenceMonth}-01`);
+  // Parse the month string (YYYY-MM) and format correctly, avoiding UTC conversion issues
+  const [year, month] = shipment.referenceMonth.split("-").map(Number);
+  const refDate = new Date(year, month - 1, 1);
   const monthLabel = refDate.toLocaleDateString("pt-BR", {
     month: "long",
     year: "numeric",
