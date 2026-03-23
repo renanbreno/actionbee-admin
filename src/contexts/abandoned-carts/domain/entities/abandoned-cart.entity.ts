@@ -6,7 +6,7 @@ export interface AbandonedCart {
   customerName: string;
   customerEmail: string;
   customerPhone: string | null;
-  cartValue: number;
+  cartValue: number | null;
   itemsCount: number;
   checkoutStep: CheckoutStep;
   abandonedAt: string;

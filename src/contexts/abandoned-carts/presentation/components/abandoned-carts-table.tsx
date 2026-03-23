@@ -43,7 +43,8 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | null | undefined): string {
+  if (value == null) return "R$ 0,00";
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
