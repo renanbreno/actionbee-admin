@@ -16,6 +16,8 @@ export const ordersApiClient = {
     if (filters.status) params.append("status", filters.status);
     if (filters.startDate) params.append("startDate", filters.startDate);
     if (filters.endDate) params.append("endDate", filters.endDate);
+    if (filters.sortBy) params.append("sortBy", filters.sortBy);
+    if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
     return apiFetch<PaginatedOrders>(`/admin/orders?${params.toString()}`);
   },

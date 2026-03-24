@@ -5,4 +5,6 @@ export interface GetOrdersFiltersDTO {
   status?: string;
   startDate?: string;
   endDate?: string;
+  sortBy?: string;
+  sortOrder?: "ASC" | "DESC";
 }

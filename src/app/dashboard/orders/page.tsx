@@ -62,6 +62,8 @@ export default function OrdersPage() {
     status: filters.status === "all" ? undefined : filters.status,
     startDate: filters.startDate || undefined,
     endDate: filters.endDate || undefined,
+    sortBy: "createdAt",
+    sortOrder: "DESC",
   });
 
   // Reset page on filter change

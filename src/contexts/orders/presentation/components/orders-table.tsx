@@ -37,6 +37,7 @@ import {
   RefreshCw,
   Store,
   Ticket,
+  Truck,
   User,
   Users,
   XCircle,
@@ -66,6 +67,20 @@ function OrderSourceBadge({ source }: { source?: OrderSource }) {
     <Badge className={`text-[10px] px-1.5 py-0 border gap-1 ${className}`}>
       <Icon className="h-2.5 w-2.5" />
       {label}
+    </Badge>
+  );
+}
+
+const SHIPPING_SOURCES: OrderSource[] = ["ECOMMERCE", "MERCADO_LIVRE"];
+const SHIPPED_STATUSES: OrderStatus[] = ["SHIPPED", "DELIVERED", "CANCELLED"];
+
+function NeedsShippingBadge({ source, status }: { source?: OrderSource; status: OrderStatus }) {
+  if (!source || !SHIPPING_SOURCES.includes(source)) return null;
+  if (SHIPPED_STATUSES.includes(status)) return null;
+  return (
+    <Badge className="text-[10px] px-1.5 py-0 border gap-1 bg-amber-100 text-amber-800 border-amber-300">
+      <Truck className="h-2.5 w-2.5" />
+      Enviar
     </Badge>
   );
 }
@@ -232,7 +247,10 @@ function OrderCard({
               <Package className="h-4 w-4 text-muted-foreground" />
               <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
             </div>
-            <OrderSourceBadge source={order.source} />
+            <div className="flex items-center gap-1 flex-wrap">
+              <OrderSourceBadge source={order.source} />
+              <NeedsShippingBadge source={order.source} status={order.status} />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <OrderStatusBadge status={order.status} />
@@ -302,7 +320,10 @@ function OrderRow({
       <TableCell>
         <div className="flex flex-col gap-1">
           <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
-          <OrderSourceBadge source={order.source} />
+          <div className="flex items-center gap-1 flex-wrap">
+            <OrderSourceBadge source={order.source} />
+            <NeedsShippingBadge source={order.source} status={order.status} />
+          </div>
         </div>
       </TableCell>
       <TableCell>
