@@ -71,12 +71,8 @@ function OrderSourceBadge({ source }: { source?: OrderSource }) {
   );
 }
 
-const SHIPPING_SOURCES: OrderSource[] = ["ECOMMERCE", "MERCADO_LIVRE"];
-const SHIPPED_STATUSES: OrderStatus[] = ["SHIPPED", "DELIVERED", "CANCELLED"];
-
-function NeedsShippingBadge({ source, status }: { source?: OrderSource; status: OrderStatus }) {
-  if (!source || !SHIPPING_SOURCES.includes(source)) return null;
-  if (SHIPPED_STATUSES.includes(status)) return null;
+function NeedsShippingBadge({ status }: { status: OrderStatus }) {
+  if (status !== "CONFIRMED") return null;
   return (
     <Badge className="text-[10px] px-1.5 py-0 border gap-1 bg-amber-100 text-amber-800 border-amber-300">
       <Truck className="h-2.5 w-2.5" />
@@ -249,7 +245,7 @@ function OrderCard({
             </div>
             <div className="flex items-center gap-1 flex-wrap">
               <OrderSourceBadge source={order.source} />
-              <NeedsShippingBadge source={order.source} status={order.status} />
+              <NeedsShippingBadge status={order.status} />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -322,7 +318,7 @@ function OrderRow({
           <span className="font-mono font-bold text-sm">{order.orderNumber}</span>
           <div className="flex items-center gap-1 flex-wrap">
             <OrderSourceBadge source={order.source} />
-            <NeedsShippingBadge source={order.source} status={order.status} />
+            <NeedsShippingBadge status={order.status} />
           </div>
         </div>
       </TableCell>
