@@ -8,7 +8,7 @@ export const shipmentItemSchema = z
     quantity: z.number().int().min(1, "Mínimo 1").max(9999),
     unitCost: z.number().min(0),
     unitsPerVariant: z.number().int().min(1).optional(),
-    unitAcronym: z.string().optional(),
+    unitName: z.string().optional(),
   })
   .refine(
     (item) => !!(item.variantId || item.giftTierId),

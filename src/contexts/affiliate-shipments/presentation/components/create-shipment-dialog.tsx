@@ -213,7 +213,7 @@ export function CreateShipmentDialog({
       quantity: 1,
       unitCost: variant.unitCost ?? 0,
       unitsPerVariant: variant.unitsPerVariant,
-      unitAcronym: variant.unit?.acronym ?? variant.unit?.name,
+      unitName: variant.unit?.name,
     });
     resetProductSelection();
   };
@@ -720,7 +720,7 @@ export function CreateShipmentDialog({
                                 </div>
                                 {!isGift && (
                                   <span className="text-xs text-muted-foreground">
-                                    1 {field.unitName ?? field.unitAcronym ?? "un"} ({field.unitsPerVariant} un)
+                                    1 {field.unitName ?? "un"} ({field.unitsPerVariant} un)
                                   </span>
                                 )}
                               </div>
@@ -804,7 +804,7 @@ export function CreateShipmentDialog({
                             </div>
                             {!isGift && (
                               <span className="text-xs text-muted-foreground mt-0.5">
-                                1 {field.unitName ?? field.unitAcronym ?? "un"} ({field.unitsPerVariant} un)
+                                1 {field.unitName ?? "un"} ({field.unitsPerVariant} un)
                               </span>
                             )}
                           </div>
