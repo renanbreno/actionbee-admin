@@ -214,7 +214,6 @@ export function CreateShipmentDialog({
       unitCost: variant.unitCost ?? 0,
       unitsPerVariant: variant.unitsPerVariant,
       unitAcronym: variant.unit?.acronym ?? variant.unit?.name,
-      unitName: variant.unit?.name,
     });
     resetProductSelection();
   };
