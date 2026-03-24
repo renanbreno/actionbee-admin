@@ -80,6 +80,10 @@ const menuItems: MenuItem[] = [
         href: "/dashboard/products/brands",
       },
       {
+        title: "Grupos de Produtos",
+        href: "/dashboard/products/groups",
+      },
+      {
         title: "Unidades de Medida",
         href: "/dashboard/units",
       },
