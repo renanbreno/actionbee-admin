@@ -90,6 +90,10 @@ export interface OrderPaymentEntry {
   paymentMethod: string;
   amount: number;
   status: string;
+  paymentLink?: string;
+  boletoBarcode?: string;
+  boletoPdfUrl?: string;
+  boletoDueDate?: string;
 }
 
 export interface OrderBonusItem {

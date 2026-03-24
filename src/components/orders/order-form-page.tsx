@@ -229,6 +229,7 @@ interface PaymentEntry {
   method: string;
   amount: number;
   boletoDueDays: 30 | 60;
+  generatePaymentLink: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -700,6 +701,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
           method: p.paymentMethod,
           amount: p.amount,
           boletoDueDays: 30 as 30 | 60,
+          generatePaymentLink: true,
         }))
       : []
   );
@@ -781,7 +783,6 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
   const [isIdentificationOpen, setIsIdentificationOpen] = useState(true);
   const [isProductsOpen, setIsProductsOpen] = useState(true);
   const [isPaymentOpen, setIsPaymentOpen] = useState(true);
-  const [generatePaymentLink, setGeneratePaymentLink] = useState(true);
 
   const createOrderMutation = useCreateOrder();
   const updateOrderMutation = useUpdateOrder(orderId ?? '');
@@ -1004,7 +1005,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
     const remaining = Math.max(0, orderTotal - paymentsSum);
     setPayments((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), method, amount: prev.length === 0 && remaining === 0 ? orderTotal : remaining, boletoDueDays: 30 },
+      { id: crypto.randomUUID(), method, amount: prev.length === 0 && remaining === 0 ? orderTotal : remaining, boletoDueDays: 30, generatePaymentLink: true },
     ]);
   }
 
@@ -1100,6 +1101,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
         method: p.method,
         amount: p.amount,
         ...(p.method === "BOLETO" ? { boletoDueDays: p.boletoDueDays } : {}),
+        ...(mode === 'create' ? { generatePaymentLink: p.generatePaymentLink } : {}),
       })),
       source: orderSource,
       couponCode: couponCode || undefined,
@@ -1133,7 +1135,6 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
       representativeId: selectedRepresentative?.id ?? null,
       vendedorId: selectedVendedor?.id ?? null,
       orderDate: mode === 'edit' ? (orderDate || null) : (orderDate || undefined),
-      ...(mode === 'create' ? { generatePaymentLink } : {}),
     };
     if (mode === 'edit') {
       updateOrderMutation.mutate(payload, { onSuccess: () => router.push("/dashboard/orders") });
@@ -2596,23 +2597,6 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <Label>Formas de Pagamento *</Label>
-                      {mode === 'create' && (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="generatePaymentLink"
-                            checked={generatePaymentLink}
-                            onChange={(e) => setGeneratePaymentLink(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 text-bee-gold focus:ring-bee-gold/50 cursor-pointer"
-                          />
-                          <label
-                            htmlFor="generatePaymentLink"
-                            className="text-sm text-muted-foreground cursor-pointer select-none"
-                          >
-                            Gerar link de pagamento
-                          </label>
-                        </div>
-                      )}
                     </div>
 
                     {payments.length === 0 ? (
@@ -2675,6 +2659,25 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                                             <SelectItem value="60">60 dias</SelectItem>
                                           </SelectContent>
                                         </Select>
+                                      </div>
+                                    )}
+                                    {mode === 'create' && (
+                                      <div className="mt-0.5 flex items-center gap-1.5">
+                                        <input
+                                          type="checkbox"
+                                          id={`generateLink-${entry.id}`}
+                                          checked={entry.generatePaymentLink}
+                                          onChange={(e) =>
+                                            updatePayment(entry.id, { generatePaymentLink: e.target.checked })
+                                          }
+                                          className="h-3 w-3 rounded border-gray-300 text-bee-gold focus:ring-bee-gold/50 cursor-pointer"
+                                        />
+                                        <label
+                                          htmlFor={`generateLink-${entry.id}`}
+                                          className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium cursor-pointer select-none"
+                                        >
+                                          Gerar link
+                                        </label>
                                       </div>
                                     )}
                                   </div>

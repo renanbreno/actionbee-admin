@@ -488,94 +488,195 @@ function OrderDetailContent({ order }: { order: OrderDetail }) {
         </Section>
       )}
 
-      {/* Checkout Payment Link (PIX, Credit Card, Debit Card) */}
-      {order.paymentLink && (
-        <Section title="Link de Pagamento">
-          <div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <ExternalLink className="h-4 w-4 shrink-0" />
-              <span className="font-medium text-foreground">Link de Pagamento</span>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">Compartilhe este link com o cliente - ele poderá escolher entre PIX, Cartão de Crédito ou Cartão de Débito</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 min-w-0 break-all rounded bg-muted px-2 py-1.5 text-xs font-mono">
-                  {order.paymentLink}
-                </code>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => navigator.clipboard.writeText(order.paymentLink!)}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => window.open(order.paymentLink, "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Section>
-      )}
+      {/* Links de Pagamento — agrupados por forma de pagamento */}
+      {(() => {
+        const paymentsWithLinks = order.payments?.filter(
+          (p) => p.paymentLink || p.boletoBarcode || p.boletoPdfUrl,
+        ) ?? [];
 
-      {/* Boleto */}
-      {(order.boletoBarcode || order.boletoPdfUrl) && (
-        <Section title="Boleto">
-          <div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Barcode className="h-4 w-4 shrink-0" />
-              <span className="font-medium text-foreground">Boleto Bancário</span>
-            </div>
-            {order.boletoDueDate && (
-              <p className="text-xs text-muted-foreground">
-                Vencimento:{" "}
-                <span className="font-medium text-foreground">
-                  {new Date(order.boletoDueDate).toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-                </span>
-              </p>
-            )}
-            {order.boletoBarcode && (
-              <div className="space-y-1.5">
-                <p className="text-xs text-muted-foreground">Código de barras</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 min-w-0 break-all rounded bg-muted px-2 py-1.5 text-xs font-mono">
-                    {order.boletoBarcode}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => navigator.clipboard.writeText(order.boletoBarcode!)}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
+        // Fallback para pedidos antigos sem dados por entry
+        const legacyCheckoutLink = paymentsWithLinks.length === 0 ? order.paymentLink : undefined;
+        const legacyBoleto =
+          paymentsWithLinks.length === 0
+            ? { barcode: order.boletoBarcode, pdfUrl: order.boletoPdfUrl, dueDate: order.boletoDueDate }
+            : undefined;
+
+        if (paymentsWithLinks.length === 0 && !legacyCheckoutLink && !legacyBoleto?.barcode && !legacyBoleto?.pdfUrl) {
+          return null;
+        }
+
+        return (
+          <Section title="Links de Pagamento">
+            <div className="space-y-3">
+              {paymentsWithLinks.map((payment, i) => {
+                const config = PAYMENT_METHOD_CONFIG[payment.paymentMethod];
+                const Icon = config?.icon ?? CreditCard;
+                const label = config?.label ?? payment.paymentMethod;
+                return (
+                  <div key={i} className="rounded-lg border bg-card p-4 space-y-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium">{label}</span>
+                      </div>
+                      <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                        {formatCurrency(payment.amount)}
+                      </span>
+                    </div>
+                    {payment.paymentLink && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground">Link de pagamento</p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 min-w-0 break-all rounded bg-muted px-2 py-1.5 text-xs font-mono">
+                            {payment.paymentLink}
+                          </code>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => navigator.clipboard.writeText(payment.paymentLink!)}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => window.open(payment.paymentLink, "_blank")}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {payment.boletoDueDate && (
+                      <p className="text-xs text-muted-foreground">
+                        Vencimento:{" "}
+                        <span className="font-medium text-foreground">
+                          {new Date(payment.boletoDueDate).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </p>
+                    )}
+                    {payment.boletoBarcode && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground">Código de barras</p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 min-w-0 break-all rounded bg-muted px-2 py-1.5 text-xs font-mono">
+                            {payment.boletoBarcode}
+                          </code>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => navigator.clipboard.writeText(payment.boletoBarcode!)}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {payment.boletoPdfUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={() => window.open(payment.boletoPdfUrl, "_blank")}
+                      >
+                        <Download className="h-4 w-4" />
+                        Baixar Boleto
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Fallback para pedidos antigos */}
+              {legacyCheckoutLink && (
+                <div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <ExternalLink className="h-4 w-4 shrink-0" />
+                    <span className="font-medium text-foreground">Link de Pagamento</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 min-w-0 break-all rounded bg-muted px-2 py-1.5 text-xs font-mono">
+                      {legacyCheckoutLink}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => navigator.clipboard.writeText(legacyCheckoutLink)}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => window.open(legacyCheckoutLink, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-            {order.boletoPdfUrl && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                onClick={() => window.open(order.boletoPdfUrl, "_blank")}
-              >
-                <Download className="h-4 w-4" />
-                Baixar Boleto
-              </Button>
-            )}
-          </div>
-        </Section>
-      )}
+              )}
+              {(legacyBoleto?.barcode || legacyBoleto?.pdfUrl) && (
+                <div className="rounded-lg border bg-card p-4 space-y-3 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Barcode className="h-4 w-4 shrink-0" />
+                    <span className="font-medium text-foreground">Boleto Bancário</span>
+                  </div>
+                  {legacyBoleto.dueDate && (
+                    <p className="text-xs text-muted-foreground">
+                      Vencimento:{" "}
+                      <span className="font-medium text-foreground">
+                        {new Date(legacyBoleto.dueDate).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </p>
+                  )}
+                  {legacyBoleto.barcode && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-muted-foreground">Código de barras</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 min-w-0 break-all rounded bg-muted px-2 py-1.5 text-xs font-mono">
+                          {legacyBoleto.barcode}
+                        </code>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => navigator.clipboard.writeText(legacyBoleto.barcode!)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {legacyBoleto.pdfUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => window.open(legacyBoleto.pdfUrl, "_blank")}
+                    >
+                      <Download className="h-4 w-4" />
+                      Baixar Boleto
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </Section>
+        );
+      })()}
 
       {/* Observações */}
       {order.notes && (

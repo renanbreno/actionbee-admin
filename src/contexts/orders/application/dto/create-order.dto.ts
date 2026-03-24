@@ -31,6 +31,7 @@ export interface CreateOrderPaymentDTO {
   method: string;
   amount: number;
   boletoDueDays?: 30 | 60;
+  generatePaymentLink?: boolean;
 }
 
 export type DiscountType = "ABSOLUTE" | "PERCENTAGE";
@@ -62,5 +63,4 @@ export interface CreateOrderDTO {
   representativeId?: string;
   vendedorId?: string;
   orderDate?: string;
-  generatePaymentLink?: boolean;
 }
