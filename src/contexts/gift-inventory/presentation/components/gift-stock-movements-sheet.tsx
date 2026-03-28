@@ -54,8 +54,8 @@ export function GiftStockMovementsSheet({
     setPage(1);
   }, [giftTierId]);
   const { data: movementsData, isLoading } = useGiftStockMovements(giftTierId, page);
-  const pageSize = movementsData?.data.length ?? 20;
-  const totalPages = movementsData ? Math.ceil(movementsData.total / pageSize) : 0;
+  const LIMIT = 20;
+  const totalPages = movementsData ? Math.ceil(movementsData.total / LIMIT) : 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
