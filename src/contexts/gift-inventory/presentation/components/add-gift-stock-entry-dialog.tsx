@@ -47,8 +47,12 @@ export function AddGiftStockEntryDialog({
   }
 
   async function onSubmit(values: GiftStockEntryFormValues) {
-    await mutation.mutateAsync({ quantity: values.quantity, reason: values.reason || undefined });
-    handleClose();
+    try {
+      await mutation.mutateAsync({ quantity: values.quantity, reason: values.reason || undefined });
+      handleClose();
+    } catch {
+      // error handled by onError toast in the hook
+    }
   }
 
   return (

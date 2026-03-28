@@ -56,8 +56,12 @@ export function AddGiftStockAdjustmentDialog({
   }
 
   async function onSubmit(values: GiftStockAdjustmentFormValues) {
-    await mutation.mutateAsync(values);
-    handleClose();
+    try {
+      await mutation.mutateAsync(values);
+      handleClose();
+    } catch {
+      // error handled by onError toast in the hook
+    }
   }
 
   return (
