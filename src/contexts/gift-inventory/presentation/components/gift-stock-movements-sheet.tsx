@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -50,8 +50,12 @@ export function GiftStockMovementsSheet({
   onOpenChange,
 }: GiftStockMovementsSheetProps) {
   const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [giftTierId]);
   const { data: movementsData, isLoading } = useGiftStockMovements(giftTierId, page);
-  const totalPages = movementsData ? Math.ceil(movementsData.total / 20) : 0;
+  const pageSize = movementsData?.data.length ?? 20;
+  const totalPages = movementsData ? Math.ceil(movementsData.total / pageSize) : 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
