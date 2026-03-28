@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validateCPF, validateEmail, validateBirthDate, validatePhone } from "@/shared/utils/validations";
+import { validateCPF, validateEmail, validateDate, validatePhone } from "@/shared/utils/validations";
 
 const urlValidator = z.string().refine(
   (val) => {
@@ -55,7 +55,7 @@ const baseAffiliateSchema = z.object({
       }
       return true; // Não rejeitar se estiver incompleto
     }, { message: "CPF inválido" }),
-  birthDate: z.string().optional().refine(validateBirthDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
+  birthDate: z.string().optional().refine(validateDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
   socialMedia: socialMediaSchema,
   commissionRate: z
     .number({ message: "Informe a taxa de comissão" })
@@ -94,7 +94,7 @@ export const updateAffiliateSchema = z.object({
       return true;
     }, { message: "CPF inválido" })
     .optional(),
-  birthDate: z.string().optional().refine(validateBirthDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
+  birthDate: z.string().optional().refine(validateDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
   socialMedia: socialMediaSchema.optional(),
   commissionRate: z
     .number()

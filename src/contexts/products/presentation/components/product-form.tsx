@@ -89,7 +89,6 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       ingredients: null,
       usageRecommendation: null,
       costPrice: 0,
-      stockUnits: null,
       brandId: null,
       variationType: null,
       isActive: true,
@@ -128,7 +127,6 @@ function buildDefaultValues(product?: Product): ProductFormValues {
     ingredients: product.ingredients ?? null,
     usageRecommendation: product.usageRecommendation ?? null,
     costPrice: product.costPrice ?? 0,
-    stockUnits: product.stockUnits ?? null,
     brandId: product.brandId ?? null,
     variationType: product.variationType ?? null,
     isActive: product.isActive,
@@ -351,21 +349,17 @@ export function ProductForm({
                   />
                 </div>
 
-                {/* Estoque */}
+                {/* Estoque — somente leitura, gerenciado pelo controle de estoque */}
                 <div className="space-y-2">
-                  <Label htmlFor="stockUnits">Estoque (unidades base)</Label>
-                  <Input
-                    id="stockUnits"
-                    type="number"
-                    min={0}
-                    placeholder="Ex: 500"
-                    {...register("stockUnits", { valueAsNumber: true })}
-                  />
-                  {errors.stockUnits && (
-                    <p className="text-destructive text-sm">
-                      {errors.stockUnits.message}
-                    </p>
-                  )}
+                  <Label>Estoque (unidades base)</Label>
+                  <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm min-h-10">
+                    <span className="font-medium">
+                      {defaultValues?.stockUnits ?? 0} unidades
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      — gerenciado pelo controle de estoque
+                    </span>
+                  </div>
                 </div>
 
                 {/* Preço de custo */}

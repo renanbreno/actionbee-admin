@@ -32,6 +32,7 @@ import {
   Users,
   Gift,
   Settings,
+  Boxes,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
@@ -98,6 +99,11 @@ const menuItems: MenuItem[] = [
         href: "/dashboard/abandoned-carts",
       },
     ],
+  },
+  {
+    title: "Estoque",
+    href: "/dashboard/inventory",
+    icon: Boxes,
   },
   {
     title: "Cupons",

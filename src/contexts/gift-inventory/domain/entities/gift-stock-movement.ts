@@ -9,6 +9,8 @@ export interface GiftStockMovement {
   quantity: number;
   reason?: string | null;
   createdAt: string;
+  orderNumber?: string | null;
+  affiliateName?: string | null;
 }
 
 export interface PaginatedGiftMovements {

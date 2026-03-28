@@ -98,15 +98,21 @@ export function GiftStockMovementsSheet({
                     </p>
                     {movement.orderId && (
                       <p className="text-xs text-muted-foreground">
-                        Pedido: <span className="font-mono">{movement.orderId.slice(-8)}</span>
+                        Pedido:{" "}
+                        <span className="font-medium">
+                          {movement.orderNumber ?? `#${movement.orderId.slice(-8)}`}
+                        </span>
                       </p>
                     )}
                     {movement.shipmentId && (
                       <p className="text-xs text-muted-foreground">
-                        Bonificação: <span className="font-mono">{movement.shipmentId.slice(-8)}</span>
+                        Afiliado:{" "}
+                        <span className="font-medium">
+                          {movement.affiliateName ?? movement.shipmentId.slice(-8)}
+                        </span>
                       </p>
                     )}
-                    {movement.reason && (
+                    {movement.reason && !movement.shipmentId && (
                       <p className="text-xs text-muted-foreground">{movement.reason}</p>
                     )}
                   </div>

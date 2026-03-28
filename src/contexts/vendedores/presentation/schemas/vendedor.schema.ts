@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validateEmail, validateBirthDate, validatePhone } from "@/shared/utils/validations";
+import { validateEmail, validateDate, validatePhone } from "@/shared/utils/validations";
 
 const emailValidator = z
   .string()
@@ -30,7 +30,7 @@ const baseVendedorSchema = z.object({
     .optional()
     .refine(cpfRefinement, { message: "CPF inválido" }),
   phone: z.string().optional().refine(validatePhone, "Telefone inválido"),
-  birthDate: z.string().optional().refine(validateBirthDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
+  birthDate: z.string().optional().refine(validateDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
   commissionRate: z
     .number()
     .min(0, "A taxa de comissão não pode ser negativa")
@@ -52,7 +52,7 @@ export const updateVendedorSchema = z.object({
     .optional()
     .refine(cpfRefinement, { message: "CPF inválido" }),
   phone: z.string().optional().refine(validatePhone, "Telefone inválido"),
-  birthDate: z.string().optional().refine(validateBirthDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
+  birthDate: z.string().optional().refine(validateDate, { message: "Data de nascimento inválida. Use o formato dd/mm/aaaa" }),
   commissionRate: z
     .number()
     .min(0, "A taxa de comissão não pode ser negativa")
