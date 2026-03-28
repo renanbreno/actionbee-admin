@@ -37,6 +37,9 @@ import {
   CheckCircle,
   XCircle,
   ImageOff,
+  Plus,
+  RefreshCw,
+  BarChart2,
 } from "lucide-react";
 import { GiftTier } from "../../domain/entities/gift-tier";
 import { useGiftTiers } from "../hooks/use-gift-tiers";
@@ -44,6 +47,9 @@ import { useActivateGiftTier } from "../hooks/use-activate-gift-tier";
 import { useDeactivateGiftTier } from "../hooks/use-deactivate-gift-tier";
 import { useDeleteGiftTier } from "../hooks/use-delete-gift-tier";
 import { EditGiftTierDialog } from "./edit-gift-tier-dialog";
+import { AddGiftStockEntryDialog } from "@/contexts/gift-inventory/presentation/components/add-gift-stock-entry-dialog";
+import { AddGiftStockAdjustmentDialog } from "@/contexts/gift-inventory/presentation/components/add-gift-stock-adjustment-dialog";
+import { GiftStockMovementsSheet } from "@/contexts/gift-inventory/presentation/components/gift-stock-movements-sheet";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
@@ -95,13 +101,39 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
+function StockBadge({ stockUnits }: { stockUnits: number }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "text-xs font-medium tabular-nums",
+        stockUnits > 0
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+          : "border-red-400/30 bg-red-400/10 text-red-500"
+      )}
+    >
+      {stockUnits} un.
+    </Badge>
+  );
+}
+
 interface GiftTierActionsProps {
   giftTier: GiftTier;
   onEdit: (gt: GiftTier) => void;
   onDelete: (gt: GiftTier) => void;
+  onAddStock: (gt: GiftTier) => void;
+  onAdjustStock: (gt: GiftTier) => void;
+  onViewMovements: (gt: GiftTier) => void;
 }
 
-function GiftTierActions({ giftTier, onEdit, onDelete }: GiftTierActionsProps) {
+function GiftTierActions({
+  giftTier,
+  onEdit,
+  onDelete,
+  onAddStock,
+  onAdjustStock,
+  onViewMovements,
+}: GiftTierActionsProps) {
   const activateMutation = useActivateGiftTier();
   const deactivateMutation = useDeactivateGiftTier();
   const isPending = activateMutation.isPending || deactivateMutation.isPending;
@@ -150,6 +182,19 @@ function GiftTierActions({ giftTier, onEdit, onDelete }: GiftTierActionsProps) {
               Ativar
             </>
           )}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onAddStock(giftTier)}>
+          <Plus className="mr-2 h-3.5 w-3.5" />
+          Adicionar estoque
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdjustStock(giftTier)}>
+          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+          Ajustar estoque
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onViewMovements(giftTier)}>
+          <BarChart2 className="mr-2 h-3.5 w-3.5" />
+          Ver movimentações
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -206,10 +251,16 @@ function GiftCard({
   giftTier,
   onEdit,
   onDelete,
+  onAddStock,
+  onAdjustStock,
+  onViewMovements,
 }: {
   giftTier: GiftTier;
   onEdit: (gt: GiftTier) => void;
   onDelete: (gt: GiftTier) => void;
+  onAddStock: (gt: GiftTier) => void;
+  onAdjustStock: (gt: GiftTier) => void;
+  onViewMovements: (gt: GiftTier) => void;
 }) {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm">
@@ -227,10 +278,18 @@ function GiftCard({
                 </p>
               )}
             </div>
-            <GiftTierActions giftTier={giftTier} onEdit={onEdit} onDelete={onDelete} />
+            <GiftTierActions
+              giftTier={giftTier}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onAddStock={onAddStock}
+              onAdjustStock={onAdjustStock}
+              onViewMovements={onViewMovements}
+            />
           </div>
           <div className="mt-2 flex items-center gap-2">
             <StatusBadge isActive={giftTier.isActive} />
+            <StockBadge stockUnits={giftTier.stockUnits} />
             <span className="text-xs font-medium text-bee-gold">
               A partir de {formatCurrency(giftTier.minOrderValue)}
             </span>
@@ -245,10 +304,16 @@ function GiftRow({
   giftTier,
   onEdit,
   onDelete,
+  onAddStock,
+  onAdjustStock,
+  onViewMovements,
 }: {
   giftTier: GiftTier;
   onEdit: (gt: GiftTier) => void;
   onDelete: (gt: GiftTier) => void;
+  onAddStock: (gt: GiftTier) => void;
+  onAdjustStock: (gt: GiftTier) => void;
+  onViewMovements: (gt: GiftTier) => void;
 }) {
   return (
     <TableRow>
@@ -269,10 +334,20 @@ function GiftRow({
         {formatCurrency(giftTier.minOrderValue)}
       </TableCell>
       <TableCell>
+        <StockBadge stockUnits={giftTier.stockUnits} />
+      </TableCell>
+      <TableCell>
         <StatusBadge isActive={giftTier.isActive} />
       </TableCell>
       <TableCell className="text-right">
-        <GiftTierActions giftTier={giftTier} onEdit={onEdit} onDelete={onDelete} />
+        <GiftTierActions
+          giftTier={giftTier}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onAddStock={onAddStock}
+          onAdjustStock={onAdjustStock}
+          onViewMovements={onViewMovements}
+        />
       </TableCell>
     </TableRow>
   );
@@ -287,6 +362,11 @@ export function GiftTiersTable() {
   const [deletingGift, setDeletingGift] = useState<GiftTier | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const [stockGift, setStockGift] = useState<GiftTier | null>(null);
+  const [entryOpen, setEntryOpen] = useState(false);
+  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [movementsOpen, setMovementsOpen] = useState(false);
+
   const handleEdit = (gt: GiftTier) => {
     setEditingGift(gt);
     setEditOpen(true);
@@ -295,6 +375,21 @@ export function GiftTiersTable() {
   const handleDeleteRequest = (gt: GiftTier) => {
     setDeletingGift(gt);
     setDeleteOpen(true);
+  };
+
+  const handleAddStock = (gt: GiftTier) => {
+    setStockGift(gt);
+    setEntryOpen(true);
+  };
+
+  const handleAdjustStock = (gt: GiftTier) => {
+    setStockGift(gt);
+    setAdjustmentOpen(true);
+  };
+
+  const handleViewMovements = (gt: GiftTier) => {
+    setStockGift(gt);
+    setMovementsOpen(true);
   };
 
   const handleDeleteConfirm = () => {
@@ -327,6 +422,9 @@ export function GiftTiersTable() {
           giftTier={gt}
           onEdit={handleEdit}
           onDelete={handleDeleteRequest}
+          onAddStock={handleAddStock}
+          onAdjustStock={handleAdjustStock}
+          onViewMovements={handleViewMovements}
         />
       ))}
     </div>
@@ -339,6 +437,7 @@ export function GiftTiersTable() {
           <TableRow>
             <TableHead>Brinde</TableHead>
             <TableHead>Valor mínimo</TableHead>
+            <TableHead>Estoque</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
@@ -347,7 +446,7 @@ export function GiftTiersTable() {
           {isLoading &&
             Array.from({ length: 4 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 4 }).map((__, j) => (
+                {Array.from({ length: 5 }).map((__, j) => (
                   <TableCell key={j}>
                     <div className="h-4 rounded bg-muted animate-pulse" />
                   </TableCell>
@@ -356,14 +455,14 @@ export function GiftTiersTable() {
             ))}
           {isError && (
             <TableRow>
-              <TableCell colSpan={4}>
+              <TableCell colSpan={5}>
                 <ErrorState />
               </TableCell>
             </TableRow>
           )}
           {!isLoading && !isError && giftTiers.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4}>
+              <TableCell colSpan={5}>
                 <EmptyState />
               </TableCell>
             </TableRow>
@@ -374,6 +473,9 @@ export function GiftTiersTable() {
               giftTier={gt}
               onEdit={handleEdit}
               onDelete={handleDeleteRequest}
+              onAddStock={handleAddStock}
+              onAdjustStock={handleAdjustStock}
+              onViewMovements={handleViewMovements}
             />
           ))}
         </TableBody>
@@ -419,6 +521,29 @@ export function GiftTiersTable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {stockGift && (
+        <>
+          <AddGiftStockEntryDialog
+            giftTierId={stockGift.id}
+            giftName={stockGift.name}
+            open={entryOpen}
+            onOpenChange={setEntryOpen}
+          />
+          <AddGiftStockAdjustmentDialog
+            giftTierId={stockGift.id}
+            giftName={stockGift.name}
+            open={adjustmentOpen}
+            onOpenChange={setAdjustmentOpen}
+          />
+          <GiftStockMovementsSheet
+            giftTierId={stockGift.id}
+            giftName={stockGift.name}
+            open={movementsOpen}
+            onOpenChange={setMovementsOpen}
+          />
+        </>
+      )}
     </>
   );
 }
