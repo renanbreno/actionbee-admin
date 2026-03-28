@@ -4,7 +4,7 @@ import { AddGiftStockAdjustmentDTO } from "../dto/add-gift-stock-adjustment.dto"
 export class AddGiftStockAdjustmentUseCase {
   constructor(private readonly repository: GiftInventoryRepository) {}
 
-  execute(giftTierId: string, dto: AddGiftStockAdjustmentDTO): Promise<void> {
+  async execute(giftTierId: string, dto: AddGiftStockAdjustmentDTO): Promise<void> {
     return this.repository.addStockAdjustment(giftTierId, dto);
   }
 }

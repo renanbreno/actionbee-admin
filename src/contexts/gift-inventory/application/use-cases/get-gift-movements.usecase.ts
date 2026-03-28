@@ -4,7 +4,7 @@ import { PaginatedGiftMovements } from "../../domain/entities/gift-stock-movemen
 export class GetGiftMovementsUseCase {
   constructor(private readonly repository: GiftInventoryRepository) {}
 
-  execute(giftTierId: string, page: number, limit: number): Promise<PaginatedGiftMovements> {
+  async execute(giftTierId: string, page: number, limit: number): Promise<PaginatedGiftMovements> {
     return this.repository.getMovements(giftTierId, page, limit);
   }
 }
