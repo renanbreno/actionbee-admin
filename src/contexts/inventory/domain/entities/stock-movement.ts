@@ -6,7 +6,6 @@ export interface StockMovement {
   batchId?: string | null;
   orderId?: string | null;
   orderNumber?: string | null;
-  batchId?: string | null;
   batchNumber?: string | null;
   type: StockMovementType;
   quantity: number;
