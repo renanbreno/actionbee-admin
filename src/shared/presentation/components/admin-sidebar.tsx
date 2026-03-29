@@ -38,6 +38,7 @@ import {
   Boxes,
   PanelLeftClose,
   PanelLeftOpen,
+  Kanban,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
@@ -98,6 +99,21 @@ const menuGroups: MenuGroup[] = [
         ],
       },
       { title: "Cupons", href: "/dashboard/coupons", icon: Percent },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      {
+        title: "CRM",
+        icon: Kanban,
+        submenu: [
+          { title: "Pipelines", href: "/dashboard/crm/pipelines" },
+          { title: "Negócios", href: "/dashboard/crm/deals" },
+          { title: "Interações", href: "/dashboard/crm/interactions" },
+          { title: "Tarefas", href: "/dashboard/crm/tasks" },
+        ],
+      },
     ],
   },
   {
