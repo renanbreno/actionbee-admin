@@ -1,7 +1,8 @@
-import { Customer, CustomerType, PaginatedCustomers } from "../entities/customer";
+import { Customer, CustomerType, CustomerLifecycleStage, PaginatedCustomers } from "../entities/customer";
 
 export type PurchaseStatus = 'all' | 'never' | 'inactive' | 'active';
 export type CustomerTypeFilter = 'all' | 'FINAL_CONSUMER' | 'RETAILER_RESELLER' | 'DISTRIBUTOR_RESELLER';
+export type LifecycleStageFilter = 'all' | CustomerLifecycleStage;
 
 export interface CustomerRepository {
   getAllPaginated(
@@ -9,12 +10,14 @@ export interface CustomerRepository {
     limit: number,
     search?: string,
     purchaseStatus?: PurchaseStatus,
-    customerType?: CustomerTypeFilter
+    customerType?: CustomerTypeFilter,
+    lifecycleStage?: LifecycleStageFilter
   ): Promise<PaginatedCustomers>;
   getById(id: string): Promise<Customer>;
   create(data: CreateCustomerDTO): Promise<Customer>;
   update(id: string, data: UpdateCustomerDTO): Promise<Customer>;
   delete(id: string): Promise<void>;
+  bulkUpdateLifecycleStage(ids: string[], stage: CustomerLifecycleStage): Promise<void>;
 }
 
 export interface CreateCustomerDTO {
@@ -24,6 +27,7 @@ export interface CreateCustomerDTO {
   cpf?: string;
   cnpj?: string;
   customerType?: CustomerType;
+  lifecycleStage?: CustomerLifecycleStage;
   stateRegistration?: string;
   isIeExempt?: boolean;
   address?: {
@@ -46,6 +50,7 @@ export interface UpdateCustomerDTO {
   cpf?: string | null;
   cnpj?: string | null;
   customerType?: CustomerType;
+  lifecycleStage?: CustomerLifecycleStage | null;
   stateRegistration?: string | null;
   isIeExempt?: boolean | null;
   birthDate?: string | null;

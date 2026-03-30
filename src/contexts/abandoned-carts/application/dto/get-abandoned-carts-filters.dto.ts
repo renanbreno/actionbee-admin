@@ -5,4 +5,5 @@ export interface GetAbandonedCartsFiltersDTO {
   checkoutStep?: string;
   startDate?: string;
   endDate?: string;
+  customerId?: string;
 }

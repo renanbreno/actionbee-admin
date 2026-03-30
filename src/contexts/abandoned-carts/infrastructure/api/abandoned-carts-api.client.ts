@@ -11,6 +11,7 @@ export const abandonedCartsApiClient = {
     if (filters.checkoutStep) params.append("checkoutStep", filters.checkoutStep);
     if (filters.startDate) params.append("startDate", filters.startDate);
     if (filters.endDate) params.append("endDate", filters.endDate);
+    if (filters.customerId) params.append("customerId", filters.customerId);
 
     return apiFetch<PaginatedAbandonedCarts>(`/admin/abandoned-carts?${params.toString()}`);
   },

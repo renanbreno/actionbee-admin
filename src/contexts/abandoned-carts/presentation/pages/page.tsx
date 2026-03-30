@@ -8,11 +8,15 @@ import { useDebounce } from "@/shared/hooks/use-debounce";
 import { useAbandonedCarts } from "../hooks/use-abandoned-carts";
 import { AbandonedCartsFilters } from "../components/abandoned-carts-filters";
 import { AbandonedCartsTable } from "../components/abandoned-carts-table";
+import { CartCrmQuickActionDialog } from "../components/cart-crm-quick-action-dialog";
+import { AbandonedCart } from "../../domain/entities/abandoned-cart.entity";
 
 type CheckoutStepFilter = "all" | "CART" | "CHECKOUT" | "PAYMENT";
 
 export function AbandonedCartsPage() {
   const [page, setPage] = useState(1);
+  const [selectedCart, setSelectedCart] = useState<AbandonedCart | null>(null);
+  const [isCrmDialogOpen, setIsCrmDialogOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: "",
     checkoutStep: "all" as CheckoutStepFilter,
@@ -97,6 +101,16 @@ export function AbandonedCartsPage() {
         onPageChange={setPage}
         isLoading={isLoading}
         isError={isError}
+        onCrmAction={(cart) => {
+          setSelectedCart(cart);
+          setIsCrmDialogOpen(true);
+        }}
+      />
+
+      <CartCrmQuickActionDialog
+        open={isCrmDialogOpen}
+        onOpenChange={setIsCrmDialogOpen}
+        cart={selectedCart}
       />
     </div>
   );
