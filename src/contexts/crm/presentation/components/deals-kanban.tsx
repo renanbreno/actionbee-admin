@@ -56,7 +56,6 @@ import {
   Pencil,
   Trash2,
   Eye,
-  DollarSign,
   MessageSquare,
   CheckSquare,
   Trophy,
@@ -76,8 +75,7 @@ function DealCardBody({ deal }: { deal: Deal }) {
       <p className="text-sm font-semibold leading-tight line-clamp-2 flex-1">{deal.title}</p>
       <p className="mt-1 text-xs text-muted-foreground truncate">{deal.customerName}</p>
       {deal.estimatedValue != null && (
-        <p className="mt-1.5 text-xs font-semibold text-bee-gold flex items-center gap-0.5">
-          <DollarSign className="h-2.5 w-2.5" />
+        <p className="mt-1.5 text-xs font-semibold text-bee-gold">
           {formatCurrency(deal.estimatedValue)}
         </p>
       )}

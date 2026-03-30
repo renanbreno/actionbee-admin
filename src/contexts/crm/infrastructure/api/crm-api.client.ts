@@ -101,6 +101,8 @@ export const crmApiClient = {
     if (filters?.customerId) params.set("customerId", filters.customerId);
     if (filters?.dealId) params.set("dealId", filters.dealId);
     if (filters?.type) params.set("type", filters.type);
+    if (filters?.occurredAtFrom) params.set("occurredAtFrom", filters.occurredAtFrom);
+    if (filters?.occurredAtTo) params.set("occurredAtTo", filters.occurredAtTo);
     return apiFetch(`/admin/crm/interactions?${params}`);
   },
 
@@ -128,6 +130,7 @@ export const crmApiClient = {
     if (filters?.priority) params.set("priority", filters.priority);
     if (filters?.dealId) params.set("dealId", filters.dealId);
     if (filters?.customerId) params.set("customerId", filters.customerId);
+    if (filters?.dueDateBefore) params.set("dueDateBefore", filters.dueDateBefore);
     return apiFetch(`/admin/crm/tasks?${params}`);
   },
 

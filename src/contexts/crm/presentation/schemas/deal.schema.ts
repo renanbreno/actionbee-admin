@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { DealSource } from "../../domain/enums";
 
 const dateSchema = z
   .string()
@@ -25,7 +24,7 @@ export const createDealSchema = z.object({
   description: z.string().optional(),
   estimatedValue: z.string().optional(),
   expectedCloseDate: dateSchema,
-  source: z.nativeEnum(DealSource).optional(),
+  source: z.string().optional(),
 });
 
 export type CreateDealFormValues = z.infer<typeof createDealSchema>;

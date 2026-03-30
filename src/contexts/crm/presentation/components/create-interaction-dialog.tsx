@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
 import { createInteractionSchema, type CreateInteractionFormValues } from "../schemas/interaction.schema";
 import { useCreateInteraction } from "../hooks/use-create-interaction";
 import { useCustomers } from "@/contexts/customers/presentation/hooks/use-customers";
@@ -55,6 +55,7 @@ export function CreateInteractionDialog({
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerName, setSelectedCustomerName] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isCustomType, setIsCustomType] = useState(false);
 
   const { data: customersData } = useCustomers(
     1,
@@ -84,6 +85,16 @@ export function CreateInteractionDialog({
 
   const typeValue = watch("type");
   const selectedCustomerId = watch("customerId");
+
+  useEffect(() => {
+    if (!open) {
+      reset();
+      setCustomerSearch("");
+      setSelectedCustomerName("");
+      setShowDropdown(false);
+      setIsCustomType(false);
+    }
+  }, [open, reset]);
 
   const onSubmit = (values: CreateInteractionFormValues) => {
     const isoDate = unmaskDate(values.occurredAt ?? "");
@@ -182,20 +193,51 @@ export function CreateInteractionDialog({
           )}
 
           {/* Tipo */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label>
               Tipo <span className="text-destructive">*</span>
             </Label>
-            <Select value={typeValue} onValueChange={(v) => setValue("type", v as InteractionType)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(InteractionType).map((t) => (
-                  <SelectItem key={t} value={t}>{INTERACTION_LABELS[t]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isCustomType ? (
+              <div className="flex gap-1.5 items-center">
+                <Input
+                  placeholder="Nome do tipo..."
+                  autoFocus
+                  onChange={(e) => setValue("type", e.target.value as InteractionType)}
+                  className="flex-1"
+                />
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-foreground underline shrink-0"
+                  onClick={() => { setIsCustomType(false); setValue("type", InteractionType.CALL); }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <Select
+                value={typeValue ?? ""}
+                onValueChange={(v) => setValue("type", v as InteractionType)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(InteractionType).map((t) => (
+                    <SelectItem key={t} value={t}>{INTERACTION_LABELS[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {!isCustomType && (
+              <button
+                type="button"
+                className="flex items-center gap-1 text-xs text-amber-700 hover:underline font-medium"
+                onClick={() => { setIsCustomType(true); setValue("type", "" as InteractionType); }}
+              >
+                <Plus className="h-3 w-3" />
+                Novo tipo
+              </button>
+            )}
           </div>
 
           {/* Data */}

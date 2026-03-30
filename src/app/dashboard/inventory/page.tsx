@@ -40,7 +40,7 @@ function movementIsPositive(type: StockMovementType, quantity: number): boolean 
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("pt-BR");
+  return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
 function formatDateTime(dateStr: string) {

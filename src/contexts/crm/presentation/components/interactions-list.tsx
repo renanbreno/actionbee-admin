@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useInteractions } from "../hooks/use-interactions";
+import { useDeals } from "../hooks/use-deals";
 import { useDeleteInteraction } from "../hooks/use-delete-interaction";
-import { CreateInteractionDialog } from "./create-interaction-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,6 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +38,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Plus,
   Phone,
   Mail,
   Video,
@@ -41,6 +46,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Search,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InteractionType } from "../../domain/enums";
@@ -79,7 +86,13 @@ const INTERACTION_CONFIG: Record<
 
 function TypeBadge({ type }: { type: string }) {
   const config = INTERACTION_CONFIG[type];
-  if (!config) return null;
+  if (!config) {
+    return (
+      <Badge variant="outline" className="text-xs font-medium">
+        {type}
+      </Badge>
+    );
+  }
   return (
     <Badge
       variant="outline"
@@ -92,26 +105,128 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("pt-BR");
+  return new Date(date).toLocaleDateString("pt-BR", { timeZone: "UTC" });
+}
+
+type Period = "ALL" | "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_30_DAYS";
+
+function getPeriodDates(period: Period): { occurredAtFrom?: string; occurredAtTo?: string } {
+  if (period === "ALL") return {};
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+  const todayStart = new Date(Date.UTC(y, m, d)).toISOString();
+  const todayEnd = new Date(Date.UTC(y, m, d, 23, 59, 59, 999)).toISOString();
+  switch (period) {
+    case "TODAY":
+      return { occurredAtFrom: todayStart, occurredAtTo: todayEnd };
+    case "THIS_WEEK": {
+      const day = now.getDay();
+      const diff = day === 0 ? 6 : day - 1;
+      const monday = new Date(y, m, d - diff);
+      const from = new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate())).toISOString();
+      return { occurredAtFrom: from, occurredAtTo: todayEnd };
+    }
+    case "THIS_MONTH": {
+      const from = new Date(Date.UTC(y, m, 1)).toISOString();
+      return { occurredAtFrom: from, occurredAtTo: todayEnd };
+    }
+    case "LAST_30_DAYS": {
+      const start = new Date(y, m, d - 29);
+      const from = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())).toISOString();
+      return { occurredAtFrom: from, occurredAtTo: todayEnd };
+    }
+  }
+}
+
+function DealSearchFilter({
+  dealId,
+  dealTitle,
+  onChange,
+}: {
+  dealId: string | undefined;
+  dealTitle: string | undefined;
+  onChange: (id: string | undefined, title: string | undefined) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const { data } = useDeals(1, 10, query.length >= 2 ? { search: query } : undefined);
+  const deals = data?.items ?? [];
+
+  if (dealId && dealTitle) {
+    return (
+      <div className="flex items-center gap-1.5 rounded-md border bg-background px-3 h-9 text-sm w-full sm:w-52">
+        <span className="flex-1 truncate text-xs text-foreground">{dealTitle}</span>
+        <button
+          type="button"
+          onClick={() => { onChange(undefined, undefined); setQuery(""); }}
+          className="text-muted-foreground hover:text-foreground shrink-0"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <Popover open={open && deals.length > 0} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <div className="relative w-full sm:w-52">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            className="pl-8 h-9 text-sm"
+            placeholder="Filtrar por negócio..."
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+          />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="p-1 w-52" onOpenAutoFocus={(e) => e.preventDefault()}>
+        {deals.map((d) => (
+          <button
+            key={d.id}
+            type="button"
+            className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted"
+            onClick={() => { onChange(d.id, d.title); setQuery(""); setOpen(false); }}
+          >
+            {d.title}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export function InteractionsList() {
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
-  const [createOpen, setCreateOpen] = useState(false);
+  const [period, setPeriod] = useState<Period>("ALL");
+  const [dealId, setDealId] = useState<string | undefined>(undefined);
+  const [dealTitle, setDealTitle] = useState<string | undefined>(undefined);
   const [deletingInteraction, setDeletingInteraction] = useState<Interaction | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const deleteMutation = useDeleteInteraction();
 
-  const filters =
-    typeFilter !== "ALL"
-      ? { type: typeFilter as InteractionType }
-      : undefined;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const periodDates = useMemo(() => getPeriodDates(period), [period]);
 
-  const { data, isLoading, isError } = useInteractions(page, 20, filters);
+  const filters = {
+    ...(typeFilter !== "ALL" ? { type: typeFilter } : {}),
+    ...(dealId ? { dealId } : {}),
+    ...periodDates,
+  };
+
+  const { data, isLoading, isError } = useInteractions(page, 20, Object.keys(filters).length > 0 ? filters : undefined);
   const interactions = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
+
+  const handleDealChange = (id: string | undefined, title: string | undefined) => {
+    setDealId(id);
+    setDealTitle(title);
+    setPage(1);
+  };
 
   const handleDeleteRequest = (i: Interaction) => {
     setDeletingInteraction(i);
@@ -253,21 +368,14 @@ export function InteractionsList() {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Interações</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Histórico de interações com clientes
-          </p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)} className="gap-2 shrink-0">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Nova Interação</span>
-          <span className="sm:hidden">Nova</span>
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Interações</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Histórico de interações com clientes
+        </p>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex gap-3 flex-wrap">
         <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder="Filtrar por tipo..." />
@@ -281,6 +389,21 @@ export function InteractionsList() {
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={period} onValueChange={(v) => { setPeriod(v as Period); setPage(1); }}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Período..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Qualquer período</SelectItem>
+            <SelectItem value="TODAY">Hoje</SelectItem>
+            <SelectItem value="THIS_WEEK">Esta semana</SelectItem>
+            <SelectItem value="THIS_MONTH">Este mês</SelectItem>
+            <SelectItem value="LAST_30_DAYS">Últimos 30 dias</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <DealSearchFilter dealId={dealId} dealTitle={dealTitle} onChange={handleDealChange} />
       </div>
 
       {mobileView}
@@ -311,8 +434,6 @@ export function InteractionsList() {
           </div>
         </div>
       )}
-
-      <CreateInteractionDialog open={createOpen} onOpenChange={setCreateOpen} />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>

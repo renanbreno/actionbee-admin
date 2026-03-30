@@ -1,5 +1,4 @@
 import type { Deal, PaginatedDeals } from "../entities/deal";
-import type { DealSource } from "../enums";
 
 export interface CreateDealDTO {
   title: string;
@@ -9,7 +8,7 @@ export interface CreateDealDTO {
   description?: string;
   estimatedValue?: number;
   expectedCloseDate?: string;
-  source?: DealSource;
+  source?: string;
   assignedAdminId?: string;
 }
 

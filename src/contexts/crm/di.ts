@@ -59,7 +59,6 @@ export const updateInteractionUseCase = new UpdateInteractionUseCase(interaction
 export const deleteInteractionUseCase = new DeleteInteractionUseCase(interactionRepo);
 
 // Tasks
-export const getTasksUseCase = new GetTasksUseCase(taskRepo);
-export const createTaskUseCase = new CreateTaskUseCase(taskRepo);
+export const getTasksUseCase = new GetTasksUseCase(taskRepo);export const createTaskUseCase = new CreateTaskUseCase(taskRepo);
 export const updateTaskUseCase = new UpdateTaskUseCase(taskRepo);
 export const deleteTaskUseCase = new DeleteTaskUseCase(taskRepo);

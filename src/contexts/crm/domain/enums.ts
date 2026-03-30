@@ -26,7 +26,6 @@ export const TaskType = {
   CALL: "CALL",
   EMAIL: "EMAIL",
   MEETING: "MEETING",
-  OTHER: "OTHER",
 } as const;
 export type TaskType = (typeof TaskType)[keyof typeof TaskType];
 

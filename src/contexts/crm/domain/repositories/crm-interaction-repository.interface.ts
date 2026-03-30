@@ -1,9 +1,8 @@
 import type { Interaction, PaginatedInteractions } from "../entities/interaction";
-import type { InteractionType } from "../enums";
 
 export interface CreateInteractionDTO {
   customerId: string;
-  type: InteractionType;
+  type: string;
   description: string;
   dealId?: string;
   subject?: string;
@@ -12,7 +11,7 @@ export interface CreateInteractionDTO {
 }
 
 export interface UpdateInteractionDTO {
-  type?: InteractionType;
+  type?: string;
   subject?: string;
   description?: string;
   occurredAt?: string;
@@ -21,7 +20,9 @@ export interface UpdateInteractionDTO {
 export interface InteractionFilters {
   customerId?: string;
   dealId?: string;
-  type?: InteractionType;
+  type?: string;
+  occurredAtFrom?: string;
+  occurredAtTo?: string;
 }
 
 export interface ICrmInteractionRepository {

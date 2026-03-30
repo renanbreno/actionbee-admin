@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { InteractionType } from "../../domain/enums";
 
 const dateSchema = z
   .string()
@@ -19,7 +18,7 @@ const dateSchema = z
 
 export const createInteractionSchema = z.object({
   customerId: z.string().min(1, "Cliente é obrigatório"),
-  type: z.nativeEnum(InteractionType),
+  type: z.string().min(1, "Tipo é obrigatório"),
   description: z.string().min(1, "Descrição é obrigatória"),
   dealId: z.string().optional(),
   subject: z.string().optional(),
@@ -29,7 +28,7 @@ export const createInteractionSchema = z.object({
 export type CreateInteractionFormValues = z.infer<typeof createInteractionSchema>;
 
 export const updateInteractionSchema = z.object({
-  type: z.nativeEnum(InteractionType),
+  type: z.string().min(1, "Tipo é obrigatório"),
   description: z.string().min(1, "Descrição é obrigatória"),
   subject: z.string().optional(),
   occurredAt: dateSchema,

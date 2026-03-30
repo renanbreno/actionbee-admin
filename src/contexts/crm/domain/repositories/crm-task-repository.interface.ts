@@ -1,9 +1,9 @@
 import type { Task, PaginatedTasks } from "../entities/task";
-import type { TaskType, TaskPriority, TaskStatus } from "../enums";
+import type { TaskPriority, TaskStatus } from "../enums";
 
 export interface CreateTaskDTO {
   title: string;
-  type: TaskType;
+  type: string;
   description?: string;
   dealId?: string;
   customerId?: string;
@@ -27,6 +27,7 @@ export interface TaskFilters {
   priority?: TaskPriority;
   dealId?: string;
   customerId?: string;
+  dueDateBefore?: string;
 }
 
 export interface ICrmTaskRepository {

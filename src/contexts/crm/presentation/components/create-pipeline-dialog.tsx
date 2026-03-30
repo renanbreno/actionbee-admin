@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -44,6 +45,10 @@ export function CreatePipelineDialog({ open, onOpenChange }: Props) {
   });
 
   const typeValue = watch("type");
+
+  useEffect(() => {
+    if (!open) reset();
+  }, [open, reset]);
 
   const onSubmit = (values: CreatePipelineFormValues) => {
     createMutation.mutate(values, {

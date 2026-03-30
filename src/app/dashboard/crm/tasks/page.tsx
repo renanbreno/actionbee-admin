@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckSquare } from "lucide-react";
-import { TasksList } from "@/contexts/crm/presentation/components/tasks-list";
+import { TasksKanban } from "@/contexts/crm/presentation/components/tasks-kanban";
 
 export default function TasksPage() {
   return (
@@ -13,7 +13,7 @@ export default function TasksPage() {
           <p className="text-xs text-muted-foreground">Gerencie suas tarefas e atividades</p>
         </div>
       </div>
-      <TasksList />
+      <TasksKanban />
     </div>
   );
 }

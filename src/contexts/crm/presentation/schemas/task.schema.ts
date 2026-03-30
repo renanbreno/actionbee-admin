@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TaskType, TaskPriority, TaskStatus } from "../../domain/enums";
+import { TaskPriority, TaskStatus } from "../../domain/enums";
 
 const dateSchema = z
   .string()
@@ -19,7 +19,7 @@ const dateSchema = z
 
 export const createTaskSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
-  type: z.nativeEnum(TaskType),
+  type: z.string().min(1, "Tipo é obrigatório"),
   description: z.string().optional(),
   dealId: z.string().optional(),
   customerId: z.string().optional(),

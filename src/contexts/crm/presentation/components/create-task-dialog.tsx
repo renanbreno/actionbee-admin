@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -19,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
 import { createTaskSchema, type CreateTaskFormValues } from "../schemas/task.schema";
 import { useCreateTask } from "../hooks/use-create-task";
 import { useAuth } from "@/contexts/auth/presentation/hooks/use-auth";
@@ -31,7 +32,6 @@ const TASK_TYPE_LABELS: Record<string, string> = {
   CALL: "Ligação",
   EMAIL: "E-mail",
   MEETING: "Reunião",
-  OTHER: "Outro",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -51,6 +51,8 @@ interface Props {
 export function CreateTaskDialog({ open, onOpenChange, defaultDealId, defaultCustomerId }: Props) {
   const createMutation = useCreateTask();
   const { user } = useAuth();
+
+  const [isCustomType, setIsCustomType] = useState(false);
 
   const {
     register,
@@ -75,6 +77,13 @@ export function CreateTaskDialog({ open, onOpenChange, defaultDealId, defaultCus
   const typeValue = watch("type");
   const priorityValue = watch("priority");
 
+  useEffect(() => {
+    if (!open) {
+      reset();
+      setIsCustomType(false);
+    }
+  }, [open, reset]);
+
   const onSubmit = (values: CreateTaskFormValues) => {
     const isoDate = unmaskDate(values.dueDate ?? "");
     createMutation.mutate(
@@ -88,6 +97,7 @@ export function CreateTaskDialog({ open, onOpenChange, defaultDealId, defaultCus
       {
         onSuccess: () => {
           reset();
+          setIsCustomType(false);
           onOpenChange(false);
         },
       }
@@ -110,20 +120,52 @@ export function CreateTaskDialog({ open, onOpenChange, defaultDealId, defaultCus
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>
                 Tipo <span className="text-destructive">*</span>
               </Label>
-              <Select value={typeValue} onValueChange={(v) => setValue("type", v as TaskType)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(TaskType).map((t) => (
-                    <SelectItem key={t} value={t}>{TASK_TYPE_LABELS[t]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isCustomType ? (
+                <div className="flex gap-1.5 items-center">
+                  <Input
+                    placeholder="Nome do tipo..."
+                    autoFocus
+                    onChange={(e) => setValue("type", e.target.value)}
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground underline shrink-0"
+                    onClick={() => { setIsCustomType(false); setValue("type", TaskType.FOLLOW_UP); }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <Select
+                  value={typeValue ?? ""}
+                  onValueChange={(v) => setValue("type", v)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(TaskType).map((t) => (
+                      <SelectItem key={t} value={t}>{TASK_TYPE_LABELS[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {!isCustomType && (
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-amber-700 hover:underline font-medium"
+                  onClick={() => { setIsCustomType(true); setValue("type", ""); }}
+                >
+                  <Plus className="h-3 w-3" />
+                  Novo tipo
+                </button>
+              )}
+              {errors.type && <p className="text-sm text-destructive">{errors.type.message}</p>}
             </div>
 
             <div className="space-y-2">
