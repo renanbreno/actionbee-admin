@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createCategorySchema, type CreateCategoryFormValues } from "../schemas/category.schema";
 import { useCreateFinancialCategory } from "../hooks/use-financial-categories";
+import { ColorPicker } from "./color-picker";
 
 interface Props {
   open: boolean;
@@ -59,8 +60,8 @@ export function CreateCategoryDialog({ open, onOpenChange }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cat-color">Cor <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-            <Input id="cat-color" type="color" className="h-10 w-full cursor-pointer" {...register("color")} />
+            <Label>Cor <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+            <ColorPicker value={watch("color") ?? ""} onChange={(v) => setValue("color", v)} />
           </div>
 
           <DialogActions isLoading={createMutation.isPending} submitLabel="Criar Categoria" onCancel={() => onOpenChange(false)} />

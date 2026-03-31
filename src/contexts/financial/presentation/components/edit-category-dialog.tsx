@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { updateCategorySchema, type UpdateCategoryFormValues } from "../schemas/category.schema";
 import { useUpdateFinancialCategory } from "../hooks/use-financial-categories";
 import type { FinancialCategory } from "../../domain/entities/category";
+import { ColorPicker } from "./color-picker";
 
 interface Props {
   category: FinancialCategory | null;
@@ -53,8 +54,8 @@ export function EditCategoryDialog({ category, open, onOpenChange }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-cat-color">Cor</Label>
-            <Input id="edit-cat-color" type="color" className="h-10 w-full cursor-pointer" {...register("color")} />
+            <Label>Cor</Label>
+            <ColorPicker value={watch("color") ?? ""} onChange={(v) => setValue("color", v)} />
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
