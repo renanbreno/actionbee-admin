@@ -63,8 +63,7 @@ export function AccountReceivablesList() {
   };
 
   function ReceivableActions({ receivable }: { receivable: AccountReceivable }) {
-    const canPay = receivable.status === "PENDING" || receivable.status === "OVERDUE";
-    const canCancel = receivable.status === "PENDING" || receivable.status === "OVERDUE";
+    const isPendingOrOverdue = receivable.status === "PENDING" || receivable.status === "OVERDUE";
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -74,19 +73,20 @@ export function AccountReceivablesList() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
-          {canPay && (
-            <DropdownMenuItem onClick={() => handlePay(receivable)}>
-              <CheckCircle className="mr-2 h-3.5 w-3.5 text-emerald-600" />Registrar recebimento
-            </DropdownMenuItem>
-          )}
-          {canCancel && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleCancelRequest(receivable)} className="text-destructive focus:text-destructive">
-                <XCircle className="mr-2 h-3.5 w-3.5" />Cancelar
-              </DropdownMenuItem>
-            </>
-          )}
+          <DropdownMenuItem
+            disabled={!isPendingOrOverdue}
+            onClick={() => handlePay(receivable)}
+          >
+            <CheckCircle className="mr-2 h-3.5 w-3.5 text-emerald-600" />Registrar recebimento
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            disabled={!isPendingOrOverdue}
+            onClick={() => handleCancelRequest(receivable)}
+            className="text-destructive focus:text-destructive"
+          >
+            <XCircle className="mr-2 h-3.5 w-3.5" />Cancelar
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     );
