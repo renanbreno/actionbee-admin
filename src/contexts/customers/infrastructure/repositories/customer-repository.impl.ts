@@ -1,6 +1,6 @@
-import { CustomerRepository, CreateCustomerDTO, UpdateCustomerDTO, PurchaseStatus, CustomerTypeFilter } from "../../domain/repositories/customer-repository.interface";
+import { CustomerRepository, CreateCustomerDTO, UpdateCustomerDTO, PurchaseStatus, CustomerTypeFilter, LifecycleStageFilter } from "../../domain/repositories/customer-repository.interface";
 import { customersApiClient } from "../api/customers-api.client";
-import { Customer, PaginatedCustomers } from "../../domain/entities/customer";
+import { Customer, CustomerLifecycleStage, PaginatedCustomers } from "../../domain/entities/customer";
 
 export class CustomerRepositoryImpl implements CustomerRepository {
   async getAllPaginated(
@@ -8,9 +8,10 @@ export class CustomerRepositoryImpl implements CustomerRepository {
     limit: number,
     search?: string,
     purchaseStatus?: PurchaseStatus,
-    customerType?: CustomerTypeFilter
+    customerType?: CustomerTypeFilter,
+    lifecycleStage?: LifecycleStageFilter
   ): Promise<PaginatedCustomers> {
-    return customersApiClient.getAllPaginated(page, limit, search, purchaseStatus, customerType);
+    return customersApiClient.getAllPaginated(page, limit, search, purchaseStatus, customerType, lifecycleStage);
   }
 
   async getById(id: string): Promise<Customer> {
@@ -27,5 +28,9 @@ export class CustomerRepositoryImpl implements CustomerRepository {
 
   async delete(id: string): Promise<void> {
     return customersApiClient.delete(id);
+  }
+
+  async bulkUpdateLifecycleStage(ids: string[], stage: CustomerLifecycleStage): Promise<void> {
+    return customersApiClient.bulkUpdateLifecycleStage(ids, stage);
   }
 }

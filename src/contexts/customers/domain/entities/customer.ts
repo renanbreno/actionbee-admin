@@ -47,6 +47,26 @@ export const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
   DISTRIBUTOR_RESELLER: 'Distribuidor',
 };
 
+export const CustomerLifecycleStage = {
+  LEAD: 'LEAD',
+  PROSPECT: 'PROSPECT',
+  ACTIVE_CUSTOMER: 'ACTIVE_CUSTOMER',
+  RECURRING_CUSTOMER: 'RECURRING_CUSTOMER',
+  CHURNED: 'CHURNED',
+  WIN_BACK: 'WIN_BACK',
+} as const;
+
+export type CustomerLifecycleStage = typeof CustomerLifecycleStage[keyof typeof CustomerLifecycleStage];
+
+export const LIFECYCLE_STAGE_LABELS: Record<CustomerLifecycleStage, string> = {
+  LEAD: 'Lead',
+  PROSPECT: 'Prospecto',
+  ACTIVE_CUSTOMER: 'Cliente Ativo',
+  RECURRING_CUSTOMER: 'Recorrente',
+  CHURNED: 'Inativo/Perdido',
+  WIN_BACK: 'Reativação',
+};
+
 export interface Customer {
   id: string;
   name: string;
@@ -55,6 +75,7 @@ export interface Customer {
   cpf?: string | null;
   cnpj?: string | null;
   customerType?: CustomerType | null;
+  lifecycleStage?: CustomerLifecycleStage | null;
   stateRegistration?: string | null;
   isIeExempt?: boolean | null;
   birthDate?: string | null;

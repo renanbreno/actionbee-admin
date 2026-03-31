@@ -7,6 +7,7 @@ export interface GiftTier {
   costPrice: number;
   productId?: string;
   isActive: boolean;
+  stockUnits: number;
   createdAt: string;
   updatedAt: string;
 }

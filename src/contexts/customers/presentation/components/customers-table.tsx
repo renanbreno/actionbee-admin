@@ -51,7 +51,9 @@ import {
   Customer,
   CustomerLastOrder,
   CustomerType,
+  CustomerLifecycleStage,
   CUSTOMER_TYPE_LABELS,
+  LIFECYCLE_STAGE_LABELS,
   PaginatedCustomers,
 } from "../../domain/entities/customer";
 import {
@@ -60,13 +62,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useCustomers } from "../hooks/use-customers";
+import { useBulkUpdateLifecycle } from "../hooks/use-bulk-update-lifecycle";
 import { CustomerFormDialog } from "./customer-form-dialog";
 import { AssignRepresentativeDialog } from "./assign-representative-dialog";
 import { DeleteCustomerDialog } from "./delete-customer-dialog";
+import { LifecycleStageBadge } from "./lifecycle-stage-badge";
+import { Customer360Sheet } from "./customer-360-sheet";
 import { formatPhone, formatDocument } from "@/shared/utils/masks";
+import { Checkbox } from "@/components/ui/checkbox";
 import type {
   PurchaseStatus,
   CustomerTypeFilter,
+  LifecycleStageFilter,
 } from "../../domain/repositories/customer-repository.interface";
 
 const PURCHASE_STATUS_OPTIONS: { value: PurchaseStatus; label: string }[] = [
@@ -84,6 +91,16 @@ const CUSTOMER_TYPE_FILTER_OPTIONS: {
   { value: "FINAL_CONSUMER", label: "Consumidor Final" },
   { value: "RETAILER_RESELLER", label: "Lojistas" },
   { value: "DISTRIBUTOR_RESELLER", label: "Distribuidores" },
+];
+
+const LIFECYCLE_STAGE_FILTER_OPTIONS: { value: LifecycleStageFilter; label: string }[] = [
+  { value: "all", label: "Todos os estágios" },
+  { value: "LEAD", label: LIFECYCLE_STAGE_LABELS.LEAD },
+  { value: "PROSPECT", label: LIFECYCLE_STAGE_LABELS.PROSPECT },
+  { value: "ACTIVE_CUSTOMER", label: LIFECYCLE_STAGE_LABELS.ACTIVE_CUSTOMER },
+  { value: "RECURRING_CUSTOMER", label: LIFECYCLE_STAGE_LABELS.RECURRING_CUSTOMER },
+  { value: "CHURNED", label: LIFECYCLE_STAGE_LABELS.CHURNED },
+  { value: "WIN_BACK", label: LIFECYCLE_STAGE_LABELS.WIN_BACK },
 ];
 
 function getCustomerTypeStyle(customerType?: CustomerType | null) {
@@ -290,10 +307,12 @@ function CustomerActions({
   onEdit,
   onAssignRepresentative,
   onDelete,
+  onView360,
 }: {
   onEdit: () => void;
   onAssignRepresentative: () => void;
   onDelete: () => void;
+  onView360: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -304,6 +323,10 @@ function CustomerActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem onClick={onView360}>
+          <Search className="mr-2 h-3.5 w-3.5" />
+          Ver 360°
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={onEdit}>
           <Edit className="mr-2 h-3.5 w-3.5" />
           Editar
@@ -328,11 +351,17 @@ function CustomerCard({
   onEdit,
   onAssignRepresentative,
   onDelete,
+  onView360,
+  selected,
+  onToggleSelect,
 }: {
   customer: Customer;
   onEdit: () => void;
   onAssignRepresentative: () => void;
   onDelete: () => void;
+  onView360: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
 }) {
   const documentNumber = customer.cnpj
     ? formatDocument(customer.cnpj)
@@ -344,11 +373,17 @@ function CustomerCard({
 
   return (
     <Card
-      className={`shadow-sm ${dormant ? "border-orange-300 bg-orange-50/50" : ""}`}
+      className={`shadow-sm ${selected ? "ring-2 ring-primary" : ""} ${dormant ? "border-orange-300 bg-orange-50/50" : ""}`}
     >
       <CardContent className="space-y-4 p-4">
         {/* Header */}
         <div className="flex items-center gap-3 min-w-0">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={onToggleSelect}
+            className="shrink-0"
+            aria-label={`Selecionar ${customer.name}`}
+          />
           <div
             className={`flex h-11 w-11 items-center justify-center rounded-full shrink-0 ${typeStyle.avatar}`}
           >
@@ -370,7 +405,7 @@ function CustomerCard({
               {customer.email}
             </p>
           </div>
-          <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} onDelete={onDelete} />
+          <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} onDelete={onDelete} onView360={onView360} />
         </div>
 
         {/* Info */}
@@ -410,15 +445,20 @@ function CustomerCard({
           </div>
         </div>
 
-        {/* Tipo de cliente */}
-        {customer.customerType != null && (
-          <div className="flex items-center gap-1.5 text-xs">
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${typeStyle.badge}`}
-            >
-              {CUSTOMER_TYPE_LABELS[customer.customerType] ??
-                customer.customerType}
-            </span>
+        {/* Tipo de cliente e estágio */}
+        {(customer.customerType != null || customer.lifecycleStage != null) && (
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+            {customer.customerType != null && (
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${typeStyle.badge}`}
+              >
+                {CUSTOMER_TYPE_LABELS[customer.customerType] ??
+                  customer.customerType}
+              </span>
+            )}
+            {customer.lifecycleStage != null && (
+              <LifecycleStageBadge stage={customer.lifecycleStage} />
+            )}
           </div>
         )}
 
@@ -455,11 +495,17 @@ function CustomerRow({
   onEdit,
   onAssignRepresentative,
   onDelete,
+  onView360,
+  selected,
+  onToggleSelect,
 }: {
   customer: Customer;
   onEdit: () => void;
   onAssignRepresentative: () => void;
   onDelete: () => void;
+  onView360: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
 }) {
   const documentNumber = customer.cnpj
     ? formatDocument(customer.cnpj)
@@ -471,8 +517,15 @@ function CustomerRow({
 
   return (
     <TableRow
-      className={`group ${dormant ? "bg-orange-50/60 hover:bg-orange-50" : ""}`}
+      className={`group ${selected ? "bg-primary/5" : ""} ${dormant ? "bg-orange-50/60 hover:bg-orange-50" : ""}`}
     >
+      <TableCell className="w-10">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={onToggleSelect}
+          aria-label={`Selecionar ${customer.name}`}
+        />
+      </TableCell>
       <TableCell>
         <div className="flex items-center gap-3">
           <div
@@ -545,6 +598,13 @@ function CustomerRow({
           <span className="text-muted-foreground text-sm">—</span>
         )}
       </TableCell>
+      <TableCell>
+        {customer.lifecycleStage != null ? (
+          <LifecycleStageBadge stage={customer.lifecycleStage} />
+        ) : (
+          <span className="text-muted-foreground text-sm">—</span>
+        )}
+      </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {formatDate(customer.createdAt)}
       </TableCell>
@@ -555,7 +615,7 @@ function CustomerRow({
         />
       </TableCell>
       <TableCell className="text-right">
-        <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} onDelete={onDelete} />
+        <CustomerActions onEdit={onEdit} onAssignRepresentative={onAssignRepresentative} onDelete={onDelete} onView360={onView360} />
       </TableCell>
     </TableRow>
   );
@@ -587,27 +647,15 @@ function TableSkeleton() {
     <>
       {Array.from({ length: 5 }).map((_, i) => (
         <TableRow key={i}>
-          <TableCell>
-            <Skeleton className="h-12 w-44" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-24" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-20" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-20" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-18" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-9 w-32" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-8 w-8 rounded" />
-          </TableCell>
+          <TableCell><Skeleton className="h-4 w-4 rounded" /></TableCell>
+          <TableCell><Skeleton className="h-12 w-44" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-18" /></TableCell>
+          <TableCell><Skeleton className="h-9 w-32" /></TableCell>
+          <TableCell><Skeleton className="h-8 w-8 rounded" /></TableCell>
         </TableRow>
       ))}
     </>
@@ -649,13 +697,18 @@ export function CustomersTable({
   const [searchInput, setSearchInput] = useState("");
   const [purchaseStatus, setPurchaseStatus] = useState<PurchaseStatus>("all");
   const [customerType, setCustomerType] = useState<CustomerTypeFilter>("all");
+  const [lifecycleStage, setLifecycleStage] = useState<LifecycleStageFilter>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [assigningCustomer, setAssigningCustomer] = useState<Customer | null>(null);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [viewing360Customer, setViewing360Customer] = useState<Customer | null>(null);
   const limit = 10;
+
+  const bulkUpdateLifecycle = useBulkUpdateLifecycle();
 
   const { data, isLoading, isError } = useCustomers(
     page,
@@ -663,6 +716,7 @@ export function CustomersTable({
     search,
     purchaseStatus,
     customerType,
+    lifecycleStage,
   );
 
   const paginatedData = data as PaginatedCustomers | undefined;
@@ -689,6 +743,34 @@ export function CustomersTable({
   const handleDelete = (customer: Customer) => {
     setDeletingCustomer(customer);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleView360 = (customer: Customer) => {
+    setViewing360Customer(customer);
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(customers.map((c) => c.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleBulkLifecycleChange = (stage: string) => {
+    bulkUpdateLifecycle.mutate(
+      { ids: Array.from(selectedIds), stage: stage as CustomerLifecycleStage },
+      { onSuccess: () => setSelectedIds(new Set()) }
+    );
   };
 
   /* Debounce search: aguarda 500ms após o último keystroke antes de buscar */
@@ -767,8 +849,55 @@ export function CustomersTable({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5 min-w-[160px] flex-1 sm:flex-none sm:w-48">
+            <Label htmlFor="lifecycleStage" className="text-sm font-medium">
+              Estágio no CRM
+            </Label>
+            <Select
+              value={lifecycleStage}
+              onValueChange={(v) => {
+                setLifecycleStage(v as LifecycleStageFilter);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger id="lifecycleStage" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIFECYCLE_STAGE_FILTER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
+    </div>
+  );
+
+  const allSelected = customers.length > 0 && customers.every((c) => selectedIds.has(c.id));
+  const someSelected = selectedIds.size > 0;
+
+  const bulkActionBar = someSelected && (
+    <div className="rounded-xl border bg-card p-3 shadow-sm flex flex-wrap items-center gap-3">
+      <span className="text-sm font-medium">{selectedIds.size} selecionado(s)</span>
+      <Select onValueChange={handleBulkLifecycleChange} disabled={bulkUpdateLifecycle.isPending}>
+        <SelectTrigger className="w-52 h-8 text-sm">
+          <SelectValue placeholder="Mover para estágio..." />
+        </SelectTrigger>
+        <SelectContent>
+          {LIFECYCLE_STAGE_FILTER_OPTIONS.filter((o) => o.value !== "all").map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+        Cancelar
+      </Button>
     </div>
   );
 
@@ -786,6 +915,9 @@ export function CustomersTable({
           onEdit={() => handleEdit(c)}
           onAssignRepresentative={() => handleAssignRepresentative(c)}
           onDelete={() => handleDelete(c)}
+          onView360={() => handleView360(c)}
+          selected={selectedIds.has(c.id)}
+          onToggleSelect={() => handleToggleSelect(c.id)}
         />
       ))}
 
@@ -825,10 +957,18 @@ export function CustomersTable({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Selecionar todos"
+                />
+              </TableHead>
               <TableHead className="w-[240px]">Cliente</TableHead>
               <TableHead className="w-[130px]">CPF/CNPJ</TableHead>
               <TableHead className="w-[120px]">Telefone</TableHead>
               <TableHead className="w-[110px]">Tipo</TableHead>
+              <TableHead className="w-[120px]">Estágio CRM</TableHead>
               <TableHead className="w-[90px]">Cadastro</TableHead>
               <TableHead className="w-[160px]">Última Compra</TableHead>
               <TableHead className="w-[50px] text-right">Ações</TableHead>
@@ -838,14 +978,14 @@ export function CustomersTable({
             {isLoading && <TableSkeleton />}
             {isError && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   <ErrorState />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && !isError && customers.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   <EmptyState />
                 </TableCell>
               </TableRow>
@@ -857,6 +997,9 @@ export function CustomersTable({
                 onEdit={() => handleEdit(c)}
                 onAssignRepresentative={() => handleAssignRepresentative(c)}
                 onDelete={() => handleDelete(c)}
+                onView360={() => handleView360(c)}
+                selected={selectedIds.has(c.id)}
+                onToggleSelect={() => handleToggleSelect(c.id)}
               />
             ))}
           </TableBody>
@@ -898,6 +1041,7 @@ export function CustomersTable({
   return (
     <>
       {filtersSection}
+      {bulkActionBar}
       {mobileView}
       {desktopView}
       <CustomerFormDialog
@@ -917,6 +1061,11 @@ export function CustomersTable({
           customer={deletingCustomer}
         />
       )}
+      <Customer360Sheet
+        customerId={viewing360Customer?.id ?? null}
+        open={!!viewing360Customer}
+        onOpenChange={(open) => { if (!open) setViewing360Customer(null); }}
+      />
     </>
   );
 }

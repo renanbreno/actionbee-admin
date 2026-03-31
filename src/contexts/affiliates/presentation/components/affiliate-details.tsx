@@ -77,7 +77,7 @@ export function AffiliateDetails({
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-muted-foreground font-medium w-12 shrink-0">Nasc:</span>
               <span className="truncate">
-                {new Date(affiliate.birthDate).toLocaleDateString("pt-BR")}
+                {new Date(affiliate.birthDate).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
               </span>
             </div>
           )}

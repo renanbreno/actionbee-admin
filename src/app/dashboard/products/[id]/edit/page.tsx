@@ -75,7 +75,6 @@ export default function EditProductPage() {
       // Only send food-related fields if the category is a food product, otherwise send null to clear backend data
       ingredients: isFoodProduct ? (values.ingredients ?? null) : null,
       usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : null,
-      stockUnits: values.stockUnits ?? null,
       brandId: values.brandId ?? null,
       variationType: values.variationType ?? null,
       isActive: values.isActive,

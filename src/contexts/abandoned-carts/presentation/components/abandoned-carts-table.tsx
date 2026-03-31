@@ -24,6 +24,7 @@ import {
   Phone,
   ShoppingCart,
   User,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { AbandonedCart } from "../../domain/entities/abandoned-cart.entity";
@@ -73,7 +74,7 @@ function CartItemsList({ items }: { items: AbandonedCart["items"] }) {
   );
 }
 
-function CartCard({ cart }: { cart: AbandonedCart }) {
+function CartCard({ cart, onCrmAction }: { cart: AbandonedCart; onCrmAction?: (cart: AbandonedCart) => void }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -149,12 +150,26 @@ function CartCard({ cart }: { cart: AbandonedCart }) {
             )}
           </div>
         )}
+
+        {onCrmAction && (
+          <div className="pt-2 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 text-xs"
+              onClick={() => onCrmAction(cart)}
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Ação CRM
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function CartRow({ cart }: { cart: AbandonedCart }) {
+function CartRow({ cart, onCrmAction }: { cart: AbandonedCart; onCrmAction?: (cart: AbandonedCart) => void }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasItems = cart.items.length > 0;
 
@@ -220,6 +235,19 @@ function CartRow({ cart }: { cart: AbandonedCart }) {
             )}
           </div>
         </TableCell>
+        {onCrmAction && (
+          <TableCell>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-7 text-xs"
+              onClick={() => onCrmAction(cart)}
+            >
+              <Zap className="h-3 w-3" />
+              CRM
+            </Button>
+          </TableCell>
+        )}
       </TableRow>
       {isExpanded && hasItems && (
         <TableRow>
@@ -347,6 +375,7 @@ interface AbandonedCartsTableProps {
   onPageChange: (page: number) => void;
   isLoading: boolean;
   isError: boolean;
+  onCrmAction?: (cart: AbandonedCart) => void;
 }
 
 export function AbandonedCartsTable({
@@ -356,8 +385,11 @@ export function AbandonedCartsTable({
   onPageChange,
   isLoading,
   isError,
+  onCrmAction,
 }: AbandonedCartsTableProps) {
   if (isLoading) return <TableSkeleton />;
+
+  const colSpan = onCrmAction ? 8 : 7;
 
   const mobileView = (
     <div className="space-y-3 md:hidden">
@@ -368,7 +400,7 @@ export function AbandonedCartsTable({
       )}
       {!isError && carts.length === 0 && <EmptyState />}
       {carts.map((cart) => (
-        <CartCard key={cart.id} cart={cart} />
+        <CartCard key={cart.id} cart={cart} onCrmAction={onCrmAction} />
       ))}
     </div>
   );
@@ -385,25 +417,26 @@ export function AbandonedCartsTable({
             <TableHead className="w-[60px] text-center">Itens</TableHead>
             <TableHead className="w-[140px]">Abandonado em</TableHead>
             <TableHead className="w-[180px]">Notificações</TableHead>
+            {onCrmAction && <TableHead className="w-[80px]">Ação</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {isError && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={colSpan} className="text-center">
                 <div className="py-8 text-destructive">Erro ao carregar carrinhos abandonados</div>
               </TableCell>
             </TableRow>
           )}
           {!isError && carts.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={colSpan} className="text-center">
                 <EmptyState />
               </TableCell>
             </TableRow>
           )}
           {carts.map((cart) => (
-            <CartRow key={cart.id} cart={cart} />
+            <CartRow key={cart.id} cart={cart} onCrmAction={onCrmAction} />
           ))}
         </TableBody>
       </Table>

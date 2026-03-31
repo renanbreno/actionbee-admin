@@ -28,7 +28,6 @@ export default function NewProductPage() {
       // Only send food-related fields if the category is a food product, otherwise send null to clear
       ingredients: isFoodProduct ? (values.ingredients ?? null) : null,
       usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : null,
-      stockUnits: values.stockUnits ?? undefined,
       brandId: values.brandId ?? undefined,
       variationType: values.variationType ?? undefined,
       isActive: values.isActive,

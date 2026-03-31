@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Mail, User, Phone, MapPin, FileText, Building2, Calendar } from "lucide-react";
-import { Customer } from "../../domain/entities/customer";
+import { Customer, CustomerLifecycleStage, LIFECYCLE_STAGE_LABELS } from "../../domain/entities/customer";
 import {
   createCustomerSchema,
   updateCustomerSchema,
@@ -111,6 +111,15 @@ export function CustomerFormDialog({
     return 'FINAL_CONSUMER';
   }, [fullCustomer]);
 
+  // Deriva o valor inicial do lifecycleStage
+  const initialLifecycleStage = useMemo(() => {
+    const stage = fullCustomer?.lifecycleStage;
+    if (stage && Object.values(CustomerLifecycleStage).includes(stage)) {
+      return stage;
+    }
+    return undefined;
+  }, [fullCustomer]);
+
   const {
     register,
     handleSubmit,
@@ -129,6 +138,7 @@ export function CustomerFormDialog({
         phone: "",
         document: "",
         customerType: 'FINAL_CONSUMER' as const,
+        lifecycleStage: undefined,
         stateRegistration: "",
         isIeExempt: false,
         birthDate: "",
@@ -149,6 +159,7 @@ export function CustomerFormDialog({
         phone: initialPhone,
         document: initialDocument,
         customerType: initialCustomerType,
+        lifecycleStage: initialLifecycleStage,
         stateRegistration: fullCustomer.stateRegistration ?? "",
         isIeExempt: fullCustomer.isIeExempt ?? false,
         birthDate: formatDate(fullCustomer.birthDate),
@@ -156,6 +167,7 @@ export function CustomerFormDialog({
       });
       // Garante que o valor seja definido corretamente no Controller
       setValue('customerType', initialCustomerType);
+      if (initialLifecycleStage) setValue('lifecycleStage', initialLifecycleStage);
     } else {
       reset({
         name: "",
@@ -163,13 +175,14 @@ export function CustomerFormDialog({
         phone: "",
         document: "",
         customerType: 'FINAL_CONSUMER',
+        lifecycleStage: undefined,
         stateRegistration: "",
         isIeExempt: false,
         birthDate: "",
         address: undefined,
       });
     }
-  }, [fullCustomer, initialPhone, initialDocument, initialCustomerType, reset, setValue]);
+  }, [fullCustomer, initialPhone, initialDocument, initialCustomerType, initialLifecycleStage, reset, setValue]);
 
   const showAddress = watch("address") !== undefined;
 
@@ -216,6 +229,7 @@ export function CustomerFormDialog({
       cpf: docType === "cpf" ? documentDigits : (isEditing ? null : undefined),
       cnpj: docType === "cnpj" ? documentDigits : (isEditing ? null : undefined),
       customerType: data.customerType ?? 'FINAL_CONSUMER',
+      lifecycleStage: data.lifecycleStage ?? (isEditing ? null : undefined),
       stateRegistration: docType === "cnpj" ? (data.stateRegistration || undefined) : (isEditing ? null : undefined),
       isIeExempt: docType === "cnpj" ? (data.isIeExempt ?? false) : (isEditing ? null : undefined),
       birthDate: unmaskedBirthDate || (isEditing ? null : undefined),
@@ -235,6 +249,7 @@ export function CustomerFormDialog({
           phone: "",
           document: "",
           customerType: 'FINAL_CONSUMER',
+          lifecycleStage: undefined,
           stateRegistration: "",
           isIeExempt: false,
           birthDate: "",
@@ -277,6 +292,7 @@ export function CustomerFormDialog({
           phone: "",
           document: "",
           customerType: 'FINAL_CONSUMER',
+          lifecycleStage: undefined,
           stateRegistration: "",
           isIeExempt: false,
           birthDate: "",
@@ -405,7 +421,7 @@ export function CustomerFormDialog({
               </div>
             </div>
 
-            {/* Data de Nascimento e Tipo de cliente */}
+            {/* Data de Nascimento, Tipo de cliente e Estágio de ciclo de vida */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
               {/* Data de Nascimento */}
               <div className="space-y-2">
@@ -462,6 +478,36 @@ export function CustomerFormDialog({
                   }}
                 />
               </div>
+            </div>
+
+            {/* Estágio do ciclo de vida */}
+            <div className="space-y-2">
+              <Label htmlFor="cust-lifecycleStage" className="text-sm font-medium">
+                Estágio no CRM
+              </Label>
+              <Controller
+                name="lifecycleStage"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? "none"}
+                    onValueChange={(v) => field.onChange(v === "none" ? undefined : v)}
+                  >
+                    <SelectTrigger id="cust-lifecycleStage" className="w-full">
+                      <SelectValue placeholder="Selecione o estágio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem estágio definido</SelectItem>
+                      {(Object.entries(LIFECYCLE_STAGE_LABELS) as [CustomerLifecycleStage, string][]).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                Indica em qual etapa do relacionamento este cliente se encontra.
+              </p>
             </div>
 
             {/* Inscrição Estadual - aparece suavemente quando CNPJ for detectado */}

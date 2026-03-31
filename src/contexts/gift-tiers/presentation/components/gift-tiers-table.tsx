@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Table,
@@ -37,6 +38,8 @@ import {
   CheckCircle,
   XCircle,
   ImageOff,
+  RefreshCw,
+  BarChart2,
 } from "lucide-react";
 import { GiftTier } from "../../domain/entities/gift-tier";
 import { useGiftTiers } from "../hooks/use-gift-tiers";
@@ -44,6 +47,7 @@ import { useActivateGiftTier } from "../hooks/use-activate-gift-tier";
 import { useDeactivateGiftTier } from "../hooks/use-deactivate-gift-tier";
 import { useDeleteGiftTier } from "../hooks/use-delete-gift-tier";
 import { EditGiftTierDialog } from "./edit-gift-tier-dialog";
+import { AddGiftStockAdjustmentDialog } from "@/contexts/gift-inventory/presentation/components/add-gift-stock-adjustment-dialog";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
@@ -81,16 +85,32 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
         "gap-1.5 text-xs font-medium",
         isActive
           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
-          : "border-zinc-400/30 bg-zinc-400/10 text-zinc-500"
+          : "border-zinc-400/30 bg-zinc-400/10 text-zinc-500",
       )}
     >
       <span
         className={cn(
           "h-1.5 w-1.5 rounded-full",
-          isActive ? "bg-emerald-500" : "bg-zinc-400"
+          isActive ? "bg-emerald-500" : "bg-zinc-400",
         )}
       />
       {isActive ? "Ativo" : "Inativo"}
+    </Badge>
+  );
+}
+
+function StockBadge({ stockUnits }: { stockUnits: number }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "text-xs font-medium tabular-nums",
+        stockUnits > 0
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+          : "border-red-400/30 bg-red-400/10 text-red-500",
+      )}
+    >
+      {stockUnits} un.
     </Badge>
   );
 }
@@ -99,9 +119,17 @@ interface GiftTierActionsProps {
   giftTier: GiftTier;
   onEdit: (gt: GiftTier) => void;
   onDelete: (gt: GiftTier) => void;
+  onAdjustStock: (gt: GiftTier) => void;
+  onViewMovements: (gt: GiftTier) => void;
 }
 
-function GiftTierActions({ giftTier, onEdit, onDelete }: GiftTierActionsProps) {
+function GiftTierActions({
+  giftTier,
+  onEdit,
+  onDelete,
+  onAdjustStock,
+  onViewMovements,
+}: GiftTierActionsProps) {
   const activateMutation = useActivateGiftTier();
   const deactivateMutation = useDeactivateGiftTier();
   const isPending = activateMutation.isPending || deactivateMutation.isPending;
@@ -150,6 +178,15 @@ function GiftTierActions({ giftTier, onEdit, onDelete }: GiftTierActionsProps) {
               Ativar
             </>
           )}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onAdjustStock(giftTier)}>
+          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+          Ajustar estoque
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onViewMovements(giftTier)}>
+          <BarChart2 className="mr-2 h-3.5 w-3.5" />
+          Movimentações
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -206,10 +243,14 @@ function GiftCard({
   giftTier,
   onEdit,
   onDelete,
+  onAdjustStock,
+  onViewMovements,
 }: {
   giftTier: GiftTier;
   onEdit: (gt: GiftTier) => void;
   onDelete: (gt: GiftTier) => void;
+  onAdjustStock: (gt: GiftTier) => void;
+  onViewMovements: (gt: GiftTier) => void;
 }) {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm">
@@ -227,10 +268,17 @@ function GiftCard({
                 </p>
               )}
             </div>
-            <GiftTierActions giftTier={giftTier} onEdit={onEdit} onDelete={onDelete} />
+            <GiftTierActions
+              giftTier={giftTier}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onAdjustStock={onAdjustStock}
+              onViewMovements={onViewMovements}
+            />
           </div>
           <div className="mt-2 flex items-center gap-2">
             <StatusBadge isActive={giftTier.isActive} />
+            <StockBadge stockUnits={giftTier.stockUnits} />
             <span className="text-xs font-medium text-bee-gold">
               A partir de {formatCurrency(giftTier.minOrderValue)}
             </span>
@@ -245,10 +293,14 @@ function GiftRow({
   giftTier,
   onEdit,
   onDelete,
+  onAdjustStock,
+  onViewMovements,
 }: {
   giftTier: GiftTier;
   onEdit: (gt: GiftTier) => void;
   onDelete: (gt: GiftTier) => void;
+  onAdjustStock: (gt: GiftTier) => void;
+  onViewMovements: (gt: GiftTier) => void;
 }) {
   return (
     <TableRow>
@@ -269,16 +321,26 @@ function GiftRow({
         {formatCurrency(giftTier.minOrderValue)}
       </TableCell>
       <TableCell>
+        <StockBadge stockUnits={giftTier.stockUnits} />
+      </TableCell>
+      <TableCell>
         <StatusBadge isActive={giftTier.isActive} />
       </TableCell>
       <TableCell className="text-right">
-        <GiftTierActions giftTier={giftTier} onEdit={onEdit} onDelete={onDelete} />
+        <GiftTierActions
+          giftTier={giftTier}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onAdjustStock={onAdjustStock}
+          onViewMovements={onViewMovements}
+        />
       </TableCell>
     </TableRow>
   );
 }
 
 export function GiftTiersTable() {
+  const router = useRouter();
   const { data: giftTiers = [], isLoading, isError } = useGiftTiers();
   const deleteMutation = useDeleteGiftTier();
 
@@ -286,6 +348,9 @@ export function GiftTiersTable() {
   const [editOpen, setEditOpen] = useState(false);
   const [deletingGift, setDeletingGift] = useState<GiftTier | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const [stockGift, setStockGift] = useState<GiftTier | null>(null);
+  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
 
   const handleEdit = (gt: GiftTier) => {
     setEditingGift(gt);
@@ -295,6 +360,15 @@ export function GiftTiersTable() {
   const handleDeleteRequest = (gt: GiftTier) => {
     setDeletingGift(gt);
     setDeleteOpen(true);
+  };
+
+  const handleAdjustStock = (gt: GiftTier) => {
+    setStockGift(gt);
+    setAdjustmentOpen(true);
+  };
+
+  const handleViewMovements = (gt: GiftTier) => {
+    router.push(`/dashboard/gift-tiers/${gt.id}/movimentacoes`);
   };
 
   const handleDeleteConfirm = () => {
@@ -307,8 +381,13 @@ export function GiftTiersTable() {
       },
       onError: (e) => {
         // Se o brinde já foi usado em compras, exibe mensagem orientando a inativação
-        if (e.message?.includes("já foi utilizado") || e.message?.includes("inativá-lo")) {
-          toast.error("Este brinde já foi usado em compras. Inative-o em vez de excluí-lo.");
+        if (
+          e.message?.includes("já foi utilizado") ||
+          e.message?.includes("inativá-lo")
+        ) {
+          toast.error(
+            "Este brinde já foi usado em compras. Inative-o em vez de excluí-lo.",
+          );
         } else {
           toast.error(e.message ?? "Erro ao excluir brinde");
         }
@@ -318,7 +397,8 @@ export function GiftTiersTable() {
 
   const mobileView = (
     <div className="space-y-3 md:hidden">
-      {isLoading && Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
+      {isLoading &&
+        Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
       {isError && <ErrorState />}
       {!isLoading && !isError && giftTiers.length === 0 && <EmptyState />}
       {giftTiers.map((gt) => (
@@ -327,6 +407,8 @@ export function GiftTiersTable() {
           giftTier={gt}
           onEdit={handleEdit}
           onDelete={handleDeleteRequest}
+          onAdjustStock={handleAdjustStock}
+          onViewMovements={handleViewMovements}
         />
       ))}
     </div>
@@ -339,6 +421,7 @@ export function GiftTiersTable() {
           <TableRow>
             <TableHead>Brinde</TableHead>
             <TableHead>Valor mínimo</TableHead>
+            <TableHead>Estoque</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
@@ -347,7 +430,7 @@ export function GiftTiersTable() {
           {isLoading &&
             Array.from({ length: 4 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 4 }).map((__, j) => (
+                {Array.from({ length: 5 }).map((__, j) => (
                   <TableCell key={j}>
                     <div className="h-4 rounded bg-muted animate-pulse" />
                   </TableCell>
@@ -356,14 +439,14 @@ export function GiftTiersTable() {
             ))}
           {isError && (
             <TableRow>
-              <TableCell colSpan={4}>
+              <TableCell colSpan={5}>
                 <ErrorState />
               </TableCell>
             </TableRow>
           )}
           {!isLoading && !isError && giftTiers.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4}>
+              <TableCell colSpan={5}>
                 <EmptyState />
               </TableCell>
             </TableRow>
@@ -374,6 +457,8 @@ export function GiftTiersTable() {
               giftTier={gt}
               onEdit={handleEdit}
               onDelete={handleDeleteRequest}
+              onAdjustStock={handleAdjustStock}
+              onViewMovements={handleViewMovements}
             />
           ))}
         </TableBody>
@@ -401,7 +486,8 @@ export function GiftTiersTable() {
               <strong>{deletingGift?.name}</strong>? Esta ação não pode ser
               desfeita.{" "}
               <span className="text-amber-600 dark:text-amber-400">
-                Se o brinde já foi usado em compras, a exclusão não será permitida. Nesse caso, recomendamos inativá-lo.
+                Se o brinde já foi usado em compras, a exclusão não será
+                permitida. Nesse caso, recomendamos inativá-lo.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -419,6 +505,15 @@ export function GiftTiersTable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {stockGift && (
+        <AddGiftStockAdjustmentDialog
+          giftTierId={stockGift.id}
+          giftName={stockGift.name}
+          open={adjustmentOpen}
+          onOpenChange={setAdjustmentOpen}
+        />
+      )}
     </>
   );
 }

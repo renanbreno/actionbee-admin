@@ -160,13 +160,13 @@ export function validateCNPJ(cnpj: string): boolean {
  * @returns true se a data é válida ou vazia, false caso contrário
  *
  * @example
- * validateBirthDate("15/05/2000") → true
- * validateBirthDate("31/02/2000") → false
- * validateBirthDate("12") → false
- * validateBirthDate("") → true
- * validateBirthDate(undefined) → true
+ * validateDate("15/05/2000") → true
+ * validateDate("31/02/2000") → false
+ * validateDate("12") → false
+ * validateDate("") → true
+ * validateDate(undefined) → true
  */
-export function validateBirthDate(value: string | undefined): boolean {
+export function validateDate(value: string | undefined): boolean {
   if (!value) return true;
   const digits = value.replace(/\D/g, "");
   if (digits.length === 0) return true;
@@ -181,12 +181,15 @@ export function validateBirthDate(value: string | undefined): boolean {
 
   if (m < 1 || m > 12) return false;
   if (d < 1 || d > 31) return false;
-  if (y < 1900 || y > new Date().getFullYear()) return false;
+  if (y < 1900) return false;
 
   // Valida se a data realmente existe (ex: 31/02 não existe)
   const date = new Date(y, m - 1, d);
   return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
 }
+
+/** @deprecated Use validateDate instead */
+export const validateBirthDate = validateDate;
 
 export function validateDocument(document: string): boolean {
   const cleaned = document.replace(/\D/g, "");

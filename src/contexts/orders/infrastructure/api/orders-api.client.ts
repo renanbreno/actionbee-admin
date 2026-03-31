@@ -1,4 +1,4 @@
-import { apiFetch } from "@/shared/infrastructure/api/api-client";
+import { apiFetch, apiFetchBlob } from "@/shared/infrastructure/api/api-client";
 import { OrderDetail, OrderListItem, PaginatedOrders } from "../../domain/entities/order";
 import { GetOrdersFiltersDTO } from "../../application/dto/get-orders-filters.dto";
 import { CreateOrderDTO } from "../../application/dto/create-order.dto";
@@ -16,6 +16,7 @@ export const ordersApiClient = {
     if (filters.status) params.append("status", filters.status);
     if (filters.startDate) params.append("startDate", filters.startDate);
     if (filters.endDate) params.append("endDate", filters.endDate);
+    if (filters.customerId) params.append("customerId", filters.customerId);
     if (filters.sortBy) params.append("sortBy", filters.sortBy);
     if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
@@ -62,5 +63,9 @@ export const ordersApiClient = {
 
   getShipmentLabel(id: string): Promise<{ labelUrl: string }> {
     return apiFetch<{ labelUrl: string }>(`/admin/orders/${id}/shipment/label`);
+  },
+
+  downloadPdf(id: string): Promise<Blob> {
+    return apiFetchBlob(`/admin/orders/${id}/pdf`);
   },
 };

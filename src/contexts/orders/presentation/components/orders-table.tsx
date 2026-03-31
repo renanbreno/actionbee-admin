@@ -27,6 +27,7 @@ import {
   ChevronRight,
   CreditCard,
   Eye,
+  FileDown,
   Globe,
   Instagram,
   MessageCircle,
@@ -47,6 +48,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { OrderListItem, OrderSource, OrderStatus } from "../../domain/entities/order";
+import { useDownloadOrderPdf } from "../hooks/use-download-order-pdf";
 import { OrderStatusBadge } from "@/shared/presentation/components/order-status-badge";
 
 const ORDER_SOURCE_CONFIG: Record<OrderSource, { label: string; Icon: LucideIcon; className: string }> = {
@@ -174,6 +176,7 @@ function OrderActions({
 }) {
   const isTerminal = TERMINAL_STATUSES.includes(order.status);
   const isCancelled = order.status === 'CANCELLED';
+  const { downloadPdf, isPending: isDownloadingPdf } = useDownloadOrderPdf();
 
   return (
     <DropdownMenu>
@@ -193,6 +196,13 @@ function OrderActions({
             <Pencil className="mr-2 h-3.5 w-3.5" />
             Editar pedido
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => downloadPdf(order.id, order.orderNumber)}
+          disabled={isDownloadingPdf}
+        >
+          <FileDown className="mr-2 h-3.5 w-3.5" />
+          {isDownloadingPdf ? "Gerando PDF..." : "Baixar PDF"}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onUpdatePaymentStatus(order)}>
           <DollarSign className="mr-2 h-3.5 w-3.5" />

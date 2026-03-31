@@ -24,6 +24,27 @@
 - Font: Montserrat
 - Palette: Bee Gold (#FBBD23), Bee Amber (#FCAC1C), Black (#000000)
 
+## Dialog / Form UI Patterns
+
+- Form fields inside dialogs must occupy full dialog width (`w-full`).
+- When two fields fit comfortably side by side (e.g. Valor + Data, Origem + Destino), use `grid grid-cols-2 gap-3`.
+- Date fields must **never** use `type="date"` (native browser picker). Use a plain `<Input>` with `placeholder="dd/mm/aaaa"`, `maxLength={10}`, and the `maskDate` helper from `@/shared/utils/masks` applied via `register`'s `onChange`. Convert back to ISO on submit with `unmaskDate`.
+
+```tsx
+// Applying mask via register onChange (pattern from add-stock-entry-dialog)
+<Input
+  id="field-id"
+  placeholder="dd/mm/aaaa"
+  maxLength={10}
+  {...register("fieldName", {
+    onChange: (e) => setValue("fieldName", maskDate(e.target.value)),
+  })}
+/>
+
+// In onSubmit — convert DD/MM/AAAA → YYYY-MM-DD
+fieldName: unmaskDate(values.fieldName) ?? values.fieldName,
+```
+
 ## Backend
 
 - NestJS REST API at `localhost:3001` (dev) / `api.actionbee.com.br` (prod)
