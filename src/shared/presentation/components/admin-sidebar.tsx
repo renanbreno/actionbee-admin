@@ -39,6 +39,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Kanban,
+  Wallet,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
@@ -131,6 +132,24 @@ const menuGroups: MenuGroup[] = [
       { title: "Representantes", href: "/dashboard/representatives", icon: Briefcase },
       { title: "Vendedores", href: "/dashboard/vendedores", icon: BadgeDollarSign },
       { title: "Clientes", href: "/dashboard/customers", icon: UserRound },
+    ],
+  },
+  {
+    label: "Financeiro",
+    items: [
+      {
+        title: "Financeiro",
+        icon: Wallet,
+        submenu: [
+          { title: "Dashboard", href: "/dashboard/financial" },
+          { title: "Contas", href: "/dashboard/financial/accounts" },
+          { title: "Categorias", href: "/dashboard/financial/categories" },
+          { title: "Contas a Receber", href: "/dashboard/financial/accounts-receivable" },
+          { title: "Contas a Pagar", href: "/dashboard/financial/accounts-payable" },
+          { title: "Lançamentos", href: "/dashboard/financial/transactions" },
+          { title: "Configurações", href: "/dashboard/financial/settings" },
+        ],
+      },
     ],
   },
   {
