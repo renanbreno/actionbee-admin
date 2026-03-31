@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createAccountSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  type: z.enum(["CASH", "BANK"], { required_error: "Tipo é obrigatório" }),
+  type: z.enum(["CASH", "BANK"], { message: "Tipo é obrigatório" }),
   initialBalance: z.string().optional(),
   bankName: z.string().optional(),
   agency: z.string().optional(),

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createCategorySchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  type: z.enum(["INCOME", "EXPENSE"], { required_error: "Tipo é obrigatório" }),
+  type: z.enum(["INCOME", "EXPENSE"], { message: "Tipo é obrigatório" }),
   color: z.string().optional(),
 });
 
