@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogActions } from "@/components/ui/dialog";
@@ -12,7 +12,9 @@ import { createPayableSchema, type CreatePayableFormValues } from "../schemas/pa
 import { useCreatePayable } from "../hooks/use-account-payables";
 import { useFinancialCategories } from "../hooks/use-financial-categories";
 import { useFinancialAccounts } from "../hooks/use-financial-accounts";
+import { SupplierSearch } from "./supplier-search";
 import { maskDate, unmaskDate, maskCurrency, currencyToNumber } from "@/shared/utils/masks";
+import type { Supplier } from "../../domain/entities/supplier";
 
 interface Props {
   open: boolean;
@@ -26,13 +28,19 @@ export function CreatePayableDialog({ open, onOpenChange }: Props) {
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<CreatePayableFormValues>({
     resolver: zodResolver(createPayableSchema),
-    defaultValues: { description: "", amount: "", dueDate: "", categoryId: "", accountId: "", supplier: "", notes: "" },
+    defaultValues: { description: "", amount: "", dueDate: "", categoryId: "", accountId: "", supplierId: "", notes: "" },
   });
 
   const categoryValue = watch("categoryId");
   const accountValue = watch("accountId");
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
-  useEffect(() => { if (!open) reset(); }, [open, reset]);
+  useEffect(() => {
+    if (!open) {
+      reset();
+      setSelectedSupplier(null);
+    }
+  }, [open, reset]);
 
   const onSubmit = (values: CreatePayableFormValues) => {
     createMutation.mutate(
@@ -42,10 +50,10 @@ export function CreatePayableDialog({ open, onOpenChange }: Props) {
         dueDate: unmaskDate(values.dueDate) ?? values.dueDate,
         categoryId: values.categoryId,
         accountId: values.accountId || undefined,
-        supplier: values.supplier || undefined,
+        supplierId: selectedSupplier?.id || undefined,
         notes: values.notes || undefined,
       },
-      { onSuccess: () => { reset(); onOpenChange(false); } }
+      { onSuccess: () => { reset(); setSelectedSupplier(null); onOpenChange(false); } }
     );
   };
 
@@ -91,8 +99,12 @@ export function CreatePayableDialog({ open, onOpenChange }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pay-supplier">Fornecedor <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-            <Input id="pay-supplier" placeholder="Nome do fornecedor" {...register("supplier")} />
+            <Label>Fornecedor <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+            <SupplierSearch
+              selected={selectedSupplier}
+              onSelect={setSelectedSupplier}
+              onClear={() => setSelectedSupplier(null)}
+            />
           </div>
 
           <div className="space-y-2">

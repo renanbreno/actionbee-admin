@@ -10,7 +10,8 @@ export interface AccountPayable {
   categoryName: string;
   accountId: string | null;
   accountName: string | null;
-  supplier: string | null;
+  supplierId: string | null;
+  supplierName: string | null;
   paidAt: string | null;
   paidAmount: number | null;
   notes: string | null;

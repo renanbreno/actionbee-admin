@@ -13,7 +13,7 @@ interface PayableFilters {
   status?: string;
   dueDateFrom?: string;
   dueDateTo?: string;
-  supplier?: string;
+  supplierId?: string;
 }
 
 export function useAccountPayables(filters?: PayableFilters) {
@@ -26,7 +26,7 @@ export function useAccountPayables(filters?: PayableFilters) {
 export function useCreatePayable() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { description: string; amount: number; dueDate: string; categoryId: string; accountId?: string; supplier?: string; notes?: string }) =>
+    mutationFn: (data: { description: string; amount: number; dueDate: string; categoryId: string; accountId?: string; supplierId?: string; notes?: string }) =>
       createPayableUseCase.execute(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financial-payables"] });

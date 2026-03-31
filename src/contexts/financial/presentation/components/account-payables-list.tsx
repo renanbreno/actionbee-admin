@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useAccountPayables, useCancelPayable } from "../hooks/use-account-payables";
 import { CreatePayableDialog } from "./create-payable-dialog";
 import { PayPayableDialog } from "./pay-payable-dialog";
+import { SupplierSearch } from "./supplier-search";
 import type { AccountPayable } from "../../domain/entities/payable";
+import type { Supplier } from "../../domain/entities/supplier";
 import { FINANCIAL_STATUS_LABELS } from "../../domain/enums";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +18,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Plus, MoreHorizontal, CheckCircle, XCircle, TrendingDown } from "lucide-react";
@@ -56,13 +57,13 @@ export function AccountPayablesList() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [dueDateFrom, setDueDateFrom] = useState<string>("");
   const [dueDateTo, setDueDateTo] = useState<string>("");
-  const [supplierFilter, setSupplierFilter] = useState<string>("");
+  const [supplierFilter, setSupplierFilter] = useState<Supplier | null>(null);
 
   const filters = {
     ...(statusFilter && { status: statusFilter }),
     ...(dueDateFrom && { dueDateFrom }),
     ...(dueDateTo && { dueDateTo }),
-    ...(supplierFilter && { supplier: supplierFilter }),
+    ...(supplierFilter && { supplierId: supplierFilter.id }),
   };
   const { data: payables = [], isLoading, isError } = useAccountPayables(Object.keys(filters).length ? filters : undefined);
   const cancelMutation = useCancelPayable();
@@ -135,7 +136,7 @@ export function AccountPayablesList() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{p.description}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {p.categoryName}{p.supplier ? ` · ${p.supplier}` : ""} · vence {formatDate(p.dueDate)}
+                {p.categoryName}{p.supplierName ? ` · ${p.supplierName}` : ""} · vence {formatDate(p.dueDate)}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <StatusBadge status={p.status} />
@@ -179,7 +180,7 @@ export function AccountPayablesList() {
             <TableRow key={p.id}>
               <TableCell className="font-medium max-w-40 truncate">{p.description}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{p.categoryName}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">{p.supplier ?? "—"}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{p.supplierName ?? "—"}</TableCell>
               <TableCell className="text-sm">{formatDate(p.dueDate)}</TableCell>
               <TableCell className="text-right text-sm font-semibold text-red-600">{formatCurrency(p.amount)}</TableCell>
               <TableCell><StatusBadge status={p.status} /></TableCell>
@@ -230,10 +231,10 @@ export function AccountPayablesList() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium">Fornecedor</Label>
-            <Input
-              value={supplierFilter}
-              onChange={(e) => setSupplierFilter(e.target.value)}
-              placeholder="Nome do fornecedor"
+            <SupplierSearch
+              selected={supplierFilter}
+              onSelect={setSupplierFilter}
+              onClear={() => setSupplierFilter(null)}
             />
           </div>
           <div className="space-y-2">

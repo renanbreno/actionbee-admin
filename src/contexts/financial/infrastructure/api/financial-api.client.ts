@@ -6,6 +6,7 @@ import type { AccountPayable } from "../../domain/entities/payable";
 import type { FinancialTransaction } from "../../domain/entities/transaction";
 import type { FinancialDashboard } from "../../domain/entities/dashboard";
 import type { FinancialSettings } from "../../domain/entities/settings";
+import type { Supplier } from "../../domain/entities/supplier";
 
 export const financialApiClient = {
   // --- Settings ---
@@ -68,18 +69,36 @@ export const financialApiClient = {
   reverseReceivable: (id: string): Promise<AccountReceivable> =>
     apiFetch(`/admin/financial/accounts-receivable/${id}/reverse`, { method: "POST" }),
 
+  // --- Suppliers ---
+  getSuppliers: (params?: { active?: boolean; search?: string }): Promise<Supplier[]> => {
+    const qs = new URLSearchParams();
+    if (params?.active !== undefined) qs.set("active", String(params.active));
+    if (params?.search) qs.set("search", params.search);
+    const query = qs.toString();
+    return apiFetch(`/admin/suppliers${query ? `?${query}` : ""}`);
+  },
+
+  createSupplier: (data: { razaoSocial: string; nomeFantasia?: string; cnpj?: string; inscricaoEstadual?: string; email?: string; phone?: string; street?: string; number?: string; complement?: string; city?: string; state?: string; zipCode?: string; country?: string; notes?: string; active?: boolean }): Promise<Supplier> =>
+    apiFetch("/admin/suppliers", { method: "POST", body: JSON.stringify(data) }),
+
+  updateSupplier: (id: string, data: { razaoSocial?: string; nomeFantasia?: string; cnpj?: string; inscricaoEstadual?: string; email?: string; phone?: string; street?: string; number?: string; complement?: string; city?: string; state?: string; zipCode?: string; country?: string; notes?: string; active?: boolean }): Promise<Supplier> =>
+    apiFetch(`/admin/suppliers/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  deleteSupplier: (id: string): Promise<void> =>
+    apiFetch(`/admin/suppliers/${id}`, { method: "DELETE" }),
+
   // --- Accounts Payable ---
-  getPayables: (params?: { status?: string; dueDateFrom?: string; dueDateTo?: string; supplier?: string }): Promise<AccountPayable[]> => {
+  getPayables: (params?: { status?: string; dueDateFrom?: string; dueDateTo?: string; supplierId?: string }): Promise<AccountPayable[]> => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.dueDateFrom) qs.set("dueDateFrom", params.dueDateFrom);
     if (params?.dueDateTo) qs.set("dueDateTo", params.dueDateTo);
-    if (params?.supplier) qs.set("supplier", params.supplier);
+    if (params?.supplierId) qs.set("supplierId", params.supplierId);
     const query = qs.toString();
     return apiFetch(`/admin/financial/accounts-payable${query ? `?${query}` : ""}`);
   },
 
-  createPayable: (data: { description: string; amount: number; dueDate: string; categoryId: string; accountId?: string; supplier?: string; notes?: string }): Promise<AccountPayable> =>
+  createPayable: (data: { description: string; amount: number; dueDate: string; categoryId: string; accountId?: string; supplierId?: string; notes?: string }): Promise<AccountPayable> =>
     apiFetch("/admin/financial/accounts-payable", { method: "POST", body: JSON.stringify(data) }),
 
   payPayable: (id: string, data: { paidAt: string; paidAmount: number; accountId?: string }): Promise<AccountPayable> =>

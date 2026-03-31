@@ -21,8 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { AbandonedCart } from "../../domain/entities/abandoned-cart.entity";
 import { useCreateTask } from "@/contexts/crm/presentation/hooks/use-create-task";
 import { useCreateDeal } from "@/contexts/crm/presentation/hooks/use-create-deal";
@@ -171,7 +171,17 @@ function CreateTaskTab({ cart, onSuccess }: { cart: AbandonedCart; onSuccess: ()
 
       <div className="space-y-1.5">
         <Label className="text-sm font-medium">Prazo (opcional)</Label>
-        <Input type="date" {...register("dueDate")} />
+        <Controller
+          name="dueDate"
+          control={control}
+          render={({ field }) => (
+            <DatePicker
+              value={field.value || ""}
+              onChange={field.onChange}
+              placeholder="Selecione uma data"
+            />
+          )}
+        />
         {errors.dueDate && <p className="text-destructive text-xs">{errors.dueDate.message}</p>}
       </div>
 

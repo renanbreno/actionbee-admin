@@ -145,6 +145,7 @@ const menuGroups: MenuGroup[] = [
           { title: "Dashboard", href: "/dashboard/financial" },
           { title: "Contas", href: "/dashboard/financial/accounts" },
           { title: "Categorias", href: "/dashboard/financial/categories" },
+          { title: "Fornecedores", href: "/dashboard/financial/suppliers" },
           { title: "Contas a Receber", href: "/dashboard/financial/accounts-receivable" },
           { title: "Contas a Pagar", href: "/dashboard/financial/accounts-payable" },
           { title: "Lançamentos", href: "/dashboard/financial/transactions" },

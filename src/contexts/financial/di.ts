@@ -20,6 +20,10 @@ import { CreateTransactionUseCase } from "./application/use-cases/create-transac
 import { CreateTransferUseCase } from "./application/use-cases/create-transfer.use-case";
 import { GetSettingsUseCase } from "./application/use-cases/get-settings.use-case";
 import { UpdateSettingsUseCase } from "./application/use-cases/update-settings.use-case";
+import { GetSuppliersUseCase } from "./application/use-cases/get-suppliers.use-case";
+import { CreateSupplierUseCase } from "./application/use-cases/create-supplier.use-case";
+import { UpdateSupplierUseCase } from "./application/use-cases/update-supplier.use-case";
+import { DeleteSupplierUseCase } from "./application/use-cases/delete-supplier.use-case";
 
 export const getFinancialDashboardUseCase = new GetFinancialDashboardUseCase();
 export const getCategoriesUseCase = new GetCategoriesUseCase();
@@ -43,3 +47,7 @@ export const createTransactionUseCase = new CreateTransactionUseCase();
 export const createTransferUseCase = new CreateTransferUseCase();
 export const getSettingsUseCase = new GetSettingsUseCase();
 export const updateSettingsUseCase = new UpdateSettingsUseCase();
+export const getSuppliersUseCase = new GetSuppliersUseCase();
+export const createSupplierUseCase = new CreateSupplierUseCase();
+export const updateSupplierUseCase = new UpdateSupplierUseCase();
+export const deleteSupplierUseCase = new DeleteSupplierUseCase();

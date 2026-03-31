@@ -6,7 +6,7 @@ export const createPayableSchema = z.object({
   dueDate: z.string().min(1, "Vencimento é obrigatório"),
   categoryId: z.string().min(1, "Categoria é obrigatória"),
   accountId: z.string().optional(),
-  supplier: z.string().optional(),
+  supplierId: z.string().optional(),
   notes: z.string().optional(),
 });
 
