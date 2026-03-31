@@ -39,4 +39,5 @@ export interface OrderRepository {
   updatePaymentStatus(id: string, params: UpdateOrderPaymentStatusParams): Promise<void>;
   createShipment(id: string): Promise<CreateShipmentResult>;
   getShipmentLabel(id: string): Promise<{ labelUrl: string }>;
+  downloadPdf(id: string): Promise<Blob>;
 }

@@ -16,9 +16,19 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Plus, MoreHorizontal, CheckCircle, XCircle, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const PAYABLE_STATUS_FILTERS = [
+  { value: undefined, label: "Todos", dot: "bg-zinc-400", activeClass: "border-zinc-300 bg-zinc-100 text-zinc-700" },
+  { value: "PENDING", label: "Pendente", dot: "bg-amber-500", activeClass: "border-amber-500/30 bg-amber-500/10 text-amber-700" },
+  { value: "OVERDUE", label: "Vencido", dot: "bg-red-500", activeClass: "border-red-500/30 bg-red-500/10 text-red-700" },
+  { value: "PAID", label: "Pago", dot: "bg-emerald-500", activeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700" },
+  { value: "CANCELLED", label: "Cancelado", dot: "bg-muted-foreground/40", activeClass: "border-zinc-200 bg-zinc-50 text-zinc-500" },
+];
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -44,7 +54,17 @@ function StatusBadge({ status }: { status: string }) {
 
 export function AccountPayablesList() {
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const { data: payables = [], isLoading, isError } = useAccountPayables(statusFilter ? { status: statusFilter } : undefined);
+  const [dueDateFrom, setDueDateFrom] = useState<string>("");
+  const [dueDateTo, setDueDateTo] = useState<string>("");
+  const [supplierFilter, setSupplierFilter] = useState<string>("");
+
+  const filters = {
+    ...(statusFilter && { status: statusFilter }),
+    ...(dueDateFrom && { dueDateFrom }),
+    ...(dueDateTo && { dueDateTo }),
+    ...(supplierFilter && { supplier: supplierFilter }),
+  };
+  const { data: payables = [], isLoading, isError } = useAccountPayables(Object.keys(filters).length ? filters : undefined);
   const cancelMutation = useCancelPayable();
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -185,19 +205,46 @@ export function AccountPayablesList() {
         </Button>
       </div>
 
-      <div className="mb-4 flex items-center gap-3">
-        <Select value={statusFilter || "_none"} onValueChange={(v) => setStatusFilter(v === "_none" ? "" : v)}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Todos os status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_none">Todos</SelectItem>
-            <SelectItem value="PENDING">Pendente</SelectItem>
-            <SelectItem value="OVERDUE">Vencido</SelectItem>
-            <SelectItem value="PAID">Pago</SelectItem>
-            <SelectItem value="CANCELLED">Cancelado</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-0.5">
+        {PAYABLE_STATUS_FILTERS.map((f) => {
+          const isActive = statusFilter === (f.value ?? "");
+          return (
+            <button
+              key={f.label}
+              onClick={() => setStatusFilter(f.value ?? "")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
+                isActive ? f.activeClass : "border-transparent bg-muted/60 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className={cn("relative inline-flex h-2 w-2 rounded-full", f.dot)} />
+              </span>
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mb-4 rounded-xl border bg-card p-4 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Fornecedor</Label>
+            <Input
+              value={supplierFilter}
+              onChange={(e) => setSupplierFilter(e.target.value)}
+              placeholder="Nome do fornecedor"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Vencimento de</Label>
+            <DatePicker value={dueDateFrom} onChange={setDueDateFrom} placeholder="De" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Vencimento até</Label>
+            <DatePicker value={dueDateTo} onChange={setDueDateTo} placeholder="Até" />
+          </div>
+        </div>
       </div>
 
       {mobileView}

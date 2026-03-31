@@ -65,6 +65,9 @@ export const financialApiClient = {
   cancelReceivable: (id: string): Promise<AccountReceivable> =>
     apiFetch(`/admin/financial/accounts-receivable/${id}/cancel`, { method: "POST" }),
 
+  reverseReceivable: (id: string): Promise<AccountReceivable> =>
+    apiFetch(`/admin/financial/accounts-receivable/${id}/reverse`, { method: "POST" }),
+
   // --- Accounts Payable ---
   getPayables: (params?: { status?: string; dueDateFrom?: string; dueDateTo?: string; supplier?: string }): Promise<AccountPayable[]> => {
     const qs = new URLSearchParams();

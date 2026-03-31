@@ -42,4 +42,8 @@ export class OrderRepositoryImpl implements OrderRepository {
   getShipmentLabel(id: string): Promise<{ labelUrl: string }> {
     return ordersApiClient.getShipmentLabel(id);
   }
+
+  downloadPdf(id: string): Promise<Blob> {
+    return ordersApiClient.downloadPdf(id);
+  }
 }

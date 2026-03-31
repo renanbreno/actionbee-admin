@@ -7,6 +7,7 @@ import { UpdateOrderStatusUseCase } from "./application/use-cases/update-order-s
 import { UpdateOrderPaymentStatusUseCase } from "./application/use-cases/update-order-payment-status.use-case";
 import { CreateShipmentUseCase } from "./application/use-cases/create-shipment.use-case";
 import { GetShipmentLabelUseCase } from "./application/use-cases/get-shipment-label.use-case";
+import { DownloadOrderPdfUseCase } from "./application/use-cases/download-order-pdf.use-case";
 
 const orderRepository = new OrderRepositoryImpl();
 
@@ -18,3 +19,4 @@ export const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderReposi
 export const updateOrderPaymentStatusUseCase = new UpdateOrderPaymentStatusUseCase(orderRepository);
 export const createShipmentUseCase = new CreateShipmentUseCase(orderRepository);
 export const getShipmentLabelUseCase = new GetShipmentLabelUseCase(orderRepository);
+export const downloadOrderPdfUseCase = new DownloadOrderPdfUseCase(orderRepository);

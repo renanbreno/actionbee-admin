@@ -7,6 +7,7 @@ import {
   createReceivableUseCase,
   payReceivableUseCase,
   cancelReceivableUseCase,
+  reverseReceivableUseCase,
 } from "../../di";
 
 interface ReceivableFilters {
@@ -62,6 +63,19 @@ export function useCancelReceivable() {
       queryClient.invalidateQueries({ queryKey: ["financial-receivables"] });
       queryClient.invalidateQueries({ queryKey: ["financial-dashboard"] });
       toast.success("Conta a receber cancelada");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useReverseReceivable() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => reverseReceivableUseCase.execute(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financial-receivables"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-dashboard"] });
+      toast.success("Estorno realizado com sucesso");
     },
     onError: (error: Error) => toast.error(error.message),
   });

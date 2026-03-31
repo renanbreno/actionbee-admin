@@ -10,6 +10,7 @@ import { GetReceivablesUseCase } from "./application/use-cases/get-receivables.u
 import { CreateReceivableUseCase } from "./application/use-cases/create-receivable.use-case";
 import { PayReceivableUseCase } from "./application/use-cases/pay-receivable.use-case";
 import { CancelReceivableUseCase } from "./application/use-cases/cancel-receivable.use-case";
+import { ReverseReceivableUseCase } from "./application/use-cases/reverse-receivable.use-case";
 import { GetPayablesUseCase } from "./application/use-cases/get-payables.use-case";
 import { CreatePayableUseCase } from "./application/use-cases/create-payable.use-case";
 import { PayPayableUseCase } from "./application/use-cases/pay-payable.use-case";
@@ -32,6 +33,7 @@ export const getReceivablesUseCase = new GetReceivablesUseCase();
 export const createReceivableUseCase = new CreateReceivableUseCase();
 export const payReceivableUseCase = new PayReceivableUseCase();
 export const cancelReceivableUseCase = new CancelReceivableUseCase();
+export const reverseReceivableUseCase = new ReverseReceivableUseCase();
 export const getPayablesUseCase = new GetPayablesUseCase();
 export const createPayableUseCase = new CreatePayableUseCase();
 export const payPayableUseCase = new PayPayableUseCase();

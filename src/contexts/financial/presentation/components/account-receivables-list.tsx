@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAccountReceivables, useCancelReceivable } from "../hooks/use-account-receivables";
+import { useAccountReceivables, useCancelReceivable, useReverseReceivable } from "../hooks/use-account-receivables";
 import { CreateReceivableDialog } from "./create-receivable-dialog";
 import { PayReceivableDialog } from "./pay-receivable-dialog";
 import type { AccountReceivable } from "../../domain/entities/receivable";
@@ -16,9 +16,19 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MoreHorizontal, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Plus, MoreHorizontal, CheckCircle, XCircle, TrendingUp, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const RECEIVABLE_STATUS_FILTERS = [
+  { value: undefined, label: "Todos", dot: "bg-zinc-400", activeClass: "border-zinc-300 bg-zinc-100 text-zinc-700" },
+  { value: "PENDING", label: "Pendente", dot: "bg-amber-500", activeClass: "border-amber-500/30 bg-amber-500/10 text-amber-700" },
+  { value: "OVERDUE", label: "Vencido", dot: "bg-red-500", activeClass: "border-red-500/30 bg-red-500/10 text-red-700" },
+  { value: "PAID", label: "Pago", dot: "bg-emerald-500", activeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700" },
+  { value: "CANCELLED", label: "Cancelado", dot: "bg-muted-foreground/40", activeClass: "border-zinc-200 bg-zinc-50 text-zinc-500" },
+];
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -44,14 +54,27 @@ function StatusBadge({ status }: { status: string }) {
 
 export function AccountReceivablesList() {
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const { data: receivables = [], isLoading, isError } = useAccountReceivables(statusFilter ? { status: statusFilter } : undefined);
+  const [dueDateFrom, setDueDateFrom] = useState<string>("");
+  const [dueDateTo, setDueDateTo] = useState<string>("");
+  const [orderIdFilter, setOrderIdFilter] = useState<string>("");
+
+  const filters = {
+    ...(statusFilter && { status: statusFilter }),
+    ...(dueDateFrom && { dueDateFrom }),
+    ...(dueDateTo && { dueDateTo }),
+    ...(orderIdFilter && { orderId: orderIdFilter }),
+  };
+  const { data: receivables = [], isLoading, isError } = useAccountReceivables(Object.keys(filters).length ? filters : undefined);
   const cancelMutation = useCancelReceivable();
+  const reverseMutation = useReverseReceivable();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [payingReceivable, setPayingReceivable] = useState<AccountReceivable | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [cancellingReceivable, setCancellingReceivable] = useState<AccountReceivable | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [reversingReceivable, setReversingReceivable] = useState<AccountReceivable | null>(null);
+  const [reverseOpen, setReverseOpen] = useState(false);
 
   const handlePay = (r: AccountReceivable) => { setPayingReceivable(r); setPayOpen(true); };
   const handleCancelRequest = (r: AccountReceivable) => { setCancellingReceivable(r); setCancelOpen(true); };
@@ -61,9 +84,17 @@ export function AccountReceivablesList() {
       onSuccess: () => { setCancelOpen(false); setCancellingReceivable(null); },
     });
   };
+  const handleReverseRequest = (r: AccountReceivable) => { setReversingReceivable(r); setReverseOpen(true); };
+  const handleReverseConfirm = () => {
+    if (!reversingReceivable) return;
+    reverseMutation.mutate(reversingReceivable.id, {
+      onSuccess: () => { setReverseOpen(false); setReversingReceivable(null); },
+    });
+  };
 
   function ReceivableActions({ receivable }: { receivable: AccountReceivable }) {
     const isPendingOrOverdue = receivable.status === "PENDING" || receivable.status === "OVERDUE";
+    const isPaid = receivable.status === "PAID";
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -73,20 +104,32 @@ export function AccountReceivablesList() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuItem
-            disabled={!isPendingOrOverdue}
-            onClick={() => handlePay(receivable)}
-          >
-            <CheckCircle className="mr-2 h-3.5 w-3.5 text-emerald-600" />Registrar recebimento
-          </DropdownMenuItem>
+          {!isPaid && (
+            <DropdownMenuItem
+              disabled={!isPendingOrOverdue}
+              onClick={() => handlePay(receivable)}
+            >
+              <CheckCircle className="mr-2 h-3.5 w-3.5 text-emerald-600" />Registrar recebimento
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            disabled={!isPendingOrOverdue}
-            onClick={() => handleCancelRequest(receivable)}
-            className="text-destructive focus:text-destructive"
-          >
-            <XCircle className="mr-2 h-3.5 w-3.5" />Cancelar
-          </DropdownMenuItem>
+          {isPaid && (
+            <DropdownMenuItem
+              onClick={() => handleReverseRequest(receivable)}
+              className="text-destructive focus:text-destructive"
+            >
+              <RotateCcw className="mr-2 h-3.5 w-3.5" />Estornar
+            </DropdownMenuItem>
+          )}
+          {!isPaid && (
+            <DropdownMenuItem
+              disabled={!isPendingOrOverdue}
+              onClick={() => handleCancelRequest(receivable)}
+              className="text-destructive focus:text-destructive"
+            >
+              <XCircle className="mr-2 h-3.5 w-3.5" />Cancelar
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -181,19 +224,46 @@ export function AccountReceivablesList() {
         </Button>
       </div>
 
-      <div className="mb-4 flex items-center gap-3">
-        <Select value={statusFilter || "_none"} onValueChange={(v) => setStatusFilter(v === "_none" ? "" : v)}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Todos os status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_none">Todos</SelectItem>
-            <SelectItem value="PENDING">Pendente</SelectItem>
-            <SelectItem value="OVERDUE">Vencido</SelectItem>
-            <SelectItem value="PAID">Pago</SelectItem>
-            <SelectItem value="CANCELLED">Cancelado</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-0.5">
+        {RECEIVABLE_STATUS_FILTERS.map((f) => {
+          const isActive = statusFilter === (f.value ?? "");
+          return (
+            <button
+              key={f.label}
+              onClick={() => setStatusFilter(f.value ?? "")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
+                isActive ? f.activeClass : "border-transparent bg-muted/60 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className={cn("relative inline-flex h-2 w-2 rounded-full", f.dot)} />
+              </span>
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mb-4 rounded-xl border bg-card p-4 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Nº do Pedido</Label>
+            <Input
+              value={orderIdFilter}
+              onChange={(e) => setOrderIdFilter(e.target.value)}
+              placeholder="Ex: abc123"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Vencimento de</Label>
+            <DatePicker value={dueDateFrom} onChange={setDueDateFrom} placeholder="De" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Vencimento até</Label>
+            <DatePicker value={dueDateTo} onChange={setDueDateTo} placeholder="Até" />
+          </div>
+        </div>
       </div>
 
       {mobileView}
@@ -214,6 +284,23 @@ export function AccountReceivablesList() {
             <AlertDialogCancel disabled={cancelMutation.isPending}>Voltar</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelConfirm} disabled={cancelMutation.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={reverseOpen} onOpenChange={setReverseOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Estornar conta a receber</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja estornar <strong>{reversingReceivable?.description}</strong>? Esta ação marcará o recebimento como cancelado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reverseMutation.isPending}>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReverseConfirm} disabled={reverseMutation.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirmar estorno
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

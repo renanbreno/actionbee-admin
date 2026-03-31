@@ -7,10 +7,18 @@ import { CreateTransferDialog } from "./create-transfer-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, ArrowLeftRight, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const TRANSACTION_TYPE_FILTERS = [
+  { value: undefined, label: "Todos", dot: "bg-zinc-400", activeClass: "border-zinc-300 bg-zinc-100 text-zinc-700" },
+  { value: "INCOME", label: "Receitas", dot: "bg-emerald-500", activeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700" },
+  { value: "EXPENSE", label: "Despesas", dot: "bg-red-500", activeClass: "border-red-500/30 bg-red-500/10 text-red-700" },
+  { value: "TRANSFER", label: "Transferências", dot: "bg-blue-500", activeClass: "border-blue-500/30 bg-blue-500/10 text-blue-700" },
+];
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -32,7 +40,15 @@ function TypeBadge({ type }: { type: string }) {
 
 export function FinancialTransactionsList() {
   const [typeFilter, setTypeFilter] = useState<string>("");
-  const { data: transactions = [], isLoading, isError } = useFinancialTransactions(typeFilter ? { type: typeFilter } : undefined);
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+
+  const filters = {
+    ...(typeFilter && { type: typeFilter }),
+    ...(dateFrom && { dateFrom }),
+    ...(dateTo && { dateTo }),
+  };
+  const { data: transactions = [], isLoading, isError } = useFinancialTransactions(Object.keys(filters).length ? filters : undefined);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -142,18 +158,38 @@ export function FinancialTransactionsList() {
         </DropdownMenu>
       </div>
 
-      <div className="mb-4 flex items-center gap-3">
-        <Select value={typeFilter || "_none"} onValueChange={(v) => setTypeFilter(v === "_none" ? "" : v)}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Todos os tipos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="_none">Todos</SelectItem>
-            <SelectItem value="INCOME">Receitas</SelectItem>
-            <SelectItem value="EXPENSE">Despesas</SelectItem>
-            <SelectItem value="TRANSFER">Transferências</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-0.5">
+        {TRANSACTION_TYPE_FILTERS.map((f) => {
+          const isActive = typeFilter === (f.value ?? "");
+          return (
+            <button
+              key={f.label}
+              onClick={() => setTypeFilter(f.value ?? "")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
+                isActive ? f.activeClass : "border-transparent bg-muted/60 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className={cn("relative inline-flex h-2 w-2 rounded-full", f.dot)} />
+              </span>
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mb-4 rounded-xl border bg-card p-4 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Data de</Label>
+            <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="De" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Data até</Label>
+            <DatePicker value={dateTo} onChange={setDateTo} placeholder="Até" />
+          </div>
+        </div>
       </div>
 
       {mobileView}

@@ -71,3 +71,61 @@ export async function apiFetch<T>(
   if (res.status === 204) return undefined as T;
   return res.json();
 }
+
+export async function apiFetchBlob(
+  path: string,
+  options: RequestInit = {},
+): Promise<Blob> {
+  let accessToken = Cookies.get("ab_access_token");
+
+  const executeRequest = async (token?: string) => {
+    return await fetch(`${env.API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  };
+
+  let res = await executeRequest(accessToken);
+
+  if (res.status === 401) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshPromise = (async () => {
+        try {
+          await refreshSessionUseCase.execute();
+        } catch {
+          isRefreshing = false;
+          refreshPromise = null;
+          Cookies.remove("ab_access_token");
+          Cookies.remove("ab_refresh_token");
+          Cookies.remove("ab_admin");
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          throw new SessionExpiredError();
+        }
+        isRefreshing = false;
+        refreshPromise = null;
+      })();
+    }
+
+    try {
+      await refreshPromise;
+    } catch {
+      throw new SessionExpiredError();
+    }
+
+    accessToken = Cookies.get("ab_access_token");
+    res = await executeRequest(accessToken);
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `Request failed: ${res.status}`);
+  }
+
+  return res.blob();
+}
