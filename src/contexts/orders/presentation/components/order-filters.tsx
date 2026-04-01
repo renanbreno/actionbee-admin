@@ -16,6 +16,7 @@ type StatusFilter = "all" | "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | 
 interface OrderFiltersProps {
   filters: {
     search: string;
+    customerName: string;
     status: StatusFilter;
     startDate: string;
     endDate: string;
@@ -26,17 +27,30 @@ interface OrderFiltersProps {
 export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Search */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Order number search */}
         <div className="space-y-2">
           <Label htmlFor="search" className="text-sm font-medium">
-            Buscar
+            Nº do Pedido
           </Label>
           <Input
             id="search"
-            placeholder="Nº pedido ou cliente..."
+            placeholder="Ex: PED-0001"
             value={filters.search}
             onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+          />
+        </div>
+
+        {/* Customer name search */}
+        <div className="space-y-2">
+          <Label htmlFor="customerName" className="text-sm font-medium">
+            Cliente
+          </Label>
+          <Input
+            id="customerName"
+            placeholder="Nome do cliente..."
+            value={filters.customerName}
+            onChange={(e) => onFiltersChange({ ...filters, customerName: e.target.value })}
           />
         </div>
 

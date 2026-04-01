@@ -12,6 +12,8 @@ export interface AccountReceivable {
   accountName: string | null;
   orderId: string | null;
   customerId: string | null;
+  customerName: string | null;
+  paymentMethod: string | null;
   paidAt: string | null;
   paidAmount: number | null;
   notes: string | null;

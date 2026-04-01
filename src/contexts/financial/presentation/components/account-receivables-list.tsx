@@ -1,34 +1,73 @@
 "use client";
 
-import { useState } from "react";
-import { useAccountReceivables, useCancelReceivable, useReverseReceivable } from "../hooks/use-account-receivables";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAccountReceivables } from "../hooks/use-account-receivables";
 import { CreateReceivableDialog } from "./create-receivable-dialog";
-import { PayReceivableDialog } from "./pay-receivable-dialog";
 import type { AccountReceivable } from "../../domain/entities/receivable";
 import { FINANCIAL_STATUS_LABELS } from "../../domain/enums";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Plus, MoreHorizontal, CheckCircle, XCircle, TrendingUp, RotateCcw } from "lucide-react";
+import { Plus, TrendingUp, ChevronRight, Banknote, QrCode, CreditCard, Barcode } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const RECEIVABLE_STATUS_FILTERS = [
   { value: undefined, label: "Todos", dot: "bg-zinc-400", activeClass: "border-zinc-300 bg-zinc-100 text-zinc-700" },
   { value: "PENDING", label: "Pendente", dot: "bg-amber-500", activeClass: "border-amber-500/30 bg-amber-500/10 text-amber-700" },
-  { value: "OVERDUE", label: "Vencido", dot: "bg-red-500", activeClass: "border-red-500/30 bg-red-500/10 text-red-700" },
   { value: "PAID", label: "Pago", dot: "bg-emerald-500", activeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700" },
+  { value: "PARTIALLY_PAID", label: "Pago Parcial.", dot: "bg-blue-500", activeClass: "border-blue-500/30 bg-blue-500/10 text-blue-700" },
+  { value: "OVERDUE", label: "Vencido", dot: "bg-red-500", activeClass: "border-red-500/30 bg-red-500/10 text-red-700" },
   { value: "CANCELLED", label: "Cancelado", dot: "bg-muted-foreground/40", activeClass: "border-zinc-200 bg-zinc-50 text-zinc-500" },
 ];
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  BOLETO: "Boleto",
+  PIX: "PIX",
+  CREDIT_CARD: "Cartão de Crédito",
+  DEBIT_CARD: "Cartão de Débito",
+  CASH: "Dinheiro",
+};
+
+const PAYMENT_METHOD_ICONS: Record<string, LucideIcon> = {
+  CASH: Banknote,
+  PIX: QrCode,
+  CREDIT_CARD: CreditCard,
+  DEBIT_CARD: CreditCard,
+  BOLETO: Barcode,
+};
+
+function splitMethods(methods: (string | null)[]): string[] {
+  return [...new Set(
+    methods
+      .filter(Boolean)
+      .flatMap((m) => m!.split(",").map((s) => s.trim()))
+      .filter(Boolean)
+  )];
+}
+
+function PaymentMethodIcons({ methods }: { methods: (string | null)[] }) {
+  const unique = splitMethods(methods);
+  if (unique.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+  return (
+    <span className="flex items-center gap-1.5">
+      {unique.map((m) => {
+        const Icon = PAYMENT_METHOD_ICONS[m!];
+        const label = PAYMENT_METHOD_LABELS[m!] ?? m;
+        if (!Icon) return <span key={m} className="text-xs text-muted-foreground">{label}</span>;
+        return (
+          <span key={m} title={label}>
+            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -44,6 +83,7 @@ function StatusBadge({ status }: { status: string }) {
     PAID: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
     OVERDUE: "border-red-500/30 bg-red-500/10 text-red-600",
     CANCELLED: "border-zinc-400/30 bg-zinc-400/10 text-zinc-500",
+    PARTIALLY_PAID: "border-blue-500/30 bg-blue-500/10 text-blue-600",
   };
   return (
     <Badge variant="outline" className={cn("text-xs font-medium", colors[status] ?? "")}>
@@ -52,87 +92,94 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function effectiveStatus(entry: AccountReceivable): string {
+  if (entry.status === "PAID" && entry.paidAmount != null && entry.paidAmount < entry.amount) {
+    return "PARTIALLY_PAID";
+  }
+  return entry.status;
+}
+
+function aggregateStatus(entries: AccountReceivable[]): string {
+  const statuses = entries.map((e) => effectiveStatus(e));
+  if (statuses.every((s) => s === "CANCELLED")) return "CANCELLED";
+  if (statuses.every((s) => s === "PAID" || s === "CANCELLED")) return "PAID";
+  if (statuses.every((s) => s === "PAID" || s === "PARTIALLY_PAID" || s === "CANCELLED") && statuses.some((s) => s === "PARTIALLY_PAID")) return "PARTIALLY_PAID";
+  if (statuses.some((s) => s === "OVERDUE")) return "OVERDUE";
+  if (statuses.some((s) => s === "PARTIALLY_PAID")) return "PARTIALLY_PAID";
+  return "PENDING";
+}
+
+type ReceivableRow =
+  | { type: "single"; entry: AccountReceivable }
+  | { type: "group"; orderId: string; description: string; entries: AccountReceivable[] };
+
 export function AccountReceivablesList() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [dueDateFrom, setDueDateFrom] = useState<string>("");
   const [dueDateTo, setDueDateTo] = useState<string>("");
   const [orderIdFilter, setOrderIdFilter] = useState<string>("");
+  const [customerNameFilter, setCustomerNameFilter] = useState<string>("");
+  const [debouncedOrderId, setDebouncedOrderId] = useState<string>("");
+  const [debouncedCustomerName, setDebouncedCustomerName] = useState<string>("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedOrderId(orderIdFilter), 400);
+    return () => clearTimeout(timer);
+  }, [orderIdFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedCustomerName(customerNameFilter), 400);
+    return () => clearTimeout(timer);
+  }, [customerNameFilter]);
 
   const filters = {
     ...(statusFilter && { status: statusFilter }),
     ...(dueDateFrom && { dueDateFrom }),
     ...(dueDateTo && { dueDateTo }),
-    ...(orderIdFilter && { orderId: orderIdFilter }),
+    ...(debouncedOrderId && { orderId: debouncedOrderId }),
+    ...(debouncedCustomerName && { customerName: debouncedCustomerName }),
   };
   const { data: receivables = [], isLoading, isError } = useAccountReceivables(Object.keys(filters).length ? filters : undefined);
-  const cancelMutation = useCancelReceivable();
-  const reverseMutation = useReverseReceivable();
 
+  const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
-  const [payingReceivable, setPayingReceivable] = useState<AccountReceivable | null>(null);
-  const [payOpen, setPayOpen] = useState(false);
-  const [cancellingReceivable, setCancellingReceivable] = useState<AccountReceivable | null>(null);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [reversingReceivable, setReversingReceivable] = useState<AccountReceivable | null>(null);
-  const [reverseOpen, setReverseOpen] = useState(false);
 
-  const handlePay = (r: AccountReceivable) => { setPayingReceivable(r); setPayOpen(true); };
-  const handleCancelRequest = (r: AccountReceivable) => { setCancellingReceivable(r); setCancelOpen(true); };
-  const handleCancelConfirm = () => {
-    if (!cancellingReceivable) return;
-    cancelMutation.mutate(cancellingReceivable.id, {
-      onSuccess: () => { setCancelOpen(false); setCancellingReceivable(null); },
-    });
-  };
-  const handleReverseRequest = (r: AccountReceivable) => { setReversingReceivable(r); setReverseOpen(true); };
-  const handleReverseConfirm = () => {
-    if (!reversingReceivable) return;
-    reverseMutation.mutate(reversingReceivable.id, {
-      onSuccess: () => { setReverseOpen(false); setReversingReceivable(null); },
-    });
-  };
+  const rows = useMemo((): ReceivableRow[] => {
+    const orderMap = new Map<string, AccountReceivable[]>();
+    const standalone: AccountReceivable[] = [];
 
-  function ReceivableActions({ receivable }: { receivable: AccountReceivable }) {
-    const isPendingOrOverdue = receivable.status === "PENDING" || receivable.status === "OVERDUE";
-    const isPaid = receivable.status === "PAID";
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">Ações</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          {!isPaid && (
-            <DropdownMenuItem
-              disabled={!isPendingOrOverdue}
-              onClick={() => handlePay(receivable)}
-            >
-              <CheckCircle className="mr-2 h-3.5 w-3.5 text-emerald-600" />Registrar recebimento
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuSeparator />
-          {isPaid && (
-            <DropdownMenuItem
-              onClick={() => handleReverseRequest(receivable)}
-              className="text-destructive focus:text-destructive"
-            >
-              <RotateCcw className="mr-2 h-3.5 w-3.5" />Estornar
-            </DropdownMenuItem>
-          )}
-          {!isPaid && (
-            <DropdownMenuItem
-              disabled={!isPendingOrOverdue}
-              onClick={() => handleCancelRequest(receivable)}
-              className="text-destructive focus:text-destructive"
-            >
-              <XCircle className="mr-2 h-3.5 w-3.5" />Cancelar
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
+    for (const r of receivables) {
+      if (r.orderId) {
+        const existing = orderMap.get(r.orderId) ?? [];
+        orderMap.set(r.orderId, [...existing, r]);
+      } else {
+        standalone.push(r);
+      }
+    }
+
+    const result: ReceivableRow[] = [];
+
+    for (const [orderId, entries] of orderMap.entries()) {
+      if (entries.length === 1) {
+        result.push({ type: "single", entry: entries[0] });
+      } else {
+        result.push({ type: "group", orderId, description: entries[0].description, entries });
+      }
+    }
+
+    for (const entry of standalone) {
+      result.push({ type: "single", entry });
+    }
+
+    return result.sort((a, b) => {
+      const dateA = a.type === "single" ? a.entry.dueDate : a.entries[0].dueDate;
+      const dateB = b.type === "single" ? b.entry.dueDate : b.entries[0].dueDate;
+      return new Date(dateA).getTime() - new Date(dateB).getTime();
+    });
+  }, [receivables]);
+
+  function navigateToDetail(entryId: string) {
+    router.push(`/dashboard/financial/accounts-receivable/${entryId}`);
   }
 
   const EmptyState = () => (
@@ -141,6 +188,69 @@ export function AccountReceivablesList() {
       <p className="text-sm font-medium text-muted-foreground">Nenhuma conta a receber</p>
     </div>
   );
+
+  // ── Mobile ──────────────────────────────────────────────────────────────────
+
+  function GroupCardMobile({ row }: { row: Extract<ReceivableRow, { type: "group" }> }) {
+    const total = row.entries.reduce((s, e) => s + e.amount, 0);
+    const paid = row.entries.reduce((s, e) => s + (e.status === "PAID" ? (e.paidAmount ?? e.amount) : 0), 0);
+    const status = aggregateStatus(row.entries);
+    return (
+      <button
+        className="w-full text-left rounded-xl border bg-card p-4 shadow-sm hover:bg-accent/50 active:bg-accent transition-colors"
+        onClick={() => navigateToDetail(row.entries[0].id)}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <p className="truncate text-sm font-semibold">{row.description}</p>
+            </div>
+            <div className="flex items-center gap-1.5 mt-1">
+              <PaymentMethodIcons methods={row.entries.map((e) => e.paymentMethod)} />
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge status={status} />
+              <span className="text-sm font-semibold text-emerald-600">{formatCurrency(total)}</span>
+              {paid > 0 && paid < total && (
+                <span className="text-xs text-muted-foreground">{formatCurrency(paid)} recebido</span>
+              )}
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+        </div>
+      </button>
+    );
+  }
+
+  function SingleCardMobile({ entry }: { entry: AccountReceivable }) {
+    const status = effectiveStatus(entry);
+    return (
+      <button
+        className="w-full text-left rounded-xl border bg-card p-4 shadow-sm hover:bg-accent/50 active:bg-accent transition-colors"
+        onClick={() => navigateToDetail(entry.id)}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{entry.description}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <PaymentMethodIcons methods={[entry.paymentMethod]} />
+              <span className="text-xs text-muted-foreground">
+                {entry.categoryName} · vence {formatDate(entry.dueDate)}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge status={status} />
+              <span className="text-sm font-semibold text-emerald-600">{formatCurrency(entry.amount)}</span>
+              {status === "PARTIALLY_PAID" && (
+                <span className="text-xs text-muted-foreground">{formatCurrency(entry.paidAmount!)} recebido</span>
+              )}
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+        </div>
+      </button>
+    );
+  }
 
   const mobileView = (
     <div className="space-y-3 md:hidden">
@@ -151,24 +261,16 @@ export function AccountReceivablesList() {
         </div>
       ))}
       {isError && <p className="text-sm text-destructive text-center py-8">Erro ao carregar</p>}
-      {!isLoading && !isError && receivables.length === 0 && <EmptyState />}
-      {receivables.map((r) => (
-        <div key={r.id} className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{r.description}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{r.categoryName} · vence {formatDate(r.dueDate)}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <StatusBadge status={r.status} />
-                <span className="text-sm font-semibold text-emerald-600">{formatCurrency(r.amount)}</span>
-              </div>
-            </div>
-            <ReceivableActions receivable={r} />
-          </div>
-        </div>
-      ))}
+      {!isLoading && !isError && rows.length === 0 && <EmptyState />}
+      {rows.map((row) =>
+        row.type === "group"
+          ? <GroupCardMobile key={row.orderId} row={row} />
+          : <SingleCardMobile key={row.entry.id} entry={row.entry} />
+      )}
     </div>
   );
+
+  // ── Desktop ──────────────────────────────────────────────────────────────────
 
   const desktopView = (
     <div className="hidden md:block rounded-xl border bg-card shadow-sm overflow-x-auto">
@@ -177,34 +279,96 @@ export function AccountReceivablesList() {
           <TableRow>
             <TableHead>Descrição</TableHead>
             <TableHead>Categoria</TableHead>
+            <TableHead>Pagamento</TableHead>
             <TableHead>Vencimento</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+            <TableHead />
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading && Array.from({ length: 3 }).map((_, i) => (
             <TableRow key={i}>
-              {Array.from({ length: 6 }).map((__, j) => (
+              {Array.from({ length: 7 }).map((__, j) => (
                 <TableCell key={j}><div className="h-4 rounded bg-muted animate-pulse" /></TableCell>
               ))}
             </TableRow>
           ))}
-          {isError && <TableRow><TableCell colSpan={6}><p className="text-sm text-destructive text-center py-4">Erro ao carregar</p></TableCell></TableRow>}
-          {!isLoading && !isError && receivables.length === 0 && (
-            <TableRow><TableCell colSpan={6}><EmptyState /></TableCell></TableRow>
+          {isError && (
+            <TableRow><TableCell colSpan={7}><p className="text-sm text-destructive text-center py-4">Erro ao carregar</p></TableCell></TableRow>
           )}
-          {receivables.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell className="font-medium max-w-48 truncate">{r.description}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">{r.categoryName}</TableCell>
-              <TableCell className="text-sm">{formatDate(r.dueDate)}</TableCell>
-              <TableCell className="text-right text-sm font-semibold text-emerald-600">{formatCurrency(r.amount)}</TableCell>
-              <TableCell><StatusBadge status={r.status} /></TableCell>
-              <TableCell className="text-right"><ReceivableActions receivable={r} /></TableCell>
-            </TableRow>
-          ))}
+          {!isLoading && !isError && rows.length === 0 && (
+            <TableRow><TableCell colSpan={7}><EmptyState /></TableCell></TableRow>
+          )}
+          {rows.map((row) => {
+            if (row.type === "group") {
+              const total = row.entries.reduce((s, e) => s + e.amount, 0);
+              const paid = row.entries.reduce((s, e) => s + (e.status === "PAID" ? (e.paidAmount ?? e.amount) : 0), 0);
+              const status = aggregateStatus(row.entries);
+              const earliestDue = row.entries.reduce(
+                (min, e) => new Date(e.dueDate) < new Date(min) ? e.dueDate : min,
+                row.entries[0].dueDate,
+              );
+              return (
+                <TableRow
+                  key={row.orderId}
+                  className="cursor-pointer hover:bg-accent/40"
+                  onClick={() => navigateToDetail(row.entries[0].id)}
+                >
+                  <TableCell className="font-medium max-w-48">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="truncate">{row.description}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{row.entries[0].categoryName}</TableCell>
+                  <TableCell><PaymentMethodIcons methods={row.entries.map((e) => e.paymentMethod)} /></TableCell>
+                  <TableCell className="text-sm">{formatDate(earliestDue)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-semibold text-emerald-600">{formatCurrency(total)}</span>
+                      {paid > 0 && paid < total && (
+                        <span className="text-xs text-muted-foreground">{formatCurrency(paid)} recebido</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell><StatusBadge status={status} /></TableCell>
+                  <TableCell className="w-8">
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
+              );
+            }
+
+            const entry = row.entry;
+            const status = effectiveStatus(entry);
+
+            return (
+              <TableRow
+                key={entry.id}
+                className="cursor-pointer hover:bg-accent/40"
+                onClick={() => navigateToDetail(entry.id)}
+              >
+                <TableCell className="font-medium max-w-48 truncate">{entry.description}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{entry.categoryName}</TableCell>
+                <TableCell><PaymentMethodIcons methods={[entry.paymentMethod]} /></TableCell>
+                <TableCell className={cn("text-sm", entry.status === "OVERDUE" && "text-red-600 font-medium")}>
+                  {formatDate(entry.dueDate)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm font-semibold text-emerald-600">{formatCurrency(entry.amount)}</span>
+                    {status === "PARTIALLY_PAID" && (
+                      <span className="text-xs text-muted-foreground">{formatCurrency(entry.paidAmount!)} recebido</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell><StatusBadge status={status} /></TableCell>
+                <TableCell className="w-8">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
@@ -246,13 +410,21 @@ export function AccountReceivablesList() {
       </div>
 
       <div className="mb-4 rounded-xl border bg-card p-4 shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium">Nº do Pedido</Label>
             <Input
               value={orderIdFilter}
               onChange={(e) => setOrderIdFilter(e.target.value)}
               placeholder="Ex: abc123"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Cliente</Label>
+            <Input
+              value={customerNameFilter}
+              onChange={(e) => setCustomerNameFilter(e.target.value)}
+              placeholder="Buscar por nome..."
             />
           </div>
           <div className="space-y-2">
@@ -270,41 +442,6 @@ export function AccountReceivablesList() {
       {desktopView}
 
       <CreateReceivableDialog open={createOpen} onOpenChange={setCreateOpen} />
-      <PayReceivableDialog receivable={payingReceivable} open={payOpen} onOpenChange={setPayOpen} />
-
-      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar conta a receber</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja cancelar <strong>{cancellingReceivable?.description}</strong>?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelMutation.isPending}>Voltar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancelConfirm} disabled={cancelMutation.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Cancelar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={reverseOpen} onOpenChange={setReverseOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Estornar conta a receber</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja estornar <strong>{reversingReceivable?.description}</strong>? Esta ação marcará o recebimento como cancelado.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={reverseMutation.isPending}>Voltar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReverseConfirm} disabled={reverseMutation.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Confirmar estorno
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

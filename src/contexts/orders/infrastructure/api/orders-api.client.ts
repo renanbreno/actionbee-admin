@@ -13,6 +13,7 @@ export const ordersApiClient = {
     params.append("page", filters.page.toString());
     params.append("limit", filters.limit.toString());
     if (filters.search) params.append("search", filters.search);
+    if (filters.customerName) params.append("customerName", filters.customerName);
     if (filters.status) params.append("status", filters.status);
     if (filters.startDate) params.append("startDate", filters.startDate);
     if (filters.endDate) params.append("endDate", filters.endDate);

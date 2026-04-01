@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getReceivablesUseCase,
+  getReceivableByIdUseCase,
   createReceivableUseCase,
   payReceivableUseCase,
   cancelReceivableUseCase,
@@ -16,12 +17,29 @@ interface ReceivableFilters {
   dueDateTo?: string;
   customerId?: string;
   orderId?: string;
+  customerName?: string;
 }
 
 export function useAccountReceivables(filters?: ReceivableFilters) {
   return useQuery({
     queryKey: ["financial-receivables", filters],
     queryFn: () => getReceivablesUseCase.execute(filters),
+  });
+}
+
+export function useReceivableDetail(id: string) {
+  return useQuery({
+    queryKey: ["financial-receivable", id],
+    queryFn: () => getReceivableByIdUseCase.execute(id),
+    enabled: !!id,
+  });
+}
+
+export function useReceivablesByOrder(orderId: string | null) {
+  return useQuery({
+    queryKey: ["financial-receivables", { orderId }],
+    queryFn: () => getReceivablesUseCase.execute({ orderId: orderId! }),
+    enabled: !!orderId,
   });
 }
 

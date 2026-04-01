@@ -23,12 +23,14 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     search: "",
+    customerName: "",
     status: "all" as StatusFilter,
     startDate: "",
     endDate: "",
   });
 
   const debouncedSearch = useDebounce(filters.search, 500);
+  const debouncedCustomerName = useDebounce(filters.customerName, 500);
 
   const [detailSheet, setDetailSheet] = useState<{
     open: boolean;
@@ -59,6 +61,7 @@ export default function OrdersPage() {
     page,
     limit: 10,
     search: debouncedSearch || undefined,
+    customerName: debouncedCustomerName || undefined,
     status: filters.status === "all" ? undefined : filters.status,
     startDate: filters.startDate || undefined,
     endDate: filters.endDate || undefined,
@@ -69,7 +72,7 @@ export default function OrdersPage() {
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, filters.status, filters.startDate, filters.endDate]);
+  }, [debouncedSearch, debouncedCustomerName, filters.status, filters.startDate, filters.endDate]);
 
   function handleViewDetail(order: OrderListItem) {
     setDetailSheet({ open: true, orderId: order.id });
@@ -131,7 +134,7 @@ export default function OrdersPage() {
             size="sm"
             className="gap-2"
             onClick={() => {
-              setFilters({ search: "", status: "all", startDate: "", endDate: "" });
+              setFilters({ search: "", customerName: "", status: "all", startDate: "", endDate: "" });
               setPage(1);
             }}
           >
