@@ -45,8 +45,8 @@ export class RepresentativeRepositoryImpl implements RepresentativeRepository {
     return representativesApiClient.getSalesReport(filters);
   }
 
-  async getCommissionSummary(): Promise<CommissionSummary> {
-    return representativesApiClient.getCommissionSummary();
+  async getCommissionSummary(filters?: SalesReportFilters): Promise<CommissionSummary> {
+    return representativesApiClient.getCommissionSummary(filters);
   }
 
   async downloadSalesReportPdf(filters: SalesReportFilters): Promise<Blob> {
