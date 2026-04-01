@@ -92,8 +92,14 @@ export const representativesApiClient = {
     });
   },
 
-  getCommissionSummary(): Promise<CommissionSummary> {
-    return apiFetch<CommissionSummary>("/admin/representative-commissions/summary");
+  getCommissionSummary(filters?: SalesReportFilters): Promise<CommissionSummary> {
+    const params = new URLSearchParams();
+    if (filters?.representativeId) params.set("representativeId", filters.representativeId);
+    if (filters?.representativeName) params.set("representativeName", filters.representativeName);
+    if (filters?.startDate) params.set("startDate", filters.startDate);
+    if (filters?.endDate) params.set("endDate", filters.endDate);
+    const qs = params.toString();
+    return apiFetch<CommissionSummary>(`/admin/representative-commissions/summary${qs ? `?${qs}` : ""}`);
   },
 
   downloadSalesReportPdf(filters: SalesReportFilters): Promise<Blob> {

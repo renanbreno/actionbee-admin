@@ -46,7 +46,11 @@ export default function RepresentativesPage() {
   );
 
   const { data: commissionSummary, isLoading: isCommissionSummaryLoading } =
-    useCommissionSummary();
+    useCommissionSummary({
+      representativeId: selectedRepresentative?.id,
+      startDate: reportFilters.startDate || undefined,
+      endDate: reportFilters.endDate || undefined,
+    });
 
   const { downloadPdf: downloadReportPdf, isPending: isPdfLoading } =
     useDownloadSalesReportPdf();
