@@ -48,4 +48,8 @@ export class RepresentativeRepositoryImpl implements RepresentativeRepository {
   async getCommissionSummary(): Promise<CommissionSummary> {
     return representativesApiClient.getCommissionSummary();
   }
+
+  async downloadSalesReportPdf(filters: SalesReportFilters): Promise<Blob> {
+    return representativesApiClient.downloadSalesReportPdf(filters);
+  }
 }

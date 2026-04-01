@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useDebounce } from "@/shared/hooks/use-debounce";
-import { Plus, Users, BarChart3 } from "lucide-react";
+import { Plus, Users, BarChart3, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,9 +11,11 @@ import { SalesReportFilters } from "@/contexts/representatives/presentation/comp
 import { SalesReportSummary } from "@/contexts/representatives/presentation/components/sales-report-summary";
 import { SalesReportTable } from "@/contexts/representatives/presentation/components/sales-report-table";
 import { useSalesReport } from "@/contexts/representatives/presentation/hooks/use-sales-report";
+import { Representative } from "@/contexts/representatives/domain/entities/representative";
 import { useMarkRepresentativeCommissionPaid } from "@/contexts/representatives/presentation/hooks/use-mark-representative-commission-paid";
 import { useCancelRepresentativeCommission } from "@/contexts/representatives/presentation/hooks/use-cancel-representative-commission";
 import { useCommissionSummary } from "@/contexts/representatives/presentation/hooks/use-commission-summary";
+import { useDownloadSalesReportPdf } from "@/contexts/representatives/presentation/hooks/use-download-sales-report-pdf";
 import { CommissionSummaryCard } from "@/contexts/representatives/presentation/components/commission-summary-card";
 
 export default function RepresentativesPage() {
@@ -28,19 +29,16 @@ export default function RepresentativesPage() {
     startDate: "",
     endDate: "",
   });
+  const [selectedRepresentative, setSelectedRepresentative] = useState<Representative | null>(null);
   const [reportPage, setReportPage] = useState(1);
-
-  const debouncedRepresentativeName = useDebounce(
-    reportFilters.representativeName,
-    500,
-  );
 
   const {
     data: salesReport,
     isLoading: isReportLoading,
     isError: isReportError,
   } = useSalesReport(
-    debouncedRepresentativeName || undefined,
+    selectedRepresentative?.id,
+    undefined,
     reportFilters.startDate || undefined,
     reportFilters.endDate || undefined,
     reportPage,
@@ -49,6 +47,9 @@ export default function RepresentativesPage() {
 
   const { data: commissionSummary, isLoading: isCommissionSummaryLoading } =
     useCommissionSummary();
+
+  const { downloadPdf: downloadReportPdf, isPending: isPdfLoading } =
+    useDownloadSalesReportPdf();
 
   // Representative commission mutations
   const markCommissionPaid = useMarkRepresentativeCommissionPaid();
@@ -64,6 +65,16 @@ export default function RepresentativesPage() {
 
   const handleFiltersChange = (filters: typeof reportFilters) => {
     setReportFilters(filters);
+    setReportPage(1);
+  };
+
+  const handleRepresentativeSelect = (representative: Representative) => {
+    setSelectedRepresentative(representative);
+    setReportPage(1);
+  };
+
+  const handleRepresentativeClear = () => {
+    setSelectedRepresentative(null);
     setReportPage(1);
   };
 
@@ -128,7 +139,10 @@ export default function RepresentativesPage() {
         <TabsContent value="sales-report" className="space-y-4">
           <SalesReportFilters
             filters={reportFilters}
+            selectedRepresentative={selectedRepresentative}
             onFiltersChange={handleFiltersChange}
+            onRepresentativeSelect={handleRepresentativeSelect}
+            onRepresentativeClear={handleRepresentativeClear}
           />
           <SalesReportSummary
             summary={
@@ -153,6 +167,24 @@ export default function RepresentativesPage() {
               isLoading={isCommissionSummaryLoading}
             />
           </SalesReportSummary>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={isPdfLoading}
+              onClick={() => {
+                downloadReportPdf({
+                  representativeId: selectedRepresentative?.id,
+                  startDate: reportFilters.startDate || undefined,
+                  endDate: reportFilters.endDate || undefined,
+                });
+              }}
+            >
+              <FileDown className="h-4 w-4" />
+              {isPdfLoading ? "Gerando PDF..." : "Exportar PDF"}
+            </Button>
+          </div>
           <SalesReportTable
             orders={salesReport?.orders ?? []}
             isLoading={isReportLoading}

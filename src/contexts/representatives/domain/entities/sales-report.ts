@@ -52,6 +52,7 @@ export interface PaginatedSalesReport {
 }
 
 export interface SalesReportFilters {
+  representativeId?: string;
   representativeName?: string;
   startDate?: string;
   endDate?: string;

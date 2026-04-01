@@ -1,8 +1,9 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Representative } from "../../domain/entities/representative";
+import { RepresentativeSearch } from "./representative-search";
 
 interface SalesReportFiltersProps {
   filters: {
@@ -10,21 +11,29 @@ interface SalesReportFiltersProps {
     startDate: string;
     endDate: string;
   };
+  selectedRepresentative: Representative | null;
   onFiltersChange: (filters: SalesReportFiltersProps["filters"]) => void;
+  onRepresentativeSelect: (representative: Representative) => void;
+  onRepresentativeClear: () => void;
 }
 
-export function SalesReportFilters({ filters, onFiltersChange }: SalesReportFiltersProps) {
+export function SalesReportFilters({
+  filters,
+  selectedRepresentative,
+  onFiltersChange,
+  onRepresentativeSelect,
+  onRepresentativeClear,
+}: SalesReportFiltersProps) {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Representative */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Representante</Label>
-          <Input
-            type="text"
-            placeholder="Buscar por nome"
-            value={filters.representativeName}
-            onChange={(e) => onFiltersChange({ ...filters, representativeName: e.target.value })}
+          <RepresentativeSearch
+            onSelect={onRepresentativeSelect}
+            selected={selectedRepresentative}
+            onClear={onRepresentativeClear}
           />
         </div>
 

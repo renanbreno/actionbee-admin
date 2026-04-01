@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSalesReportUseCase } from "../../di";
 
 export function useSalesReport(
+  representativeId?: string,
   representativeName?: string,
   startDate?: string,
   endDate?: string,
@@ -11,9 +12,10 @@ export function useSalesReport(
   limit?: number,
 ) {
   return useQuery({
-    queryKey: ["representative-sales-report", representativeName, startDate, endDate, page, limit],
+    queryKey: ["representative-sales-report", representativeId, representativeName, startDate, endDate, page, limit],
     queryFn: () =>
       getSalesReportUseCase.execute({
+        representativeId,
         representativeName,
         startDate,
         endDate,

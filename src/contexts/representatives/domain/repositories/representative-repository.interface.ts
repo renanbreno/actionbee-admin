@@ -31,4 +31,5 @@ export interface RepresentativeRepository {
   getCustomers(representativeId: string): Promise<RepresentativeCustomer[]>;
   getSalesReport(filters: SalesReportFilters): Promise<PaginatedSalesReport>;
   getCommissionSummary(): Promise<CommissionSummary>;
+  downloadSalesReportPdf(filters: SalesReportFilters): Promise<Blob>;
 }

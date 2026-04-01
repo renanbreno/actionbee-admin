@@ -1,4 +1,4 @@
-import { apiFetch } from "@/shared/infrastructure/api/api-client";
+import { apiFetch, apiFetchBlob } from "@/shared/infrastructure/api/api-client";
 import { Representative, RepresentativeCustomer } from "../../domain/entities/representative";
 import { PaginatedSalesReport, SalesReportFilters } from "../../domain/entities/sales-report";
 import { CommissionSummary } from "../../domain/entities/commission-summary";
@@ -70,6 +70,7 @@ export const representativesApiClient = {
 
   getSalesReport(filters: SalesReportFilters): Promise<PaginatedSalesReport> {
     const params = new URLSearchParams();
+    if (filters.representativeId) params.set("representativeId", filters.representativeId);
     if (filters.representativeName) params.set("representativeName", filters.representativeName);
     if (filters.startDate) params.set("startDate", filters.startDate);
     if (filters.endDate) params.set("endDate", filters.endDate);
@@ -93,5 +94,15 @@ export const representativesApiClient = {
 
   getCommissionSummary(): Promise<CommissionSummary> {
     return apiFetch<CommissionSummary>("/admin/representative-commissions/summary");
+  },
+
+  downloadSalesReportPdf(filters: SalesReportFilters): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (filters.representativeId) params.set("representativeId", filters.representativeId);
+    if (filters.representativeName) params.set("representativeName", filters.representativeName);
+    if (filters.startDate) params.set("startDate", filters.startDate);
+    if (filters.endDate) params.set("endDate", filters.endDate);
+    const query = params.toString();
+    return apiFetchBlob(`/admin/representatives/sales-report/pdf${query ? `?${query}` : ""}`);
   },
 };
