@@ -49,7 +49,7 @@ export const financialApiClient = {
   getReceivableById: (id: string): Promise<AccountReceivable> =>
     apiFetch(`/admin/financial/accounts-receivable/${id}`),
 
-  getReceivables: (params?: { status?: string; dueDateFrom?: string; dueDateTo?: string; customerId?: string; orderId?: string; customerName?: string }): Promise<AccountReceivable[]> => {
+  getReceivables: (params?: { status?: string; dueDateFrom?: string; dueDateTo?: string; customerId?: string; orderId?: string; customerName?: string; description?: string }): Promise<AccountReceivable[]> => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.dueDateFrom) qs.set("dueDateFrom", params.dueDateFrom);
@@ -57,6 +57,7 @@ export const financialApiClient = {
     if (params?.customerId) qs.set("customerId", params.customerId);
     if (params?.orderId) qs.set("orderId", params.orderId);
     if (params?.customerName) qs.set("customerName", params.customerName);
+    if (params?.description) qs.set("description", params.description);
     const query = qs.toString();
     return apiFetch(`/admin/financial/accounts-receivable${query ? `?${query}` : ""}`);
   },
@@ -66,6 +67,9 @@ export const financialApiClient = {
 
   payReceivable: (id: string, data: { paidAt: string; paidAmount: number; accountId?: string }): Promise<AccountReceivable> =>
     apiFetch(`/admin/financial/accounts-receivable/${id}/pay`, { method: "POST", body: JSON.stringify(data) }),
+
+  batchPayReceivables: (data: { ids: string[]; paidAt: string; accountId?: string }): Promise<AccountReceivable[]> =>
+    apiFetch("/admin/financial/accounts-receivable/batch-pay", { method: "POST", body: JSON.stringify(data) }),
 
   cancelReceivable: (id: string): Promise<AccountReceivable> =>
     apiFetch(`/admin/financial/accounts-receivable/${id}/cancel`, { method: "POST" }),
@@ -92,12 +96,16 @@ export const financialApiClient = {
     apiFetch(`/admin/suppliers/${id}`, { method: "DELETE" }),
 
   // --- Accounts Payable ---
-  getPayables: (params?: { status?: string; dueDateFrom?: string; dueDateTo?: string; supplierId?: string }): Promise<AccountPayable[]> => {
+  getPayableById: (id: string): Promise<AccountPayable> =>
+    apiFetch(`/admin/financial/accounts-payable/${id}`),
+
+  getPayables: (params?: { status?: string; dueDateFrom?: string; dueDateTo?: string; supplierId?: string; description?: string }): Promise<AccountPayable[]> => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.dueDateFrom) qs.set("dueDateFrom", params.dueDateFrom);
     if (params?.dueDateTo) qs.set("dueDateTo", params.dueDateTo);
     if (params?.supplierId) qs.set("supplierId", params.supplierId);
+    if (params?.description) qs.set("description", params.description);
     const query = qs.toString();
     return apiFetch(`/admin/financial/accounts-payable${query ? `?${query}` : ""}`);
   },
@@ -107,6 +115,9 @@ export const financialApiClient = {
 
   payPayable: (id: string, data: { paidAt: string; paidAmount: number; accountId?: string }): Promise<AccountPayable> =>
     apiFetch(`/admin/financial/accounts-payable/${id}/pay`, { method: "POST", body: JSON.stringify(data) }),
+
+  batchPayPayables: (data: { ids: string[]; paidAt: string; accountId?: string }): Promise<AccountPayable[]> =>
+    apiFetch("/admin/financial/accounts-payable/batch-pay", { method: "POST", body: JSON.stringify(data) }),
 
   cancelPayable: (id: string): Promise<AccountPayable> =>
     apiFetch(`/admin/financial/accounts-payable/${id}/cancel`, { method: "POST" }),

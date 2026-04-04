@@ -4,15 +4,17 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccountReceivables } from "../hooks/use-account-receivables";
 import { CreateReceivableDialog } from "./create-receivable-dialog";
+import { BatchPayReceivableDialog } from "./batch-pay-receivable-dialog";
 import type { AccountReceivable } from "../../domain/entities/receivable";
 import { FINANCIAL_STATUS_LABELS } from "../../domain/enums";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Plus, TrendingUp, ChevronRight, Banknote, QrCode, CreditCard, Barcode } from "lucide-react";
+import { Plus, TrendingUp, ChevronRight, Banknote, QrCode, CreditCard, Barcode, CheckCircle, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -117,15 +119,15 @@ export function AccountReceivablesList() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [dueDateFrom, setDueDateFrom] = useState<string>("");
   const [dueDateTo, setDueDateTo] = useState<string>("");
-  const [orderIdFilter, setOrderIdFilter] = useState<string>("");
+  const [descriptionFilter, setDescriptionFilter] = useState<string>("");
   const [customerNameFilter, setCustomerNameFilter] = useState<string>("");
-  const [debouncedOrderId, setDebouncedOrderId] = useState<string>("");
+  const [debouncedDescription, setDebouncedDescription] = useState<string>("");
   const [debouncedCustomerName, setDebouncedCustomerName] = useState<string>("");
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedOrderId(orderIdFilter), 400);
+    const timer = setTimeout(() => setDebouncedDescription(descriptionFilter), 400);
     return () => clearTimeout(timer);
-  }, [orderIdFilter]);
+  }, [descriptionFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedCustomerName(customerNameFilter), 400);
@@ -136,13 +138,48 @@ export function AccountReceivablesList() {
     ...(statusFilter && { status: statusFilter }),
     ...(dueDateFrom && { dueDateFrom }),
     ...(dueDateTo && { dueDateTo }),
-    ...(debouncedOrderId && { orderId: debouncedOrderId }),
+    ...(debouncedDescription && { description: debouncedDescription }),
     ...(debouncedCustomerName && { customerName: debouncedCustomerName }),
   };
   const { data: receivables = [], isLoading, isError } = useAccountReceivables(Object.keys(filters).length ? filters : undefined);
 
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchPayOpen, setBatchPayOpen] = useState(false);
+
+  const allReceivables = receivables;
+  const eligibleReceivables = useMemo(
+    () => allReceivables.filter((r) => r.status === "PENDING" || r.status === "OVERDUE"),
+    [allReceivables]
+  );
+  const selectedReceivables = useMemo(
+    () => allReceivables.filter((r) => selectedIds.has(r.id)),
+    [allReceivables, selectedIds]
+  );
+  const allEligibleSelected = eligibleReceivables.length > 0 && eligibleReceivables.every((r) => selectedIds.has(r.id));
+  const someSelected = selectedIds.size > 0 && !allEligibleSelected;
+  const selectedTotal = selectedReceivables.reduce((sum, r) => sum + r.amount, 0);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (allEligibleSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(eligibleReceivables.map((r) => r.id)));
+    }
+  };
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [statusFilter, dueDateFrom, dueDateTo, descriptionFilter, customerNameFilter]);
 
   const rows = useMemo((): ReceivableRow[] => {
     const orderMap = new Map<string, AccountReceivable[]>();
@@ -195,16 +232,37 @@ export function AccountReceivablesList() {
     const total = row.entries.reduce((s, e) => s + e.amount, 0);
     const paid = row.entries.reduce((s, e) => s + (e.status === "PAID" ? (e.paidAmount ?? e.amount) : 0), 0);
     const status = aggregateStatus(row.entries);
+    const groupEligible = row.entries.some((e) => e.status === "PENDING" || e.status === "OVERDUE");
+    const customerName = row.entries[0].customerName;
     return (
-      <button
-        className="w-full text-left rounded-xl border bg-card p-4 shadow-sm hover:bg-accent/50 active:bg-accent transition-colors"
+      <div
+        className="w-full text-left rounded-xl border bg-card p-4 shadow-sm cursor-pointer active:bg-muted/50 transition-colors"
         onClick={() => navigateToDetail(row.entries[0].id)}
       >
         <div className="flex items-start justify-between gap-2">
+          {groupEligible && (
+            <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={row.entries.filter((e) => e.status === "PENDING" || e.status === "OVERDUE").every((e) => selectedIds.has(e.id))}
+                onCheckedChange={() => {
+                  const eligible = row.entries.filter((e) => e.status === "PENDING" || e.status === "OVERDUE");
+                  const allSelected = eligible.every((e) => selectedIds.has(e.id));
+                  setSelectedIds((prev) => {
+                    const next = new Set(prev);
+                    eligible.forEach((e) => allSelected ? next.delete(e.id) : next.add(e.id));
+                    return next;
+                  });
+                }}
+              />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 mb-0.5">
               <p className="truncate text-sm font-semibold">{row.description}</p>
             </div>
+            {customerName && (
+              <p className="text-xs text-muted-foreground mt-0.5">{customerName}</p>
+            )}
             <div className="flex items-center gap-1.5 mt-1">
               <PaymentMethodIcons methods={row.entries.map((e) => e.paymentMethod)} />
             </div>
@@ -218,24 +276,30 @@ export function AccountReceivablesList() {
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
         </div>
-      </button>
+      </div>
     );
   }
 
   function SingleCardMobile({ entry }: { entry: AccountReceivable }) {
     const status = effectiveStatus(entry);
+    const isEligible = entry.status === "PENDING" || entry.status === "OVERDUE";
     return (
-      <button
-        className="w-full text-left rounded-xl border bg-card p-4 shadow-sm hover:bg-accent/50 active:bg-accent transition-colors"
+      <div
+        className="w-full text-left rounded-xl border bg-card p-4 shadow-sm cursor-pointer active:bg-muted/50 transition-colors"
         onClick={() => navigateToDetail(entry.id)}
       >
         <div className="flex items-start justify-between gap-2">
+          {isEligible && (
+            <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+              <Checkbox checked={selectedIds.has(entry.id)} onCheckedChange={() => toggleSelect(entry.id)} />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{entry.description}</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <PaymentMethodIcons methods={[entry.paymentMethod]} />
               <span className="text-xs text-muted-foreground">
-                {entry.categoryName} · vence {formatDate(entry.dueDate)}
+                {entry.categoryName}{entry.customerName ? ` · ${entry.customerName}` : ""} · vence {formatDate(entry.dueDate)}
               </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -248,7 +312,7 @@ export function AccountReceivablesList() {
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
         </div>
-      </button>
+      </div>
     );
   }
 
@@ -277,7 +341,15 @@ export function AccountReceivablesList() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={allEligibleSelected}
+                {...(someSelected ? { "data-state": "indeterminate" } : {})}
+                onCheckedChange={toggleSelectAll}
+              />
+            </TableHead>
             <TableHead>Descrição</TableHead>
+            <TableHead>Cliente</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead>Pagamento</TableHead>
             <TableHead>Vencimento</TableHead>
@@ -289,16 +361,16 @@ export function AccountReceivablesList() {
         <TableBody>
           {isLoading && Array.from({ length: 3 }).map((_, i) => (
             <TableRow key={i}>
-              {Array.from({ length: 7 }).map((__, j) => (
+              {Array.from({ length: 9 }).map((__, j) => (
                 <TableCell key={j}><div className="h-4 rounded bg-muted animate-pulse" /></TableCell>
               ))}
             </TableRow>
           ))}
           {isError && (
-            <TableRow><TableCell colSpan={7}><p className="text-sm text-destructive text-center py-4">Erro ao carregar</p></TableCell></TableRow>
+            <TableRow><TableCell colSpan={9}><p className="text-sm text-destructive text-center py-4">Erro ao carregar</p></TableCell></TableRow>
           )}
           {!isLoading && !isError && rows.length === 0 && (
-            <TableRow><TableCell colSpan={7}><EmptyState /></TableCell></TableRow>
+            <TableRow><TableCell colSpan={9}><EmptyState /></TableCell></TableRow>
           )}
           {rows.map((row) => {
             if (row.type === "group") {
@@ -309,17 +381,34 @@ export function AccountReceivablesList() {
                 (min, e) => new Date(e.dueDate) < new Date(min) ? e.dueDate : min,
                 row.entries[0].dueDate,
               );
+              const groupEligible = row.entries.filter((e) => e.status === "PENDING" || e.status === "OVERDUE");
+              const groupAllSelected = groupEligible.length > 0 && groupEligible.every((e) => selectedIds.has(e.id));
               return (
                 <TableRow
                   key={row.orderId}
-                  className="cursor-pointer hover:bg-accent/40"
+                  className="cursor-pointer"
                   onClick={() => navigateToDetail(row.entries[0].id)}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {groupEligible.length > 0 && (
+                      <Checkbox
+                        checked={groupAllSelected}
+                        onCheckedChange={() => {
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            groupEligible.forEach((e) => groupAllSelected ? next.delete(e.id) : next.add(e.id));
+                            return next;
+                          });
+                        }}
+                      />
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium max-w-48">
                     <div className="flex items-center gap-1.5 truncate">
                       <span className="truncate">{row.description}</span>
                     </div>
                   </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{row.entries[0].customerName ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{row.entries[0].categoryName}</TableCell>
                   <TableCell><PaymentMethodIcons methods={row.entries.map((e) => e.paymentMethod)} /></TableCell>
                   <TableCell className="text-sm">{formatDate(earliestDue)}</TableCell>
@@ -341,14 +430,19 @@ export function AccountReceivablesList() {
 
             const entry = row.entry;
             const status = effectiveStatus(entry);
+            const isEligible = entry.status === "PENDING" || entry.status === "OVERDUE";
 
             return (
               <TableRow
                 key={entry.id}
-                className="cursor-pointer hover:bg-accent/40"
+                className="cursor-pointer"
                 onClick={() => navigateToDetail(entry.id)}
               >
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  {isEligible && <Checkbox checked={selectedIds.has(entry.id)} onCheckedChange={() => toggleSelect(entry.id)} />}
+                </TableCell>
                 <TableCell className="font-medium max-w-48 truncate">{entry.description}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{entry.customerName ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{entry.categoryName}</TableCell>
                 <TableCell><PaymentMethodIcons methods={[entry.paymentMethod]} /></TableCell>
                 <TableCell className={cn("text-sm", entry.status === "OVERDUE" && "text-red-600 font-medium")}>
@@ -412,11 +506,11 @@ export function AccountReceivablesList() {
       <div className="mb-4 rounded-xl border bg-card p-4 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Nº do Pedido</Label>
+            <Label className="text-sm font-medium">Descrição</Label>
             <Input
-              value={orderIdFilter}
-              onChange={(e) => setOrderIdFilter(e.target.value)}
-              placeholder="Ex: abc123"
+              value={descriptionFilter}
+              onChange={(e) => setDescriptionFilter(e.target.value)}
+              placeholder="Buscar por descrição..."
             />
           </div>
           <div className="space-y-2">
@@ -441,7 +535,32 @@ export function AccountReceivablesList() {
       {mobileView}
       {desktopView}
 
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-lg">
+          <span className="text-sm font-medium whitespace-nowrap">
+            {selectedIds.size} selecionada{selectedIds.size !== 1 ? "s" : ""}
+          </span>
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {formatCurrency(selectedTotal)}
+          </span>
+          <Button size="sm" onClick={() => setBatchPayOpen(true)} className="gap-1.5 whitespace-nowrap">
+            <CheckCircle className="h-3.5 w-3.5" />
+            Baixar em Lote
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="h-8 w-8 p-0">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Limpar seleção</span>
+          </Button>
+        </div>
+      )}
+
       <CreateReceivableDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <BatchPayReceivableDialog
+        receivables={selectedReceivables}
+        open={batchPayOpen}
+        onOpenChange={setBatchPayOpen}
+        onSuccess={() => setSelectedIds(new Set())}
+      />
     </>
   );
 }

@@ -62,18 +62,6 @@ export const vendedoresApiClient = {
     return apiFetch<PaginatedVendedorSalesReport>(`/admin/vendedores/sales-report${query ? `?${query}` : ""}`);
   },
 
-  markCommissionPaid(orderId: string): Promise<void> {
-    return apiFetch<void>(`/admin/vendedor-commissions/orders/${orderId}/mark-paid`, {
-      method: "PATCH",
-    });
-  },
-
-  cancelCommission(orderId: string): Promise<void> {
-    return apiFetch<void>(`/admin/vendedor-commissions/orders/${orderId}/cancel`, {
-      method: "PATCH",
-    });
-  },
-
   getCommissionSummary(): Promise<VendedorCommissionSummary> {
     return apiFetch<VendedorCommissionSummary>("/admin/vendedor-commissions/summary");
   },

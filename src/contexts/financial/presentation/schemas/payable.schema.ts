@@ -16,5 +16,11 @@ export const payPayableSchema = z.object({
   accountId: z.string().optional(),
 });
 
+export const batchPayPayableSchema = z.object({
+  paidAt: z.string().min(1, "Data de pagamento é obrigatória"),
+  accountId: z.string().optional(),
+});
+
 export type CreatePayableFormValues = z.infer<typeof createPayableSchema>;
 export type PayPayableFormValues = z.infer<typeof payPayableSchema>;
+export type BatchPayPayableFormValues = z.infer<typeof batchPayPayableSchema>;

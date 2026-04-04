@@ -9,6 +9,7 @@ import {
   payReceivableUseCase,
   cancelReceivableUseCase,
   reverseReceivableUseCase,
+  batchPayReceivablesUseCase,
 } from "../../di";
 
 interface ReceivableFilters {
@@ -18,6 +19,7 @@ interface ReceivableFilters {
   customerId?: string;
   orderId?: string;
   customerName?: string;
+  description?: string;
 }
 
 export function useAccountReceivables(filters?: ReceivableFilters) {
@@ -68,6 +70,22 @@ export function usePayReceivable() {
       queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["financial-dashboard"] });
       toast.success("Recebimento registrado");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useBatchPayReceivables() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { ids: string[]; paidAt: string; accountId?: string }) =>
+      batchPayReceivablesUseCase.execute(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financial-receivables"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-dashboard"] });
+      toast.success("Recebimentos registrados com sucesso");
     },
     onError: (error: Error) => toast.error(error.message),
   });

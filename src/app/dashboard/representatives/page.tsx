@@ -12,8 +12,6 @@ import { SalesReportSummary } from "@/contexts/representatives/presentation/comp
 import { SalesReportTable } from "@/contexts/representatives/presentation/components/sales-report-table";
 import { useSalesReport } from "@/contexts/representatives/presentation/hooks/use-sales-report";
 import { Representative } from "@/contexts/representatives/domain/entities/representative";
-import { useMarkRepresentativeCommissionPaid } from "@/contexts/representatives/presentation/hooks/use-mark-representative-commission-paid";
-import { useCancelRepresentativeCommission } from "@/contexts/representatives/presentation/hooks/use-cancel-representative-commission";
 import { useCommissionSummary } from "@/contexts/representatives/presentation/hooks/use-commission-summary";
 import { useDownloadSalesReportPdf } from "@/contexts/representatives/presentation/hooks/use-download-sales-report-pdf";
 import { CommissionSummaryCard } from "@/contexts/representatives/presentation/components/commission-summary-card";
@@ -54,18 +52,6 @@ export default function RepresentativesPage() {
 
   const { downloadPdf: downloadReportPdf, isPending: isPdfLoading } =
     useDownloadSalesReportPdf();
-
-  // Representative commission mutations
-  const markCommissionPaid = useMarkRepresentativeCommissionPaid();
-  const cancelCommission = useCancelRepresentativeCommission();
-
-  const handleMarkCommissionPaid = (orderId: string) => {
-    markCommissionPaid.mutate(orderId);
-  };
-
-  const handleCancelCommission = (orderId: string) => {
-    cancelCommission.mutate(orderId);
-  };
 
   const handleFiltersChange = (filters: typeof reportFilters) => {
     setReportFilters(filters);
@@ -196,10 +182,6 @@ export default function RepresentativesPage() {
             page={reportPage}
             totalPages={salesReport?.totalPages ?? 1}
             onPageChange={setReportPage}
-            onMarkCommissionPaid={handleMarkCommissionPaid}
-            onCancelCommission={handleCancelCommission}
-            isMarkPending={markCommissionPaid.isPending}
-            isCancelPending={cancelCommission.isPending}
           />
         </TabsContent>
       </Tabs>

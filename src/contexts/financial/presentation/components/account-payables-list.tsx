@@ -1,26 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useAccountPayables, useCancelPayable } from "../hooks/use-account-payables";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useAccountPayables } from "../hooks/use-account-payables";
 import { CreatePayableDialog } from "./create-payable-dialog";
-import { PayPayableDialog } from "./pay-payable-dialog";
+import { BatchPayPayableDialog } from "./batch-pay-payable-dialog";
 import { SupplierSearch } from "./supplier-search";
 import type { AccountPayable } from "../../domain/entities/payable";
 import type { Supplier } from "../../domain/entities/supplier";
 import { FINANCIAL_STATUS_LABELS } from "../../domain/enums";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Plus, MoreHorizontal, CheckCircle, XCircle, TrendingDown } from "lucide-react";
+import { Plus, ChevronRight, CheckCircle, TrendingDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PAYABLE_STATUS_FILTERS = [
@@ -54,64 +50,64 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function AccountPayablesList() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [dueDateFrom, setDueDateFrom] = useState<string>("");
   const [dueDateTo, setDueDateTo] = useState<string>("");
   const [supplierFilter, setSupplierFilter] = useState<Supplier | null>(null);
+  const [descriptionFilter, setDescriptionFilter] = useState<string>("");
+  const [debouncedDescription, setDebouncedDescription] = useState<string>("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedDescription(descriptionFilter), 400);
+    return () => clearTimeout(timer);
+  }, [descriptionFilter]);
 
   const filters = {
     ...(statusFilter && { status: statusFilter }),
     ...(dueDateFrom && { dueDateFrom }),
     ...(dueDateTo && { dueDateTo }),
     ...(supplierFilter && { supplierId: supplierFilter.id }),
+    ...(debouncedDescription && { description: debouncedDescription }),
   };
   const { data: payables = [], isLoading, isError } = useAccountPayables(Object.keys(filters).length ? filters : undefined);
-  const cancelMutation = useCancelPayable();
 
-  const [createOpen, setCreateOpen] = useState(false);
-  const [payingPayable, setPayingPayable] = useState<AccountPayable | null>(null);
-  const [payOpen, setPayOpen] = useState(false);
-  const [cancellingPayable, setCancellingPayable] = useState<AccountPayable | null>(null);
-  const [cancelOpen, setCancelOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchPayOpen, setBatchPayOpen] = useState(false);
 
-  const handlePay = (p: AccountPayable) => { setPayingPayable(p); setPayOpen(true); };
-  const handleCancelRequest = (p: AccountPayable) => { setCancellingPayable(p); setCancelOpen(true); };
-  const handleCancelConfirm = () => {
-    if (!cancellingPayable) return;
-    cancelMutation.mutate(cancellingPayable.id, {
-      onSuccess: () => { setCancelOpen(false); setCancellingPayable(null); },
+  const eligiblePayables = useMemo(
+    () => payables.filter((p) => p.status === "PENDING" || p.status === "OVERDUE"),
+    [payables]
+  );
+  const selectedPayables = useMemo(
+    () => payables.filter((p) => selectedIds.has(p.id)),
+    [payables, selectedIds]
+  );
+  const allEligibleSelected = eligiblePayables.length > 0 && eligiblePayables.every((p) => selectedIds.has(p.id));
+  const someSelected = selectedIds.size > 0 && !allEligibleSelected;
+  const selectedTotal = selectedPayables.reduce((sum, p) => sum + p.amount, 0);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   };
+  const toggleSelectAll = () => {
+    if (allEligibleSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(eligiblePayables.map((p) => p.id)));
+    }
+  };
 
-  function PayableActions({ payable }: { payable: AccountPayable }) {
-    const canPay = payable.status === "PENDING" || payable.status === "OVERDUE";
-    const canCancel = payable.status === "PENDING" || payable.status === "OVERDUE";
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">Ações</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          {canPay && (
-            <DropdownMenuItem onClick={() => handlePay(payable)}>
-              <CheckCircle className="mr-2 h-3.5 w-3.5 text-emerald-600" />Registrar pagamento
-            </DropdownMenuItem>
-          )}
-          {canCancel && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleCancelRequest(payable)} className="text-destructive focus:text-destructive">
-                <XCircle className="mr-2 h-3.5 w-3.5" />Cancelar
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [statusFilter, dueDateFrom, dueDateTo, supplierFilter, descriptionFilter]);
+
+  const [createOpen, setCreateOpen] = useState(false);
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -130,9 +126,16 @@ export function AccountPayablesList() {
       ))}
       {isError && <p className="text-sm text-destructive text-center py-8">Erro ao carregar</p>}
       {!isLoading && !isError && payables.length === 0 && <EmptyState />}
-      {payables.map((p) => (
-        <div key={p.id} className="rounded-xl border bg-card p-4 shadow-sm">
+      {payables.map((p) => {
+        const isEligible = p.status === "PENDING" || p.status === "OVERDUE";
+        return (
+        <div key={p.id} className="rounded-xl border bg-card p-4 shadow-sm cursor-pointer active:bg-muted/50 transition-colors" onClick={() => router.push(`/dashboard/financial/accounts-payable/${p.id}`)}>
           <div className="flex items-start justify-between gap-2">
+            {isEligible && (
+              <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                <Checkbox checked={selectedIds.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{p.description}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -143,10 +146,11 @@ export function AccountPayablesList() {
                 <span className="text-sm font-semibold text-red-600">{formatCurrency(p.amount)}</span>
               </div>
             </div>
-            <PayableActions payable={p} />
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -155,38 +159,53 @@ export function AccountPayablesList() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={allEligibleSelected}
+                {...(someSelected ? { "data-state": "indeterminate" } : {})}
+                onCheckedChange={toggleSelectAll}
+              />
+            </TableHead>
             <TableHead>Descrição</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead>Fornecedor</TableHead>
             <TableHead>Vencimento</TableHead>
             <TableHead className="text-right">Valor</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+            <TableHead />
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading && Array.from({ length: 3 }).map((_, i) => (
             <TableRow key={i}>
-              {Array.from({ length: 7 }).map((__, j) => (
+              {Array.from({ length: 8 }).map((__, j) => (
                 <TableCell key={j}><div className="h-4 rounded bg-muted animate-pulse" /></TableCell>
               ))}
             </TableRow>
           ))}
-          {isError && <TableRow><TableCell colSpan={7}><p className="text-sm text-destructive text-center py-4">Erro ao carregar</p></TableCell></TableRow>}
+          {isError && <TableRow><TableCell colSpan={8}><p className="text-sm text-destructive text-center py-4">Erro ao carregar</p></TableCell></TableRow>}
           {!isLoading && !isError && payables.length === 0 && (
-            <TableRow><TableCell colSpan={7}><EmptyState /></TableCell></TableRow>
+            <TableRow><TableCell colSpan={8}><EmptyState /></TableCell></TableRow>
           )}
-          {payables.map((p) => (
-            <TableRow key={p.id}>
+          {payables.map((p) => {
+            const isEligible = p.status === "PENDING" || p.status === "OVERDUE";
+            return (
+            <TableRow key={p.id} className="cursor-pointer" onClick={() => router.push(`/dashboard/financial/accounts-payable/${p.id}`)}>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                {isEligible && <Checkbox checked={selectedIds.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />}
+              </TableCell>
               <TableCell className="font-medium max-w-40 truncate">{p.description}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{p.categoryName}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{p.supplierName ?? "—"}</TableCell>
               <TableCell className="text-sm">{formatDate(p.dueDate)}</TableCell>
               <TableCell className="text-right text-sm font-semibold text-red-600">{formatCurrency(p.amount)}</TableCell>
               <TableCell><StatusBadge status={p.status} /></TableCell>
-              <TableCell className="text-right"><PayableActions payable={p} /></TableCell>
+              <TableCell className="w-8">
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>
@@ -228,7 +247,15 @@ export function AccountPayablesList() {
       </div>
 
       <div className="mb-4 rounded-xl border bg-card p-4 shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Descrição</Label>
+            <Input
+              value={descriptionFilter}
+              onChange={(e) => setDescriptionFilter(e.target.value)}
+              placeholder="Buscar por descrição..."
+            />
+          </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">Fornecedor</Label>
             <SupplierSearch
@@ -251,25 +278,32 @@ export function AccountPayablesList() {
       {mobileView}
       {desktopView}
 
-      <CreatePayableDialog open={createOpen} onOpenChange={setCreateOpen} />
-      <PayPayableDialog payable={payingPayable} open={payOpen} onOpenChange={setPayOpen} />
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-lg">
+          <span className="text-sm font-medium whitespace-nowrap">
+            {selectedIds.size} selecionada{selectedIds.size !== 1 ? "s" : ""}
+          </span>
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {formatCurrency(selectedTotal)}
+          </span>
+          <Button size="sm" onClick={() => setBatchPayOpen(true)} className="gap-1.5 whitespace-nowrap">
+            <CheckCircle className="h-3.5 w-3.5" />
+            Baixar em Lote
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} className="h-8 w-8 p-0">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Limpar seleção</span>
+          </Button>
+        </div>
+      )}
 
-      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar conta a pagar</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja cancelar <strong>{cancellingPayable?.description}</strong>?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelMutation.isPending}>Voltar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancelConfirm} disabled={cancelMutation.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Cancelar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CreatePayableDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <BatchPayPayableDialog
+        payables={selectedPayables}
+        open={batchPayOpen}
+        onOpenChange={setBatchPayOpen}
+        onSuccess={() => setSelectedIds(new Set())}
+      />
     </>
   );
 }

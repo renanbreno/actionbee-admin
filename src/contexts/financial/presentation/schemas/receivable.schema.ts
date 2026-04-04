@@ -15,5 +15,11 @@ export const payReceivableSchema = z.object({
   accountId: z.string().optional(),
 });
 
+export const batchPayReceivableSchema = z.object({
+  paidAt: z.string().min(1, "Data de recebimento é obrigatória"),
+  accountId: z.string().optional(),
+});
+
 export type CreateReceivableFormValues = z.infer<typeof createReceivableSchema>;
 export type PayReceivableFormValues = z.infer<typeof payReceivableSchema>;
+export type BatchPayReceivableFormValues = z.infer<typeof batchPayReceivableSchema>;

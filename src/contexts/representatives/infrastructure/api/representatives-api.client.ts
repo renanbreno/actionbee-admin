@@ -80,18 +80,6 @@ export const representativesApiClient = {
     return apiFetch<PaginatedSalesReport>(`/admin/representatives/sales-report${query ? `?${query}` : ""}`);
   },
 
-  markRepresentativeCommissionPaid(orderId: string): Promise<void> {
-    return apiFetch<void>(`/admin/representative-commissions/orders/${orderId}/mark-paid`, {
-      method: "PATCH",
-    });
-  },
-
-  cancelRepresentativeCommission(orderId: string): Promise<void> {
-    return apiFetch<void>(`/admin/representative-commissions/orders/${orderId}/cancel`, {
-      method: "PATCH",
-    });
-  },
-
   getCommissionSummary(filters?: SalesReportFilters): Promise<CommissionSummary> {
     const params = new URLSearchParams();
     if (filters?.representativeId) params.set("representativeId", filters.representativeId);

@@ -25,15 +25,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  MoreHorizontal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { VendedorSalesReportOrder } from "../../domain/entities/sales-report";
 import type { LucideIcon } from "lucide-react";
@@ -126,69 +119,11 @@ function VendedorCommissionStatusBadge({ status }: { status: CommissionStatus | 
   );
 }
 
-/* ─── Commission Actions ─── */
-function VendedorCommissionActions({
-  order,
-  onMarkPaid,
-  onCancel,
-  isMarkPending,
-  isCancelPending,
-}: {
-  order: VendedorSalesReportOrder;
-  onMarkPaid: (orderId: string) => void;
-  onCancel: (orderId: string) => void;
-  isMarkPending: boolean;
-  isCancelPending: boolean;
-}) {
-  if (order.vendedorCommissionStatus !== "PENDING") return null;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          disabled={isMarkPending || isCancelPending}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">Ações</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem
-          onClick={() => onMarkPaid(order.id)}
-          disabled={isMarkPending}
-        >
-          <CheckCircle className="mr-2 h-3.5 w-3.5" />
-          Marcar pago
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => onCancel(order.id)}
-          disabled={isCancelPending}
-          className="text-destructive focus:text-destructive"
-        >
-          <XCircle className="mr-2 h-3.5 w-3.5" />
-          Cancelar
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 /* ─── Mobile Card ─── */
 function OrderCard({
   order,
-  onMarkCommissionPaid,
-  onCancelCommission,
-  isMarkPending,
-  isCancelPending,
 }: {
   order: VendedorSalesReportOrder;
-  onMarkCommissionPaid: (orderId: string) => void;
-  onCancelCommission: (orderId: string) => void;
-  isMarkPending: boolean;
-  isCancelPending: boolean;
 }) {
   const router = useRouter();
   const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -210,13 +145,6 @@ function OrderCard({
             {order.vendedorCommissionStatus && (
               <VendedorCommissionStatusBadge status={order.vendedorCommissionStatus} />
             )}
-            <VendedorCommissionActions
-              order={order}
-              onMarkPaid={onMarkCommissionPaid}
-              onCancel={onCancelCommission}
-              isMarkPending={isMarkPending}
-              isCancelPending={isCancelPending}
-            />
           </div>
         </div>
 
@@ -273,18 +201,8 @@ function OrderCard({
 /* ─── Desktop Row ─── */
 function OrderRow({
   order,
-  onMarkCommissionPaid,
-  onCancelCommission,
-  isMarkPending,
-  isCancelPending,
-  showActions,
 }: {
   order: VendedorSalesReportOrder;
-  onMarkCommissionPaid: (orderId: string) => void;
-  onCancelCommission: (orderId: string) => void;
-  isMarkPending: boolean;
-  isCancelPending: boolean;
-  showActions: boolean;
 }) {
   const router = useRouter();
   const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -327,17 +245,6 @@ function OrderRow({
       <TableCell>
         <OrderStatusBadge status={order.status} />
       </TableCell>
-      {showActions && (
-        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-          <VendedorCommissionActions
-            order={order}
-            onMarkPaid={onMarkCommissionPaid}
-            onCancel={onCancelCommission}
-            isMarkPending={isMarkPending}
-            isCancelPending={isCancelPending}
-          />
-        </TableCell>
-      )}
     </TableRow>
   );
 }
@@ -361,13 +268,12 @@ function CardSkeleton() {
   );
 }
 
-function TableSkeleton({ showActions }: { showActions: boolean }) {
-  const colCount = showActions ? 12 : 11;
+function TableSkeleton() {
   return (
     <>
       {Array.from({ length: 5 }).map((_, i) => (
         <TableRow key={i}>
-          {Array.from({ length: colCount }).map((_, j) => (
+          {Array.from({ length: 11 }).map((_, j) => (
             <TableCell key={j}>
               <Skeleton className="h-4 w-full" />
             </TableCell>
@@ -445,10 +351,6 @@ interface VendedorSalesReportTableProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  onMarkCommissionPaid: (orderId: string) => void;
-  onCancelCommission: (orderId: string) => void;
-  isMarkPending: boolean;
-  isCancelPending: boolean;
 }
 
 export function VendedorSalesReportTable({
@@ -458,13 +360,7 @@ export function VendedorSalesReportTable({
   page,
   totalPages,
   onPageChange,
-  onMarkCommissionPaid,
-  onCancelCommission,
-  isMarkPending,
-  isCancelPending,
 }: VendedorSalesReportTableProps) {
-  const hasPendingCommissions = orders.some((o) => o.vendedorCommissionStatus === "PENDING");
-
   /* Mobile */
   const mobileView = (
     <div className="space-y-3 md:hidden">
@@ -475,10 +371,6 @@ export function VendedorSalesReportTable({
         <OrderCard
           key={order.id}
           order={order}
-          onMarkCommissionPaid={onMarkCommissionPaid}
-          onCancelCommission={onCancelCommission}
-          isMarkPending={isMarkPending}
-          isCancelPending={isCancelPending}
         />
       ))}
     </div>
@@ -501,23 +393,20 @@ export function VendedorSalesReportTable({
             <TableHead className="w-[110px]">Comissão Vend.</TableHead>
             <TableHead className="w-[100px]">Status Comissão</TableHead>
             <TableHead className="w-[100px]">Status</TableHead>
-            {hasPendingCommissions && (
-              <TableHead className="w-[50px] text-right">Ações</TableHead>
-            )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isLoading && <TableSkeleton showActions={hasPendingCommissions} />}
+          {isLoading && <TableSkeleton />}
           {isError && (
             <TableRow>
-              <TableCell colSpan={hasPendingCommissions ? 12 : 11} className="text-center">
+              <TableCell colSpan={11} className="text-center">
                 <ErrorState />
               </TableCell>
             </TableRow>
           )}
           {!isLoading && !isError && orders.length === 0 && (
             <TableRow>
-              <TableCell colSpan={hasPendingCommissions ? 12 : 11} className="text-center">
+              <TableCell colSpan={11} className="text-center">
                 <EmptyState />
               </TableCell>
             </TableRow>
@@ -526,11 +415,6 @@ export function VendedorSalesReportTable({
             <OrderRow
               key={order.id}
               order={order}
-              onMarkCommissionPaid={onMarkCommissionPaid}
-              onCancelCommission={onCancelCommission}
-              isMarkPending={isMarkPending}
-              isCancelPending={isCancelPending}
-              showActions={hasPendingCommissions}
             />
           ))}
         </TableBody>

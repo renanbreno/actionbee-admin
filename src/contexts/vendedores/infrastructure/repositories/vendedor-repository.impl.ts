@@ -36,12 +36,4 @@ export class VendedorRepositoryImpl implements VendedorRepository {
   async getCommissionSummary(): Promise<VendedorCommissionSummary> {
     return vendedoresApiClient.getCommissionSummary();
   }
-
-  async markCommissionPaid(orderId: string): Promise<void> {
-    return vendedoresApiClient.markCommissionPaid(orderId);
-  }
-
-  async cancelCommission(orderId: string): Promise<void> {
-    return vendedoresApiClient.cancelCommission(orderId);
-  }
 }

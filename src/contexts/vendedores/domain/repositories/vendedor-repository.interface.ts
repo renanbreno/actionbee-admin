@@ -28,6 +28,4 @@ export interface VendedorRepository {
   delete(id: string): Promise<void>;
   getSalesReport(filters: VendedorSalesReportFilters): Promise<PaginatedVendedorSalesReport>;
   getCommissionSummary(): Promise<VendedorCommissionSummary>;
-  markCommissionPaid(orderId: string): Promise<void>;
-  cancelCommission(orderId: string): Promise<void>;
 }

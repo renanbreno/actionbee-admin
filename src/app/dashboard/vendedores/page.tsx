@@ -12,8 +12,6 @@ import { VendedorSalesReportFilters } from "@/contexts/vendedores/presentation/c
 import { VendedorSalesReportSummary } from "@/contexts/vendedores/presentation/components/sales-report-summary";
 import { VendedorSalesReportTable } from "@/contexts/vendedores/presentation/components/sales-report-table";
 import { useVendedorSalesReport } from "@/contexts/vendedores/presentation/hooks/use-sales-report";
-import { useMarkVendedorCommissionPaid } from "@/contexts/vendedores/presentation/hooks/use-mark-vendedor-commission-paid";
-import { useCancelVendedorCommission } from "@/contexts/vendedores/presentation/hooks/use-cancel-vendedor-commission";
 import { useVendedorCommissionSummary } from "@/contexts/vendedores/presentation/hooks/use-commission-summary";
 import { VendedorCommissionSummaryCard } from "@/contexts/vendedores/presentation/components/commission-summary-card";
 
@@ -46,17 +44,6 @@ export default function VendedoresPage() {
 
   const { data: commissionSummary, isLoading: isCommissionSummaryLoading } =
     useVendedorCommissionSummary();
-
-  const markCommissionPaid = useMarkVendedorCommissionPaid();
-  const cancelCommission = useCancelVendedorCommission();
-
-  const handleMarkCommissionPaid = (orderId: string) => {
-    markCommissionPaid.mutate(orderId);
-  };
-
-  const handleCancelCommission = (orderId: string) => {
-    cancelCommission.mutate(orderId);
-  };
 
   const handleFiltersChange = (filters: typeof reportFilters) => {
     setReportFilters(filters);
@@ -156,10 +143,6 @@ export default function VendedoresPage() {
             page={reportPage}
             totalPages={salesReport?.totalPages ?? 1}
             onPageChange={setReportPage}
-            onMarkCommissionPaid={handleMarkCommissionPaid}
-            onCancelCommission={handleCancelCommission}
-            isMarkPending={markCommissionPaid.isPending}
-            isCancelPending={cancelCommission.isPending}
           />
         </TabsContent>
       </Tabs>

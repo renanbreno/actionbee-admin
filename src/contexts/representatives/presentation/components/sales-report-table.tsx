@@ -25,15 +25,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  MoreHorizontal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { SalesReportOrder } from "../../domain/entities/sales-report";
 import type { LucideIcon } from "lucide-react";
@@ -126,73 +119,13 @@ function RepresentativeCommissionStatusBadge({ status }: { status: CommissionSta
   );
 }
 
-/* ─── Representative Commission Actions ─── */
-function RepresentativeCommissionActions({
-  order,
-  onMarkPaid,
-  onCancel,
-  isMarkPending,
-  isCancelPending,
-}: {
-  order: SalesReportOrder;
-  onMarkPaid: (orderId: string) => void;
-  onCancel: (orderId: string) => void;
-  isMarkPending: boolean;
-  isCancelPending: boolean;
-}) {
-  if (order.representativeCommissionStatus !== "PENDING") return null;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          disabled={isMarkPending || isCancelPending}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">Ações</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem
-          onClick={() => onMarkPaid(order.id)}
-          disabled={isMarkPending}
-        >
-          <CheckCircle className="mr-2 h-3.5 w-3.5" />
-          Marcar pago
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => onCancel(order.id)}
-          disabled={isCancelPending}
-          className="text-destructive focus:text-destructive"
-        >
-          <XCircle className="mr-2 h-3.5 w-3.5" />
-          Cancelar
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 /* ─── Mobile Card ─── */
 function OrderCard({
   order,
-  onMarkCommissionPaid,
-  onCancelCommission,
-  isMarkPending,
-  isCancelPending,
 }: {
   order: SalesReportOrder;
-  onMarkCommissionPaid: (orderId: string) => void;
-  onCancelCommission: (orderId: string) => void;
-  isMarkPending: boolean;
-  isCancelPending: boolean;
 }) {
   const router = useRouter();
-  const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-
   function handleClick() {
     router.push(`/dashboard/orders?orderId=${order.id}`);
   }
@@ -210,13 +143,6 @@ function OrderCard({
             {order.representativeCommissionStatus && (
               <RepresentativeCommissionStatusBadge status={order.representativeCommissionStatus} />
             )}
-            <RepresentativeCommissionActions
-              order={order}
-              onMarkPaid={onMarkCommissionPaid}
-              onCancel={onCancelCommission}
-              isMarkPending={isMarkPending}
-              isCancelPending={isCancelPending}
-            />
           </div>
         </div>
 
@@ -227,10 +153,6 @@ function OrderCard({
 
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
-            <p className="text-muted-foreground text-xs">Itens</p>
-            <p className="font-medium">{itemsCount}</p>
-          </div>
-          <div>
             <p className="text-muted-foreground text-xs">Pagamento</p>
             <p className="font-medium">
               {order.paymentMethod ? <PaymentMethodLabel method={order.paymentMethod} /> : "—"}
@@ -239,14 +161,6 @@ function OrderCard({
           <div>
             <p className="text-muted-foreground text-xs">Total</p>
             <p className="font-semibold text-bee-gold">{formatCurrency(order.totalAmount + (order.shippingPrice ?? 0))}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Desconto</p>
-            <p className="font-medium">
-              {order.totalAmount > order.discountedAmount
-                ? formatCurrency(order.totalAmount - order.discountedAmount)
-                : "—"}
-            </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Comissão Rep.</p>
@@ -273,22 +187,10 @@ function OrderCard({
 /* ─── Desktop Row ─── */
 function OrderRow({
   order,
-  onMarkCommissionPaid,
-  onCancelCommission,
-  isMarkPending,
-  isCancelPending,
-  showActions,
 }: {
   order: SalesReportOrder;
-  onMarkCommissionPaid: (orderId: string) => void;
-  onCancelCommission: (orderId: string) => void;
-  isMarkPending: boolean;
-  isCancelPending: boolean;
-  showActions: boolean;
 }) {
   const router = useRouter();
-  const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-
   function handleClick() {
     router.push(`/dashboard/orders?orderId=${order.id}`);
   }
@@ -306,17 +208,11 @@ function OrderRow({
       </TableCell>
       <TableCell className="text-sm">{order.customerName}</TableCell>
       <TableCell className="text-sm">{order.representativeName ?? "—"}</TableCell>
-      <TableCell className="text-sm text-center">{itemsCount}</TableCell>
       <TableCell className="text-sm">
         {order.paymentMethod ? <PaymentMethodLabel method={order.paymentMethod} /> : "—"}
       </TableCell>
       <TableCell className="text-sm font-semibold text-bee-gold">
         {formatCurrency(order.totalAmount + (order.shippingPrice ?? 0))}
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {order.totalAmount > order.discountedAmount
-          ? formatCurrency(order.totalAmount - order.discountedAmount)
-          : "—"}
       </TableCell>
       <TableCell className="text-sm">
         {order.representativeCommissionAmount != null ? formatCurrency(order.representativeCommissionAmount) : "—"}
@@ -327,17 +223,6 @@ function OrderRow({
       <TableCell>
         <OrderStatusBadge status={order.status} />
       </TableCell>
-      {showActions && (
-        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-          <RepresentativeCommissionActions
-            order={order}
-            onMarkPaid={onMarkCommissionPaid}
-            onCancel={onCancelCommission}
-            isMarkPending={isMarkPending}
-            isCancelPending={isCancelPending}
-          />
-        </TableCell>
-      )}
     </TableRow>
   );
 }
@@ -361,13 +246,12 @@ function CardSkeleton() {
   );
 }
 
-function TableSkeleton({ showActions }: { showActions: boolean }) {
-  const colCount = showActions ? 11 : 10;
+function TableSkeleton() {
   return (
     <>
       {Array.from({ length: 5 }).map((_, i) => (
         <TableRow key={i}>
-          {Array.from({ length: colCount }).map((_, j) => (
+          {Array.from({ length: 9 }).map((_, j) => (
             <TableCell key={j}>
               <Skeleton className="h-4 w-full" />
             </TableCell>
@@ -445,10 +329,6 @@ interface SalesReportTableProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  onMarkCommissionPaid: (orderId: string) => void;
-  onCancelCommission: (orderId: string) => void;
-  isMarkPending: boolean;
-  isCancelPending: boolean;
 }
 
 export function SalesReportTable({
@@ -458,12 +338,7 @@ export function SalesReportTable({
   page,
   totalPages,
   onPageChange,
-  onMarkCommissionPaid,
-  onCancelCommission,
-  isMarkPending,
-  isCancelPending,
 }: SalesReportTableProps) {
-  const hasPendingCommissions = orders.some((o) => o.representativeCommissionStatus === "PENDING");
 
   /* Mobile */
   const mobileView = (
@@ -475,10 +350,6 @@ export function SalesReportTable({
         <OrderCard
           key={order.id}
           order={order}
-          onMarkCommissionPaid={onMarkCommissionPaid}
-          onCancelCommission={onCancelCommission}
-          isMarkPending={isMarkPending}
-          isCancelPending={isCancelPending}
         />
       ))}
     </div>
@@ -494,30 +365,25 @@ export function SalesReportTable({
             <TableHead className="w-[110px]">Data</TableHead>
             <TableHead className="w-[160px]">Cliente</TableHead>
             <TableHead className="w-[140px]">Representante</TableHead>
-            <TableHead className="w-[60px] text-center">Itens</TableHead>
             <TableHead className="w-[100px]">Pagamento</TableHead>
             <TableHead className="w-[110px]">Total</TableHead>
-            <TableHead className="w-[100px]">Desconto</TableHead>
             <TableHead className="w-[110px]">Comissão Rep.</TableHead>
             <TableHead className="w-[100px]">Status Comissão</TableHead>
             <TableHead className="w-[100px]">Status</TableHead>
-            {hasPendingCommissions && (
-              <TableHead className="w-[50px] text-right">Ações</TableHead>
-            )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isLoading && <TableSkeleton showActions={hasPendingCommissions} />}
+          {isLoading && <TableSkeleton />}
           {isError && (
             <TableRow>
-              <TableCell colSpan={hasPendingCommissions ? 11 : 10} className="text-center">
+              <TableCell colSpan={9} className="text-center">
                 <ErrorState />
               </TableCell>
             </TableRow>
           )}
           {!isLoading && !isError && orders.length === 0 && (
             <TableRow>
-              <TableCell colSpan={hasPendingCommissions ? 11 : 10} className="text-center">
+              <TableCell colSpan={9} className="text-center">
                 <EmptyState />
               </TableCell>
             </TableRow>
@@ -526,11 +392,6 @@ export function SalesReportTable({
             <OrderRow
               key={order.id}
               order={order}
-              onMarkCommissionPaid={onMarkCommissionPaid}
-              onCancelCommission={onCancelCommission}
-              isMarkPending={isMarkPending}
-              isCancelPending={isCancelPending}
-              showActions={hasPendingCommissions}
             />
           ))}
         </TableBody>
