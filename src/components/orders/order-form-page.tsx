@@ -73,6 +73,7 @@ import { CustomerFormDialog } from "@/contexts/customers/presentation/components
 import { useCreateOrder } from "@/contexts/orders/presentation/hooks/use-create-order";
 import { useUpdateOrder } from "@/contexts/orders/presentation/hooks/use-update-order";
 import type { OrderDetail } from "@/contexts/orders/domain/entities/order";
+import { CustomerType } from "@/contexts/customers/domain/entities/customer";
 import { ShippingOptionsSelector } from "@/shared/presentation/components/shipping-options-selector";
 import type { ShippingOption } from "@/shared/infrastructure/api/shipping/types";
 import { useAddressLookup } from "@/shared/presentation/hooks/use-address-lookup";
@@ -157,6 +158,7 @@ interface CustomerAddress {
 
 interface CustomerDetail extends CustomerResult {
   address?: CustomerAddress;
+  customerType?: CustomerType | null;
 }
 
 type PriceType = "common" | "retailer" | "distributor";
@@ -177,6 +179,7 @@ interface ProductVariant {
 interface ProductResult {
   id: string;
   name: string;
+  images?: { id: string; url: string; order: number }[];
   variants: ProductVariant[];
 }
 
@@ -326,7 +329,7 @@ function CustomerSearch({
   );
 }
 
-function ProductSearch({ onAddItem, mode = "product" }: { onAddItem: (item: CartItem) => void; mode?: "product" | "gift" }) {
+function ProductSearch({ onAddItem, mode = "product", customerType }: { onAddItem: (item: CartItem) => void; mode?: "product" | "gift"; customerType?: CustomerType | null }) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductResult | null>(
@@ -344,6 +347,58 @@ function ProductSearch({ onAddItem, mode = "product" }: { onAddItem: (item: Cart
       v.isRetailerVariant && v.retailerPrice != null ? "retailer" : "common",
     );
   }
+
+  /** Returns true if it auto-added the item to the cart (caller should skip showing variant picker). */
+  function tryAutoAddForCustomer(product: ProductResult): boolean {
+    if (!customerType || mode === "gift") return false;
+
+    let variant: ProductVariant | undefined;
+    let unitPrice: number;
+    let originalPrice: number | undefined;
+    let priceType: "COMMON" | "RETAILER" | "DISTRIBUTOR";
+
+    if (customerType === CustomerType.FINAL_CONSUMER) {
+      const consumerVariants = product.variants.filter((v) => !v.isRetailerVariant);
+      if (consumerVariants.length === 0) return false;
+      variant = consumerVariants.reduce((min, v) =>
+        (v.unitsPerVariant ?? 1) < (min.unitsPerVariant ?? 1) ? v : min,
+        consumerVariants[0],
+      );
+      unitPrice = variant.offerPrice ?? variant.price;
+      originalPrice = variant.offerPrice ? variant.price : undefined;
+      priceType = "COMMON";
+    } else if (customerType === CustomerType.RETAILER_RESELLER) {
+      variant = product.variants.find(
+        (v) => v.isRetailerVariant && v.retailerPrice != null,
+      );
+      if (!variant) return false;
+      unitPrice = variant.retailerPrice!;
+      priceType = "RETAILER";
+    } else if (customerType === CustomerType.DISTRIBUTOR_RESELLER) {
+      variant = product.variants.find(
+        (v) => v.isRetailerVariant && v.distributorPrice != null,
+      );
+      if (!variant) return false;
+      unitPrice = variant.distributorPrice!;
+      priceType = "DISTRIBUTOR";
+    } else {
+      return false;
+    }
+
+    onAddItem({
+      itemKey: `${variant.id}-${mode}`,
+      productId: product.id,
+      productName: product.name,
+      variantId: variant.id,
+      variantName: variant.name,
+      unitPrice,
+      originalPrice,
+      quantity: 1,
+      priceType,
+    });
+    return true;
+  }
+
   const debouncedSearch = useDebounce(search, 300);
 
   const { data, isLoading } = useQuery({
@@ -624,21 +679,30 @@ function ProductSearch({ onAddItem, mode = "product" }: { onAddItem: (item: Cart
               Nenhum produto encontrado.
             </p>
           )}
-          {data?.data.map((p) => (
-            <button
-              key={p.id}
-              className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors text-sm"
-              onMouseDown={() => {
-                setSelectedProduct(p);
-                setOpen(false);
-              }}
-            >
-              <p className="font-medium">{p.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {p.variants.length} variante(s)
-              </p>
-            </button>
-          ))}
+          {data?.data.map((p) => {
+            const thumb = p.images?.sort((a, b) => a.order - b.order)[0]?.url;
+            return (
+              <button
+                key={p.id}
+                className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors text-sm flex items-center gap-3"
+                onMouseDown={() => {
+                  if (!tryAutoAddForCustomer(p)) {
+                    setSelectedProduct(p);
+                  }
+                  setOpen(false);
+                }}
+              >
+                {thumb ? (
+                  <img src={thumb} alt={p.name} className="h-10 w-10 rounded-md object-cover shrink-0" />
+                ) : (
+                  <div className="h-10 w-10 rounded-md bg-muted/50 flex items-center justify-center shrink-0">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+                <p className="font-medium truncate min-w-0">{p.name}</p>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1445,8 +1509,8 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                           const filtered = searchLower.length >= 2
                             ? representativeCustomers.filter(
                                 (c) =>
-                                  c.name.toLowerCase().includes(searchLower) ||
-                                  c.email.toLowerCase().includes(searchLower),
+                                  c.name?.toLowerCase().includes(searchLower) ||
+                                  c.email?.toLowerCase().includes(searchLower),
                               )
                             : [];
                           return (
@@ -1536,7 +1600,7 @@ export function OrderFormPage({ mode, initialData, orderId }: OrderFormPageProps
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Produtos
                     </p>
-                    <ProductSearch onAddItem={handleAddItem} />
+                    <ProductSearch onAddItem={handleAddItem} customerType={customerDetail?.customerType} />
 
                     {cartItems.length > 0 && (
                       <div className="space-y-2">
