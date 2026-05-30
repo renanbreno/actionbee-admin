@@ -39,7 +39,7 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("pt-BR");
+  return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
 function StatusBadge({ status, size = "sm" }: { status: string; size?: "sm" | "lg" }) {
