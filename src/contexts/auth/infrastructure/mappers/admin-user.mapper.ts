@@ -12,6 +12,7 @@ export class AdminUserMapper {
         email: Email.create(raw.admin.email),
         name: raw.admin.name,
         role: raw.admin.role as Role,
+        permissions: raw.admin.permissions ?? [],
       },
       tokens: {
         accessToken: raw.accessToken,

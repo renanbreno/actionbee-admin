@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { useCategories } from "@/contexts/categories/presentation/hooks/use-categories";
 import { useBrands } from "@/contexts/brands/presentation/hooks";
+import { useFlavors } from "@/contexts/flavors/presentation/hooks";
 import { Product } from "../../domain/entities/product";
 import {
   productFormSchema,
@@ -90,6 +91,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
       usageRecommendation: null,
       costPrice: 0,
       brandId: null,
+      flavorId: null,
       variationType: null,
       isActive: true,
       showOnEcommerce: true,
@@ -128,6 +130,7 @@ function buildDefaultValues(product?: Product): ProductFormValues {
     usageRecommendation: product.usageRecommendation ?? null,
     costPrice: product.costPrice ?? 0,
     brandId: product.brandId ?? null,
+    flavorId: product.flavorId ?? null,
     variationType: product.variationType ?? null,
     isActive: product.isActive,
     showOnEcommerce: product.showOnEcommerce ?? true,
@@ -166,6 +169,7 @@ export function ProductForm({
 }: ProductFormProps) {
   const { data: categories } = useCategories();
   const { data: brands = [] } = useBrands();
+  const { data: flavors = [] } = useFlavors();
 
   const methods = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -300,6 +304,43 @@ export function ProductForm({
                           {brands.map((brand) => (
                             <SelectItem key={brand.id} value={brand.id}>
                               {brand.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+
+                {/* Sabor */}
+                <div className="space-y-2">
+                  <Label htmlFor="flavorId">Sabor</Label>
+                  <Controller
+                    name="flavorId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ?? "none"}
+                        onValueChange={(v) =>
+                          field.onChange(v === "none" ? null : v)
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione um sabor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sem sabor</SelectItem>
+                          {flavors.filter(f => f.isActive).map((flavor) => (
+                            <SelectItem key={flavor.id} value={flavor.id}>
+                              <span className="flex items-center gap-2">
+                                {flavor.color && (
+                                  <span
+                                    className="inline-block h-3 w-3 rounded-full border border-border shrink-0"
+                                    style={{ backgroundColor: flavor.color }}
+                                  />
+                                )}
+                                {flavor.name}
+                              </span>
                             </SelectItem>
                           ))}
                         </SelectContent>

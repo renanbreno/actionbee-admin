@@ -5,6 +5,7 @@ export interface AdminStoredData {
   name: string;
   email: string;
   role: string;
+  permissions: string[];
 }
 
 export interface TokenStoragePort {

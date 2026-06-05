@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { LayoutDashboard, RefreshCw, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { LayoutDashboard, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ShieldAlert, LogOut } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
+import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
+import { resolveLandingRoute } from "@/contexts/auth/domain/services/landing-route";
 import { useDashboard } from "@/contexts/dashboard/presentation/hooks/use-dashboard";
 import { DashboardSalesSection } from "@/contexts/dashboard/presentation/components/dashboard-sales-section";
 import { DashboardCustomersSection } from "@/contexts/dashboard/presentation/components/dashboard-customers-section";
@@ -77,6 +80,62 @@ function formatDate(dateStr: string): string {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { isLoading, user, hasPermission } = useAuthContext();
+  const canView = hasPermission("dashboard:view");
+
+  // Sem permissão para o consolidado de vendas: manda para a primeira tela
+  // acessível (pedidos, etc.). Se não houver nenhuma, mostra "sem acesso".
+  const landing = resolveLandingRoute(user);
+  const shouldRedirect = !canView && !!landing && landing !== "/dashboard";
+
+  useEffect(() => {
+    if (!isLoading && shouldRedirect && landing) {
+      router.replace(landing);
+    }
+  }, [isLoading, shouldRedirect, landing, router]);
+
+  if (isLoading) return null;
+  if (canView) return <DashboardPageContent />;
+  if (shouldRedirect) return null;
+
+  return <NoAccessMessage />;
+}
+
+function NoAccessMessage() {
+  const router = useRouter();
+  const logoutMutation = useLogout();
+
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10">
+        <ShieldAlert className="h-7 w-7 text-destructive" />
+      </div>
+      <div className="space-y-1">
+        <h1 className="text-lg font-semibold">Sem acesso a nenhuma área</h1>
+        <p className="max-w-md text-sm text-muted-foreground">
+          Seu usuário ainda não possui permissões para acessar nenhuma tela.
+          Solicite ao administrador que atribua um cargo com as permissões
+          necessárias.
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        className="gap-2"
+        onClick={() =>
+          logoutMutation.mutate(undefined, {
+            onSuccess: () => router.push("/login"),
+          })
+        }
+      >
+        <LogOut className="h-4 w-4" />
+        Sair
+      </Button>
+    </div>
+  );
+}
+
+function DashboardPageContent() {
   const { user } = useAuthContext();
   const [period, setPeriod] = useState<PeriodType>("month");
   const [offset, setOffset] = useState(0);

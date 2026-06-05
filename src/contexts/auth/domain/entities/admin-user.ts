@@ -6,4 +6,5 @@ export interface AdminUser {
   readonly email: Email;
   readonly name: string;
   readonly role: Role;
+  readonly permissions: string[];
 }

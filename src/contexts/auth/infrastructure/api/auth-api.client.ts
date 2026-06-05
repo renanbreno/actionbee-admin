@@ -9,6 +9,7 @@ export interface AuthApiLoginResponse {
     name: string;
     email: string;
     role: string;
+    permissions: string[];
   };
 }
 

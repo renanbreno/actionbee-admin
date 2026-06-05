@@ -50,6 +50,9 @@ export interface Product {
   usageRecommendation?: string | null;
   brandId?: string | null;
   brandName?: string | null;
+  flavorId?: string | null;
+  flavorName?: string | null;
+  flavorColor?: string | null;
   variationType?: string | null;
   isActive: boolean;
   showOnEcommerce?: boolean;

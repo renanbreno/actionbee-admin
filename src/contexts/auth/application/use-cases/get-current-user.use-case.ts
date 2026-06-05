@@ -18,6 +18,7 @@ export class GetCurrentUserUseCase {
       email: Email.create(stored.email),
       name: stored.name,
       role: stored.role as Role,
+      permissions: stored.permissions ?? [],
     };
   }
 }

@@ -76,6 +76,7 @@ export default function EditProductPage() {
       ingredients: isFoodProduct ? (values.ingredients ?? null) : null,
       usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : null,
       brandId: values.brandId ?? null,
+      flavorId: values.flavorId ?? null,
       variationType: values.variationType ?? null,
       isActive: values.isActive,
       showOnEcommerce: values.showOnEcommerce,

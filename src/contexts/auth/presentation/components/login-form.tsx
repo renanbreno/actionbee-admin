@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { loginSchema, LoginFormValues } from "../schemas/login.schema";
 import { useLogin } from "../hooks/use-login";
+import { resolveLandingRoute } from "../../domain/services/landing-route";
 
 export function LoginForm() {
   const router = useRouter();
@@ -27,7 +28,12 @@ export function LoginForm() {
 
   const onSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data, {
-      onSuccess: () => router.push("/dashboard"),
+      onSuccess: (user) => {
+        // Leva para a primeira tela que o usuário pode acessar (dashboard se
+        // tiver permissão; senão pedidos, etc.). Sem nenhum acesso, cai no
+        // /dashboard, que exibe a mensagem de "sem acesso".
+        router.push(resolveLandingRoute(user) ?? "/dashboard");
+      },
     });
   };
 

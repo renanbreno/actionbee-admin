@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -40,6 +40,8 @@ import {
   PanelLeftOpen,
   Kanban,
   Wallet,
+  Users,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import { useLogout } from "@/contexts/auth/presentation/hooks/use-logout";
@@ -49,6 +51,7 @@ import type { LucideIcon } from "lucide-react";
 interface SubMenuItem {
   title: string;
   href: string;
+  requiredPermission?: string;
 }
 
 interface MenuItem {
@@ -56,6 +59,7 @@ interface MenuItem {
   href?: string;
   icon: LucideIcon;
   submenu?: SubMenuItem[];
+  requiredPermission?: string;
 }
 
 interface MenuGroup {
@@ -67,8 +71,18 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Geral",
     items: [
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { title: "Anúncios", href: "/dashboard/announcements", icon: Megaphone },
+      {
+        title: "Dashboard",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+        requiredPermission: "dashboard:view",
+      },
+      {
+        title: "Anúncios",
+        href: "/dashboard/announcements",
+        icon: Megaphone,
+        requiredPermission: "announcements:view",
+      },
     ],
   },
   {
@@ -77,16 +91,28 @@ const menuGroups: MenuGroup[] = [
       {
         title: "Produtos",
         icon: Package,
+        requiredPermission: "products:view",
         submenu: [
           { title: "Lista de Produtos", href: "/dashboard/products" },
           { title: "Categorias", href: "/dashboard/products/categories" },
           { title: "Marcas", href: "/dashboard/products/brands" },
+          { title: "Sabores", href: "/dashboard/products/flavors" },
           { title: "Grupos de Produtos", href: "/dashboard/products/groups" },
           { title: "Unidades de Medida", href: "/dashboard/units" },
         ],
       },
-      { title: "Estoque", href: "/dashboard/inventory", icon: Boxes },
-      { title: "Brindes", href: "/dashboard/gift-tiers", icon: Gift },
+      {
+        title: "Estoque",
+        href: "/dashboard/inventory",
+        icon: Boxes,
+        requiredPermission: "inventory:view",
+      },
+      {
+        title: "Brindes",
+        href: "/dashboard/gift-tiers",
+        icon: Gift,
+        requiredPermission: "gifts:view",
+      },
     ],
   },
   {
@@ -95,12 +121,18 @@ const menuGroups: MenuGroup[] = [
       {
         title: "Pedidos",
         icon: ShoppingCart,
+        requiredPermission: "orders:view",
         submenu: [
           { title: "Lista de Pedidos", href: "/dashboard/orders" },
           { title: "Carrinhos Abandonados", href: "/dashboard/abandoned-carts" },
         ],
       },
-      { title: "Cupons", href: "/dashboard/coupons", icon: Percent },
+      {
+        title: "Cupons",
+        href: "/dashboard/coupons",
+        icon: Percent,
+        requiredPermission: "coupons:view",
+      },
     ],
   },
   {
@@ -109,6 +141,7 @@ const menuGroups: MenuGroup[] = [
       {
         title: "CRM",
         icon: Kanban,
+        requiredPermission: "crm:view",
         submenu: [
           { title: "Pipelines", href: "/dashboard/crm/pipelines" },
           { title: "Negócios", href: "/dashboard/crm/deals" },
@@ -124,15 +157,31 @@ const menuGroups: MenuGroup[] = [
       {
         title: "Afiliados",
         icon: Network,
+        requiredPermission: "affiliates:view",
         submenu: [
           { title: "Lista de Afiliados", href: "/dashboard/affiliates/list" },
           { title: "Categorias de Afiliados", href: "/dashboard/affiliates/categories" },
           { title: "Bonificações", href: "/dashboard/affiliates/bonificacoes" },
         ],
       },
-      { title: "Representantes", href: "/dashboard/representatives", icon: Briefcase },
-      { title: "Vendedores", href: "/dashboard/vendedores", icon: BadgeDollarSign },
-      { title: "Clientes", href: "/dashboard/customers", icon: UserRound },
+      {
+        title: "Representantes",
+        href: "/dashboard/representatives",
+        icon: Briefcase,
+        requiredPermission: "representatives:view",
+      },
+      {
+        title: "Vendedores",
+        href: "/dashboard/vendedores",
+        icon: BadgeDollarSign,
+        requiredPermission: "vendedores:view",
+      },
+      {
+        title: "Clientes",
+        href: "/dashboard/customers",
+        icon: UserRound,
+        requiredPermission: "customers:view",
+      },
     ],
   },
   {
@@ -141,6 +190,7 @@ const menuGroups: MenuGroup[] = [
       {
         title: "Financeiro",
         icon: Wallet,
+        requiredPermission: "financial:view",
         submenu: [
           { title: "Dashboard", href: "/dashboard/financial" },
           { title: "Contas", href: "/dashboard/financial/accounts" },
@@ -157,7 +207,24 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Sistema",
     items: [
-      { title: "Configurações", href: "/dashboard/store-settings", icon: Settings },
+      {
+        title: "Usuários",
+        href: "/dashboard/users",
+        icon: Users,
+        requiredPermission: "users:view",
+      },
+      {
+        title: "Cargos e Permissões",
+        href: "/dashboard/roles",
+        icon: ShieldCheck,
+        requiredPermission: "users:view",
+      },
+      {
+        title: "Configurações",
+        href: "/dashboard/store-settings",
+        icon: Settings,
+        requiredPermission: "settings:view",
+      },
     ],
   },
 ];
@@ -173,14 +240,28 @@ function getInitials(name: string): string {
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { user } = useAuthContext();
+  const { user, hasPermission } = useAuthContext();
   const logoutMutation = useLogout();
   const router = useRouter();
   const { setOpenMobile, state, toggleSidebar } = useSidebar();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
+  // Filtra itens/grupos conforme as permissões do usuário. Itens sem
+  // `requiredPermission` são sempre visíveis (ex.: Dashboard).
+  const visibleGroups = useMemo<MenuGroup[]>(() => {
+    return menuGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(
+          (item) =>
+            !item.requiredPermission || hasPermission(item.requiredPermission),
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [hasPermission]);
+
   useEffect(() => {
-    menuGroups.forEach((group) => {
+    visibleGroups.forEach((group) => {
       group.items.forEach((item) => {
         if (item.submenu) {
           const hasActiveRoute = item.submenu.some((sub) =>
@@ -192,7 +273,7 @@ export function AdminSidebar() {
         }
       });
     });
-  }, [pathname]);
+  }, [pathname, visibleGroups]);
 
   const toggleSubmenu = (title: string) => {
     setExpandedItems((prev) => {
@@ -267,7 +348,7 @@ export function AdminSidebar() {
       {/* Nav */}
       <SidebarContent className="px-2 py-2 overflow-hidden">
         <ScrollArea className="h-full [&_[data-slot=scroll-area-thumb]]:bg-sidebar-foreground/20">
-          {menuGroups.map((group, groupIndex) => (
+          {visibleGroups.map((group, groupIndex) => (
             <SidebarGroup key={group.label} className={cn("py-1", groupIndex > 0 && "mt-1")}>
               <SidebarGroupLabel className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30 group-data-[collapsible=icon]:hidden">
                 {group.label}

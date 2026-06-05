@@ -21,6 +21,7 @@ export class LoginUseCase {
       name: admin.name,
       email: admin.email.toString(),
       role: admin.role,
+      permissions: admin.permissions,
     });
     return admin;
   }

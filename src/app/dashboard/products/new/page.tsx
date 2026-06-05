@@ -29,6 +29,7 @@ export default function NewProductPage() {
       ingredients: isFoodProduct ? (values.ingredients ?? null) : null,
       usageRecommendation: isFoodProduct ? (values.usageRecommendation ?? null) : null,
       brandId: values.brandId ?? undefined,
+      flavorId: values.flavorId ?? undefined,
       variationType: values.variationType ?? undefined,
       isActive: values.isActive,
       showOnEcommerce: values.showOnEcommerce,

@@ -23,6 +23,7 @@ export interface CreateProductDTO {
   description?: string | null;
   costPrice: number;
   brandId?: string | null;
+  flavorId?: string | null;
   variationType?: string | null;
   isActive?: boolean;
   showOnEcommerce?: boolean;
@@ -36,6 +37,7 @@ export interface UpdateProductDTO {
   description?: string | null;
   costPrice?: number;
   brandId?: string | null;
+  flavorId?: string | null;
   variationType?: string | null;
   isActive?: boolean;
   showOnEcommerce?: boolean;

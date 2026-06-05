@@ -13,13 +13,25 @@ import { OrderDetailSheet } from "@/contexts/orders/presentation/components/orde
 import { UpdateOrderStatusDialog } from "@/contexts/orders/presentation/components/update-order-status-dialog";
 import { UpdateOrderPaymentStatusDialog } from "@/contexts/orders/presentation/components/update-order-payment-status-dialog";
 import { useDebounce } from "@/shared/hooks/use-debounce";
+import { ProtectedRoute } from "@/contexts/auth/presentation/components/protected-route";
+import { useAuthContext } from "@/contexts/auth/presentation/providers/auth-provider";
 import type { OrderListItem } from "@/contexts/orders/domain/entities/order";
 
 type StatusFilter = "all" | "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
 
 export default function OrdersPage() {
+  return (
+    <ProtectedRoute requiredPermissions={["orders:view"]}>
+      <OrdersPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function OrdersPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { hasPermission } = useAuthContext();
+  const canCreate = hasPermission("orders:create");
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     search: "",
@@ -141,13 +153,15 @@ export default function OrdersPage() {
             <Filter className="h-4 w-4" />
             Limpar Filtros
           </Button>
-          <Button
-            onClick={() => router.push("/dashboard/orders/new")}
-            className="hidden sm:inline-flex gap-2 shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
-          >
-            <Plus className="h-4 w-4" />
-            Novo Pedido
-          </Button>
+          {canCreate && (
+            <Button
+              onClick={() => router.push("/dashboard/orders/new")}
+              className="hidden sm:inline-flex gap-2 shadow-md transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
+            >
+              <Plus className="h-4 w-4" />
+              Novo Pedido
+            </Button>
+          )}
         </div>
       </div>
 
@@ -194,13 +208,15 @@ export default function OrdersPage() {
       />
 
       {/* Mobile FAB */}
-      <button
-        onClick={() => router.push("/dashboard/orders/new")}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-bee-gold text-black shadow-lg shadow-bee-gold/30 transition-all duration-200 hover:shadow-xl hover:scale-110 active:scale-95 sm:hidden"
-        aria-label="Novo Pedido"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </button>
+      {canCreate && (
+        <button
+          onClick={() => router.push("/dashboard/orders/new")}
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-bee-gold text-black shadow-lg shadow-bee-gold/30 transition-all duration-200 hover:shadow-xl hover:scale-110 active:scale-95 sm:hidden"
+          aria-label="Novo Pedido"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </button>
+      )}
     </div>
   );
 }

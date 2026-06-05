@@ -104,6 +104,7 @@ export const productFormSchema = z.object({
   usageRecommendation: z.string().optional().nullable(),
   costPrice: z.number().min(0, "Preço de custo não pode ser negativo"),
   brandId: z.string().optional().nullable(),
+  flavorId: z.string().optional().nullable(),
   variationType: z.string().optional().nullable(),
   isActive: z.boolean(),
   showOnEcommerce: z.boolean(),
